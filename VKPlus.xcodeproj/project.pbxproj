@@ -7,159 +7,157 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B1702D87C4DE4504AF28D978={isa=PBXBuildFile;fileRef=C40B7FDCA3B04F1D978394D3;};
-		B2F43599F5824956B8AB93A1={isa=PBXBuildFile;fileRef=3CA1DA724C524E2DA4B718EC;};
-		22BECD4147284169A5F9261A={isa=PBXBuildFile;fileRef=5BFF1FDB81724EFB8D41533E;};
-		C7738088A6C54042A7CE0047={isa=PBXBuildFile;fileRef=45E68BB78C304E2EA17A7674;};
-		131FA84955AF47629E0E44A8={isa=PBXBuildFile;fileRef=B0B5F3A95A244CAC998A0153;};
-		E54A29C8A5DC44FBAAA98FEE={isa=PBXBuildFile;fileRef=273985494B3C41FEA946C328;};
-		942CE9F8228D4DECAC395B2E={isa=PBXBuildFile;fileRef=8D4AB387767B41A8ADA9D0EB;};
-		FCFC65252B4440E2A864C980={isa=PBXBuildFile;fileRef=4AF30725FA934CCBBE1A5EE2;};
-		1284E40A5F8A4442B2FDB166={isa=PBXBuildFile;fileRef=5B96F3D8AE924C0AA70B862F;};
-		7897087DDBBB48D6B21275DC={isa=PBXBuildFile;fileRef=53AF9F5232A7452AAEF7CAF0;};
-		D20664592ED64EB3ABD7F742={isa=PBXBuildFile;fileRef=10CB531B5C374502AE79F290;};
-		AD47B4BA5C97473AA3C2B926={isa=PBXBuildFile;fileRef=EB403D2EF9464D03AC032CCE;};
-		C622A699B0AE4AAA8274E2D5={isa=PBXBuildFile;fileRef=23E21B93AC614D0FAF2A2DC8;};
-		129C1FA5BD574E539314C74D={isa=PBXBuildFile;fileRef=8BB5EDF505194CD093CDB47E;};
-		800A383C519047EDAEFF5D87={isa=PBXBuildFile;fileRef=3C4F5476154449FF88AB0EC3;};
-		FF13C54595CC4B718043EE73={isa=PBXBuildFile;fileRef=AF5DB5DE98C64C09A60207FD;};
-		B20BCB45ABF0492F9A86C608={isa=PBXBuildFile;fileRef=B79909AF455540FDB70FE012;};
-		54442FEFD41A428E9D838A58={isa=PBXBuildFile;fileRef=BE0870D6F18E4B7A82861EDA;};
-		969F5B63B26E4B45BF397FD3={isa=PBXBuildFile;fileRef=EDF061E438AF4CD6BE6CA152;};
-		720B9AE39E254ED980A736E9={isa=PBXBuildFile;fileRef=A00B6F91AA754622AB8227C4;};
-		E1BF94AD068A4C65AEFC9291={isa=PBXBuildFile;fileRef=02BE509C53DC4AF88AEB1217;};
-		2692CF2DF900435BA0EC4725={isa=PBXBuildFile;fileRef=ED9A16F003E947468BA32CA6;};
-		79166D4C91854614BC2D387D={isa=PBXBuildFile;fileRef=9A8873C35FBC4F7A80775AA6;};
-		E467A24D414B4912B9BFE9C9={isa=PBXBuildFile;fileRef=520912B277514E00A2BA24CC;};
-		0C44D7CDF4304AB4A6A38358={isa=PBXBuildFile;fileRef=05A75F2467C9403698D6C441;};
-		C25567D15C3249F7A7DDEBCE={isa=PBXBuildFile;fileRef=7A7CFB6EBFF0481C9FE03163;};
-		E8ABA6EE424142F89EF68405={isa=PBXBuildFile;fileRef=8A1E022CBB1B425DBC662C7C;};
+		0D891ED791FF432197A088C8={isa=PBXBuildFile;fileRef=6E93922755474FBEB35A584E;};
+		CE47D70EB1F64360A6EEE30D={isa=PBXBuildFile;fileRef=C715E09863034D99BFD8C0FF;};
+		78E0B59E18634A2C9B760CAC={isa=PBXBuildFile;fileRef=9AFB7266B8154AEA80A7FBF8;};
+		29049A24D93B405EB01E9E54={isa=PBXBuildFile;fileRef=192265A24660462E9C8C0287;};
+		680BB45150844FD0A639CB8D={isa=PBXBuildFile;fileRef=C3BDC10B0EC544F79E4B7F76;};
+		4559A07CFECF4EAEA12FD605={isa=PBXBuildFile;fileRef=BDF025DDCAAE40A9B2FBBC0C;};
+		EA5762766315442C98D2F239={isa=PBXBuildFile;fileRef=F7032E5E940A422DB7A3336B;};
+		FB3952A462E14E8083BB4431={isa=PBXBuildFile;fileRef=6FB2C08EE1064C9FA5074748;};
+		945FED4405104C2A9C0CDA7B={isa=PBXBuildFile;fileRef=84F686C5B8284F649435954E;};
+		6EA46BA4BB87447692F17F90={isa=PBXBuildFile;fileRef=AD828C8F937D4E2DAEAE741B;};
+		F06E0C99062C4B9CA740ACD7={isa=PBXBuildFile;fileRef=10506EAA222E48E9B04C369F;};
+		D6E75B279BC340B78315AA37={isa=PBXBuildFile;fileRef=F0DE6DCAB86D441A80691F60;};
+		E2353B9403164EB9976263F2={isa=PBXBuildFile;fileRef=E24E6340AF7040E8B025A8E5;};
+		98EB221D97E443C0B2EAF587={isa=PBXBuildFile;fileRef=06A970886E134D99A5E4A264;};
+		E3E6D14A25934EED990558A2={isa=PBXBuildFile;fileRef=FB2ABDA399F245718C493277;};
+		4148B3A152D34F8CB694CA33={isa=PBXBuildFile;fileRef=BB3F4225F3F94E4ABADF56D0;};
+		B7FA3D2121BE40068992B407={isa=PBXBuildFile;fileRef=8A5BA121F6E044C69FCE105E;};
+		41DF852E0A7947488DA5BBA0={isa=PBXBuildFile;fileRef=D0CC50C11EDE4A3F80797494;};
+		6536A557CD4C4AABBF04E8DC={isa=PBXBuildFile;fileRef=BF1AD6B602EA45C18EE9B20D;};
+		2EFCFF66248D48B7B30687CA={isa=PBXBuildFile;fileRef=95512113FDFC4203BCB46544;};
+		451B3D71D5764CA3BAE36246={isa=PBXBuildFile;fileRef=96DFA79F6750459B8D278472;};
+		4A022EA77878411FA66EC539={isa=PBXBuildFile;fileRef=1D7FB943250743AD9D4D2613;};
+		0D18C32A19A947B497FA3A81={isa=PBXBuildFile;fileRef=C996AE2739C640538EC9F3C0;};
+		8B20E381CC9D4263AD02277B={isa=PBXBuildFile;fileRef=03A22011346A453E8AEB279A;};
+		FA14E773FAA54BD48F591093={isa=PBXBuildFile;fileRef=FDC174D5FF6A44F1A47D11CC;};
+		EF96E971D820471C800C6493={isa=PBXBuildFile;fileRef=6DA6C448D33C442894579FC8;};
+		B8116A54F1784859B7E79C28={isa=PBXBuildFile;fileRef=52A0ADA316FF4DA0968A9AAA;};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		C40B7FDCA3B04F1D978394D3={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
-		3CA1DA724C524E2DA4B718EC={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthView.swift;sourceTree="<group>";};
-		5BFF1FDB81724EFB8D41533E={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthViewModel.swift;sourceTree="<group>";};
-		45E68BB78C304E2EA17A7674={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AvatarView.swift;sourceTree="<group>";};
-		B0B5F3A95A244CAC998A0153={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ChatView.swift;sourceTree="<group>";};
-		273985494B3C41FEA946C328={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ContentView.swift;sourceTree="<group>";};
-		8D4AB387767B41A8ADA9D0EB={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=CurrencyExchangeView.swift;sourceTree="<group>";};
-		4AF30725FA934CCBBE1A5EE2={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ExploitsView.swift;sourceTree="<group>";};
-		5B96F3D8AE924C0AA70B862F={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FeedView.swift;sourceTree="<group>";};
-		53AF9F5232A7452AAEF7CAF0={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FriendsView.swift;sourceTree="<group>";};
-		10CB531B5C374502AE79F290={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MainTabView.swift;sourceTree="<group>";};
-		EB403D2EF9464D03AC032CCE={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MessagesView.swift;sourceTree="<group>";};
-		23E21B93AC614D0FAF2A2DC8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=PrivacyEngine.swift;sourceTree="<group>";};
-		8BB5EDF505194CD093CDB47E={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProfileView.swift;sourceTree="<group>";};
-		3C4F5476154449FF88AB0EC3={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProxyView.swift;sourceTree="<group>";};
-		AF5DB5DE98C64C09A60207FD={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RemoveBannedView.swift;sourceTree="<group>";};
-		B79909AF455540FDB70FE012={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsStore.swift;sourceTree="<group>";};
-		BE0870D6F18E4B7A82861EDA={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsView.swift;sourceTree="<group>";};
-		EDF061E438AF4CD6BE6CA152={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SplashView.swift;sourceTree="<group>";};
-		A00B6F91AA754622AB8227C4={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=Theme.swift;sourceTree="<group>";};
-		02BE509C53DC4AF88AEB1217={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=TokenStorage.swift;sourceTree="<group>";};
-		ED9A16F003E947468BA32CA6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ToolsView.swift;sourceTree="<group>";};
-		9A8873C35FBC4F7A80775AA6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKAPIClient.swift;sourceTree="<group>";};
-		520912B277514E00A2BA24CC={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKModels.swift;sourceTree="<group>";};
-		05A75F2467C9403698D6C441={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKPlusApp.swift;sourceTree="<group>";};
-		7A7CFB6EBFF0481C9FE03163={isa=PBXFileReference;lastKnownFileType=folder.assetcatalog;path=Assets.xcassets;sourceTree="<group>";};
-		8A1E022CBB1B425DBC662C7C={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=Network.framework;path=System/Library/Frameworks/Network.framework;sourceTree=SDKROOT;};
-		95352D0AE516419E8EB28E52={isa=PBXFileReference;lastKnownFileType=text.plist.xml;path=Info.plist;sourceTree="<group>";};
-		A8AE3F330A4F4733A88333E0={isa=PBXFileReference;explicitFileType=wrapper.application;includeInIndex=0;path=VKPlus.app;sourceTree=BUILT_PRODUCTS_DIR;};
+		6E93922755474FBEB35A584E={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
+		C715E09863034D99BFD8C0FF={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthView.swift;sourceTree="<group>";};
+		9AFB7266B8154AEA80A7FBF8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthViewModel.swift;sourceTree="<group>";};
+		192265A24660462E9C8C0287={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AvatarView.swift;sourceTree="<group>";};
+		C3BDC10B0EC544F79E4B7F76={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ChatView.swift;sourceTree="<group>";};
+		BDF025DDCAAE40A9B2FBBC0C={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ContentView.swift;sourceTree="<group>";};
+		F7032E5E940A422DB7A3336B={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=CurrencyExchangeView.swift;sourceTree="<group>";};
+		6FB2C08EE1064C9FA5074748={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ExploitsView.swift;sourceTree="<group>";};
+		84F686C5B8284F649435954E={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FeedView.swift;sourceTree="<group>";};
+		AD828C8F937D4E2DAEAE741B={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FriendsView.swift;sourceTree="<group>";};
+		10506EAA222E48E9B04C369F={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MainTabView.swift;sourceTree="<group>";};
+		F0DE6DCAB86D441A80691F60={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MessagesView.swift;sourceTree="<group>";};
+		E24E6340AF7040E8B025A8E5={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=PrivacyEngine.swift;sourceTree="<group>";};
+		06A970886E134D99A5E4A264={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProfileView.swift;sourceTree="<group>";};
+		FB2ABDA399F245718C493277={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProxyView.swift;sourceTree="<group>";};
+		BB3F4225F3F94E4ABADF56D0={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RemoveBannedView.swift;sourceTree="<group>";};
+		8A5BA121F6E044C69FCE105E={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsStore.swift;sourceTree="<group>";};
+		D0CC50C11EDE4A3F80797494={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsView.swift;sourceTree="<group>";};
+		BF1AD6B602EA45C18EE9B20D={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SplashView.swift;sourceTree="<group>";};
+		95512113FDFC4203BCB46544={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=Theme.swift;sourceTree="<group>";};
+		96DFA79F6750459B8D278472={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=TokenStorage.swift;sourceTree="<group>";};
+		1D7FB943250743AD9D4D2613={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ToolsView.swift;sourceTree="<group>";};
+		C996AE2739C640538EC9F3C0={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKAPIClient.swift;sourceTree="<group>";};
+		03A22011346A453E8AEB279A={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKModels.swift;sourceTree="<group>";};
+		FDC174D5FF6A44F1A47D11CC={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKPlusApp.swift;sourceTree="<group>";};
+		6DA6C448D33C442894579FC8={isa=PBXFileReference;lastKnownFileType=folder.assetcatalog;path=Assets.xcassets;sourceTree="<group>";};
+		52A0ADA316FF4DA0968A9AAA={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=Network.framework;path=System/Library/Frameworks/Network.framework;sourceTree=SDKROOT;};
+		B0ED02E5517C4B8CAE783906={isa=PBXFileReference;explicitFileType=wrapper.application;includeInIndex=0;path=VKPlus.app;sourceTree=BUILT_PRODUCTS_DIR;};
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		400863A7B2FB438D9DFC4E5B={isa=PBXFrameworksBuildPhase;buildActionMask=2147483647;files=(E8ABA6EE424142F89EF68405,);runOnlyForDeploymentPostprocessing=0;};
+		0660E69B382D4FE2B45A0CBB={isa=PBXFrameworksBuildPhase;buildActionMask=2147483647;files=(B8116A54F1784859B7E79C28,);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E24506CEBCF64FF1AF928C67={isa=PBXGroup;children=(8127762DB3E84A10AD44E702,6FA9573E2D5E4DDEAE6C2570,);sourceTree="<group>";};
-		8127762DB3E84A10AD44E702={isa=PBXGroup;children=(
-			C40B7FDCA3B04F1D978394D3,
-			3CA1DA724C524E2DA4B718EC,
-			5BFF1FDB81724EFB8D41533E,
-			45E68BB78C304E2EA17A7674,
-			B0B5F3A95A244CAC998A0153,
-			273985494B3C41FEA946C328,
-			8D4AB387767B41A8ADA9D0EB,
-			4AF30725FA934CCBBE1A5EE2,
-			5B96F3D8AE924C0AA70B862F,
-			53AF9F5232A7452AAEF7CAF0,
-			10CB531B5C374502AE79F290,
-			EB403D2EF9464D03AC032CCE,
-			23E21B93AC614D0FAF2A2DC8,
-			8BB5EDF505194CD093CDB47E,
-			3C4F5476154449FF88AB0EC3,
-			AF5DB5DE98C64C09A60207FD,
-			B79909AF455540FDB70FE012,
-			BE0870D6F18E4B7A82861EDA,
-			EDF061E438AF4CD6BE6CA152,
-			A00B6F91AA754622AB8227C4,
-			02BE509C53DC4AF88AEB1217,
-			ED9A16F003E947468BA32CA6,
-			9A8873C35FBC4F7A80775AA6,
-			520912B277514E00A2BA24CC,
-			05A75F2467C9403698D6C441,
-			7A7CFB6EBFF0481C9FE03163,
-			95352D0AE516419E8EB28E52,
+		E68FF2AB42554AC7A265A4E5={isa=PBXGroup;children=(66F5DE5EB64A4137B8779884,1BE16017211541B3821BF3DD,);sourceTree="<group>";};
+		66F5DE5EB64A4137B8779884={isa=PBXGroup;children=(
+			6E93922755474FBEB35A584E,
+			C715E09863034D99BFD8C0FF,
+			9AFB7266B8154AEA80A7FBF8,
+			192265A24660462E9C8C0287,
+			C3BDC10B0EC544F79E4B7F76,
+			BDF025DDCAAE40A9B2FBBC0C,
+			F7032E5E940A422DB7A3336B,
+			6FB2C08EE1064C9FA5074748,
+			84F686C5B8284F649435954E,
+			AD828C8F937D4E2DAEAE741B,
+			10506EAA222E48E9B04C369F,
+			F0DE6DCAB86D441A80691F60,
+			E24E6340AF7040E8B025A8E5,
+			06A970886E134D99A5E4A264,
+			FB2ABDA399F245718C493277,
+			BB3F4225F3F94E4ABADF56D0,
+			8A5BA121F6E044C69FCE105E,
+			D0CC50C11EDE4A3F80797494,
+			BF1AD6B602EA45C18EE9B20D,
+			95512113FDFC4203BCB46544,
+			96DFA79F6750459B8D278472,
+			1D7FB943250743AD9D4D2613,
+			C996AE2739C640538EC9F3C0,
+			03A22011346A453E8AEB279A,
+			FDC174D5FF6A44F1A47D11CC,
+			6DA6C448D33C442894579FC8,
 		);path=VKPlus;sourceTree="<group>";};
-		6FA9573E2D5E4DDEAE6C2570={isa=PBXGroup;children=(A8AE3F330A4F4733A88333E0,);name=Products;sourceTree="<group>";};
+		1BE16017211541B3821BF3DD={isa=PBXGroup;children=(B0ED02E5517C4B8CAE783906,);name=Products;sourceTree="<group>";};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B01D55F9CFCE48EA92CEBBFD={isa=PBXNativeTarget;buildConfigurationList=23838F651BBD45DEA2D237C5;buildPhases=(727B8F20CE194DE3A86EC31E,400863A7B2FB438D9DFC4E5B,C3D4D2A21A7241CEA17B73BA,);buildRules=();dependencies=();name=VKPlus;productName=VKPlus;productReference=A8AE3F330A4F4733A88333E0;productType="com.apple.product-type.application";};
+		6AB904E164FD44D3A815CF7F={isa=PBXNativeTarget;buildConfigurationList=F35586163AA34C1795D006B9;buildPhases=(104B186C160541E59B26AA12,0660E69B382D4FE2B45A0CBB,88A0D34EE6844FC593CF3AEA,);buildRules=();dependencies=();name=VKPlus;productName=VKPlus;productReference=B0ED02E5517C4B8CAE783906;productType="com.apple.product-type.application";};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		A7F1F164B254488CA5DA4AE9={isa=PBXProject;buildConfigurationList=C28683A9A4F14F9C90A55F29;compatibilityVersion="Xcode 14.0";developmentRegion=en;hasScannedForEncodings=0;knownRegions=(en,Base,);mainGroup=E24506CEBCF64FF1AF928C67;productRefGroup=6FA9573E2D5E4DDEAE6C2570;projectDirPath="";projectRoot="";targets=(B01D55F9CFCE48EA92CEBBFD,);};
+		2E50782D4B4F4C21814258C9={isa=PBXProject;buildConfigurationList=F8F55DC6F3A1449098EE7FB2;compatibilityVersion="Xcode 14.0";developmentRegion=en;hasScannedForEncodings=0;knownRegions=(en,Base,);mainGroup=E68FF2AB42554AC7A265A4E5;productRefGroup=1BE16017211541B3821BF3DD;projectDirPath="";projectRoot="";targets=(6AB904E164FD44D3A815CF7F,);};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		C3D4D2A21A7241CEA17B73BA={isa=PBXResourcesBuildPhase;buildActionMask=2147483647;files=(C25567D15C3249F7A7DDEBCE,);runOnlyForDeploymentPostprocessing=0;};
+		88A0D34EE6844FC593CF3AEA={isa=PBXResourcesBuildPhase;buildActionMask=2147483647;files=(EF96E971D820471C800C6493,);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		727B8F20CE194DE3A86EC31E={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
-			B1702D87C4DE4504AF28D978,
-			B2F43599F5824956B8AB93A1,
-			22BECD4147284169A5F9261A,
-			C7738088A6C54042A7CE0047,
-			131FA84955AF47629E0E44A8,
-			E54A29C8A5DC44FBAAA98FEE,
-			942CE9F8228D4DECAC395B2E,
-			FCFC65252B4440E2A864C980,
-			1284E40A5F8A4442B2FDB166,
-			7897087DDBBB48D6B21275DC,
-			D20664592ED64EB3ABD7F742,
-			AD47B4BA5C97473AA3C2B926,
-			C622A699B0AE4AAA8274E2D5,
-			129C1FA5BD574E539314C74D,
-			800A383C519047EDAEFF5D87,
-			FF13C54595CC4B718043EE73,
-			B20BCB45ABF0492F9A86C608,
-			54442FEFD41A428E9D838A58,
-			969F5B63B26E4B45BF397FD3,
-			720B9AE39E254ED980A736E9,
-			E1BF94AD068A4C65AEFC9291,
-			2692CF2DF900435BA0EC4725,
-			79166D4C91854614BC2D387D,
-			E467A24D414B4912B9BFE9C9,
-			0C44D7CDF4304AB4A6A38358,
+		104B186C160541E59B26AA12={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+			0D891ED791FF432197A088C8,
+			CE47D70EB1F64360A6EEE30D,
+			78E0B59E18634A2C9B760CAC,
+			29049A24D93B405EB01E9E54,
+			680BB45150844FD0A639CB8D,
+			4559A07CFECF4EAEA12FD605,
+			EA5762766315442C98D2F239,
+			FB3952A462E14E8083BB4431,
+			945FED4405104C2A9C0CDA7B,
+			6EA46BA4BB87447692F17F90,
+			F06E0C99062C4B9CA740ACD7,
+			D6E75B279BC340B78315AA37,
+			E2353B9403164EB9976263F2,
+			98EB221D97E443C0B2EAF587,
+			E3E6D14A25934EED990558A2,
+			4148B3A152D34F8CB694CA33,
+			B7FA3D2121BE40068992B407,
+			41DF852E0A7947488DA5BBA0,
+			6536A557CD4C4AABBF04E8DC,
+			2EFCFF66248D48B7B30687CA,
+			451B3D71D5764CA3BAE36246,
+			4A022EA77878411FA66EC539,
+			0D18C32A19A947B497FA3A81,
+			8B20E381CC9D4263AD02277B,
+			FA14E773FAA54BD48F591093,
 		);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		D1F253F64EB245D8B7B4DFCE={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;INFOPLIST_FILE=VKPlus/Info.plist;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Debug;};
-		27414D530CAB455AAB85CE66={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;INFOPLIST_FILE=VKPlus/Info.plist;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Release;};
-		C8EE7F5DD2534C96B63FF9C3={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT=dwarf;GCC_NO_COMMON_BLOCKS=YES;GCC_OPTIMIZATION_LEVEL=0;ONLY_ACTIVE_ARCH=YES;SDKROOT=iphoneos;SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG;SWIFT_OPTIMIZATION_LEVEL="-Onone";};name=Debug;};
-		A5B4B9C6B7B84A2FB734CDD7={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT="dwarf-with-dsym";ENABLE_NS_ASSERTIONS=NO;GCC_NO_COMMON_BLOCKS=YES;SDKROOT=iphoneos;SWIFT_COMPILATION_MODE=wholemodule;SWIFT_OPTIMIZATION_LEVEL="-O";VALIDATE_PRODUCT=YES;};name=Release;};
+		207F18608D0B41889E72C4D7={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;GENERATE_INFOPLIST_FILE=YES;INFOPLIST_KEY_CFBundleDisplayName="VK+";INFOPLIST_KEY_NSAppTransportSecurity="<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";INFOPLIST_KEY_UIApplicationSceneManifest_Generation=YES;INFOPLIST_KEY_UILaunchScreen_Generation=YES;INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone=UIInterfaceOrientationPortrait;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Debug;};
+		419F68ABDBA34C2C92F21BF9={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;GENERATE_INFOPLIST_FILE=YES;INFOPLIST_KEY_CFBundleDisplayName="VK+";INFOPLIST_KEY_NSAppTransportSecurity="<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";INFOPLIST_KEY_UIApplicationSceneManifest_Generation=YES;INFOPLIST_KEY_UILaunchScreen_Generation=YES;INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone=UIInterfaceOrientationPortrait;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Release;};
+		DC432EF1F1924FCAA8A83C60={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT=dwarf;GCC_NO_COMMON_BLOCKS=YES;GCC_OPTIMIZATION_LEVEL=0;ONLY_ACTIVE_ARCH=YES;SDKROOT=iphoneos;SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG;SWIFT_OPTIMIZATION_LEVEL="-Onone";};name=Debug;};
+		B9AFE18C95244CDABED63B6E={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT="dwarf-with-dsym";ENABLE_NS_ASSERTIONS=NO;GCC_NO_COMMON_BLOCKS=YES;SDKROOT=iphoneos;SWIFT_COMPILATION_MODE=wholemodule;SWIFT_OPTIMIZATION_LEVEL="-O";VALIDATE_PRODUCT=YES;};name=Release;};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		23838F651BBD45DEA2D237C5={isa=XCConfigurationList;buildConfigurations=(D1F253F64EB245D8B7B4DFCE,27414D530CAB455AAB85CE66,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
-		C28683A9A4F14F9C90A55F29={isa=XCConfigurationList;buildConfigurations=(C8EE7F5DD2534C96B63FF9C3,A5B4B9C6B7B84A2FB734CDD7,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
+		F35586163AA34C1795D006B9={isa=XCConfigurationList;buildConfigurations=(207F18608D0B41889E72C4D7,419F68ABDBA34C2C92F21BF9,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
+		F8F55DC6F3A1449098EE7FB2={isa=XCConfigurationList;buildConfigurations=(DC432EF1F1924FCAA8A83C60,B9AFE18C95244CDABED63B6E,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
 /* End XCConfigurationList section */
 
 	};
-	rootObject=A7F1F164B254488CA5DA4AE9;
+	rootObject=2E50782D4B4F4C21814258C9;
 }
