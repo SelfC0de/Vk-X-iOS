@@ -177,8 +177,4 @@ struct CurrencyState {
 let ALL_CURRENCIES = ["USD","EUR","RUB","GBP","CNY","JPY","AED","TRY","KZT","BYN",
                       "CHF","CAD","AUD","SEK","NOK","PLN","CZK","HUF","INR","BRL"]
 
-// Proxy
-struct ProxyEntry: Identifiable, Codable, Equatable {
-    var id: UUID = UUID(); var host: String; var port: Int
-    var type: String = "SOCKS5"; var secret: String = ""; var pingMs: Int? = nil
-}
+// ProxyEntry is defined in ProxyView.swift
