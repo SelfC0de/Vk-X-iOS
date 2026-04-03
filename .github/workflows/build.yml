@@ -36,6 +36,30 @@ jobs:
             ARCHS=arm64 \
             build
 
+      - name: Inject icons into .app bundle
+        run: |
+          APP=build/Build/Products/Release-iphoneos/VKPlus.app
+
+          # Copy all icon PNGs directly into .app root
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-60@2x.png  "$APP/AppIcon60x60@2x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-60@3x.png  "$APP/AppIcon60x60@3x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-40@2x.png  "$APP/AppIcon40x40@2x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-40@3x.png  "$APP/AppIcon40x40@3x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-29@2x.png  "$APP/AppIcon29x29@2x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-29@3x.png  "$APP/AppIcon29x29@3x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-20@2x.png  "$APP/AppIcon20x20@2x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-20@3x.png  "$APP/AppIcon20x20@3x.png"
+          cp VKPlus/Assets.xcassets/AppIcon.appiconset/Icon-1024.png    "$APP/AppIcon1024x1024.png"
+
+          # Patch Info.plist to reference the PNG icons directly
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleIcons" "$APP/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons dict" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon dict" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles array" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:0 string AppIcon60x60" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName string AppIcon" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:UIPrerenderedIcon bool false" "$APP/Info.plist"
+
       - name: Package IPA
         run: |
           mkdir -p Payload
