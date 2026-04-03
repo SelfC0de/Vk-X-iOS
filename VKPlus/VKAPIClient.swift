@@ -54,7 +54,7 @@ final class VKAPIClient {
         if s.hardwareSpoof {
             let dev = HardwareSpoofing.generate()
             req.setValue(dev.userAgent, forHTTPHeaderField: "User-Agent")
-            HardwareSpoofing.generateHeaders(dev).forEach { req.setValue($1, forHTTPHeaderField: $0) }
+            dev.headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
         } else {
             req.setValue(s.deviceUa, forHTTPHeaderField: "User-Agent")
         }
