@@ -108,12 +108,12 @@ private struct ToolsTab: View {
     var body: some View {
         VStack(spacing: 12) {
             SettingsSection(title: "🧹 Управление друзьями") {
-                SettingsNavRow("Remove Banned Users", icon: "person.badge.minus") {
+                SettingsNavRow(title: "Remove Banned Users", icon: "person.badge.minus") {
                     PlaceholderView(title: "Remove Banned")
                 }
             }
             SettingsSection(title: "💱 Currency Exchange") {
-                SettingsNavRow("Курсы валют", icon: "dollarsign.circle.fill") {
+                SettingsNavRow(title: "Курсы валют", icon: "dollarsign.circle.fill") {
                     PlaceholderView(title: "Currency Exchange")
                 }
             }
@@ -126,12 +126,12 @@ private struct ExploitsTab: View {
     var body: some View {
         VStack(spacing: 12) {
             SettingsSection(title: "🎭 Profile Changer") {
-                SettingsNavRow("Profile Changer", icon: "person.crop.circle.badge.questionmark.fill") {
+                SettingsNavRow(title: "Profile Changer", icon: "person.crop.circle.badge.questionmark.fill") {
                     PlaceholderView(title: "Profile Changer")
                 }
             }
             SettingsSection(title: "✅ Fake Verification") {
-                SettingsNavRow("Fake Verification", icon: "checkmark.seal.fill") {
+                SettingsNavRow(title: "Fake Verification", icon: "checkmark.seal.fill") {
                     PlaceholderView(title: "Fake Verification")
                 }
             }
@@ -144,7 +144,7 @@ private struct ProxyTab: View {
     var body: some View {
         VStack(spacing: 12) {
             SettingsSection(title: "🌍 Прокси") {
-                SettingsNavRow("Управление прокси", icon: "network") { ProxyView() }
+                SettingsNavRow(title: "Управление прокси", icon: "network") { ProxyView() }
             }
         }
     }

@@ -54,7 +54,7 @@ final class VKAPIClient {
 
     // MARK: Generic request
     private func call<T: Decodable>(_ method: String,
-                                    params: [String: String] = [],
+                                    params: [String: String] = [:],
                                     token override: String? = nil) async throws -> T {
         var comps = URLComponents(string: "\(base)/\(method)")!
         var items = params.map { URLQueryItem(name: $0.key, value: $0.value) }

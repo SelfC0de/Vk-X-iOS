@@ -6,8 +6,8 @@ struct ToolsView: View {
             Color.background.ignoresSafeArea()
             VStack(spacing: 12) {
                 Image(systemName: "hammer.fill")
-                    .font(.system(size: 44)).foregroundStyle(.onSurfaceMut)
-                Text("Tools").foregroundStyle(.onSurfaceMut)
+                    .font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
+                Text("Tools").foregroundStyle(Color.onSurfaceMut)
             }
         }
     }
