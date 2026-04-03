@@ -1,11 +1,21 @@
-name: Build IPA
+name: Build VK+ iOS
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version (e.g. 1.0.1)'
+        required: true
+        default: '1.0.0'
+      notes:
+        description: 'Release notes'
+        required: false
+        default: 'Pre-release'
 
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,21 +40,16 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/VKPlus.app Payload/
-          zip -r VKPlus.ipa Payload
-          rm -rf Payload
+          zip -r VKPlus-v${{ github.event.inputs.version_name }}.ipa Payload
+          rm -rf Payload build
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: VKPlus-ipa
-          path: VKPlus.ipa
-
-      - name: Create Release
+      - name: Publish Pre-Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "VK+ iOS #${{ github.run_number }}"
-          files: VKPlus.ipa
+          tag_name: v${{ github.event.inputs.version_name }}
+          name: "VK+ iOS v${{ github.event.inputs.version_name }}"
+          body: ${{ github.event.inputs.notes }}
           prerelease: true
+          files: VKPlus-v${{ github.event.inputs.version_name }}.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
