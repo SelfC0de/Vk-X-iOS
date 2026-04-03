@@ -7,297 +7,157 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E2BE8BF94486442899EA315A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D602A6615D4371896522F0 /* AuthView.swift */; };
-		54740FC4467F4FA39DE06BAD /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74CBA09BD4244788BFE949B /* AuthViewModel.swift */; };
-		AC7B385E1E3042DD835165B7 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE99D414119B42D8932C092D /* AvatarView.swift */; };
-		0E25D157D0DE46599DB1FC80 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5584F2E85147B19B670881 /* ChatView.swift */; };
-		440CDB69D0934096A7696DF6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */; };
-		4CC2FE84649A4693826C9B8A /* ExploitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471D86324D9B4C7191118CA1 /* ExploitsView.swift */; };
-		DDB2F4C4572146F8B4791AB7 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E36E81A964E44DFB1273E58 /* FeedView.swift */; };
-		C8FD5ADC2C0C498E94E55054 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2A06B573BE45838A19F3EE /* FriendsView.swift */; };
-		8B0C3662CFD94D098292691B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */; };
-		725ADC9801AE4E72ADA26217 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FED558DF984A8B9A5D312E /* MessagesView.swift */; };
-		8E7E293622AA478AA8DBFD79 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 515E81382C424D5D87D2A5A7 /* ProfileView.swift */; };
-		3A647DDD029749279D677937 /* ProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */; };
-		B5B34199339341D0AD5877F7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F9344A8938419CBF9E7404 /* SettingsView.swift */; };
-		7DFE40DE74D74EBD9ED9B8C8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */; };
-		9CC1C1F7949C44C39BF4A61C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954F49E43FD34DA8A4484ACA /* Theme.swift */; };
-		6D6AA72CAF0341738D9A0286 /* TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B788F7FC6946219FDD8318 /* TokenStorage.swift */; };
-		272294B70BB6452C83965DBC /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 713636A30C064F1E81FB868F /* ToolsView.swift */; };
-		F3834546D60D4518A089CF02 /* VKAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFA128CA3164A2C99363586 /* VKAPIClient.swift */; };
-		180D2EBD3C2D4A4AB883C3F6 /* VKModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EF61377198462B9C4BF950 /* VKModels.swift */; };
-		F0B8B6832C6F4114B90487B7 /* VKPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD937A202BD9462BBF18815B /* VKPlusApp.swift */; };
-		925D098DAA10403D9CE09297 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7BFA6DCFA44040A0B3483516 /* Assets.xcassets */; };
-		EE2C0CB4A8C44A0B802190AC /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C65AA3E3A204731AB9A112C /* Network.framework */; };
+		8899F6A0EA854C3FB4995AF2={isa=PBXBuildFile;fileRef=D72CDAD934814C7D9117C7B9;};
+		F04F184227054322872E5E73={isa=PBXBuildFile;fileRef=87C325C4E4AE4EF7ACF77F66;};
+		0C543F7675CD4D218FC1B6FF={isa=PBXBuildFile;fileRef=5087F5B2735343B2A3E889F7;};
+		002657022C9544DD805918DA={isa=PBXBuildFile;fileRef=35AAC553951745CABEB0812A;};
+		5788FE5401B14F3C9B96A830={isa=PBXBuildFile;fileRef=0A8A3F113D7B4EB6A5D41424;};
+		4B1AC7A64EAF47B2825F77CB={isa=PBXBuildFile;fileRef=CC029E2986604F59A9E93C0B;};
+		97F0E624297247DEB657428C={isa=PBXBuildFile;fileRef=53DB0EE49D0244D69FD47072;};
+		B13FAFBA3D27459E9FDA731E={isa=PBXBuildFile;fileRef=904B4DB2FBD74262833FE518;};
+		F95E31B1DB2E4AA28A23F1BE={isa=PBXBuildFile;fileRef=1204888FF3C04C539C4DD845;};
+		1C6FDA89CBE44520826EBB95={isa=PBXBuildFile;fileRef=02BE47EB6B1349EC95076E92;};
+		C489977A3C94418F9EFAC7CB={isa=PBXBuildFile;fileRef=01F755D8893B43359A44C2E8;};
+		7E4F02C9ABCE49658E271B28={isa=PBXBuildFile;fileRef=E114223E22FA4946B3E037B7;};
+		51203F3C25C24375A4550884={isa=PBXBuildFile;fileRef=0E334941CE9B47E08C6CC788;};
+		2D40077D4646434680DA2461={isa=PBXBuildFile;fileRef=D316AC83DE6F4ABBA71CD404;};
+		1EDC4F35F7AB4B0083826154={isa=PBXBuildFile;fileRef=CA7BBEF944B24925B53DCD98;};
+		815DBEF233464BBBA2FF13E0={isa=PBXBuildFile;fileRef=337CF01BA2EC498DB6F9B492;};
+		AFE7BC0C4D164C0CB7FE85AD={isa=PBXBuildFile;fileRef=706B763AE26C4E1CA50D9DDD;};
+		1F305E58C97041A380425CA1={isa=PBXBuildFile;fileRef=9982D13B25D04AD189BA7E59;};
+		DF43596122F345F8981A1AB6={isa=PBXBuildFile;fileRef=EA7DE2BEC206451B903729D5;};
+		D2DCC807B3684715A14A9DE8={isa=PBXBuildFile;fileRef=0B8D059B07C045D38B9D7726;};
+		EC49DA2FA4444C7EB7F5B342={isa=PBXBuildFile;fileRef=2FCCC739600540DBBB010027;};
+		063D0706A1A14BA8829CAD20={isa=PBXBuildFile;fileRef=53D975AD393E433488FC3E77;};
+		9A87C3616507465FBE32C607={isa=PBXBuildFile;fileRef=85178955F0FE49A3A82FB308;};
+		9672ACF38D5840929FC3A693={isa=PBXBuildFile;fileRef=40CC183EF1B04C87A039E515;};
+		D479F8AB5083415085965247={isa=PBXBuildFile;fileRef=C972BA1D70B0474091F9ACA5;};
+		13DB955822164A4FB9F892F2={isa=PBXBuildFile;fileRef=251F240867824477B19AE169;};
+		290084E2F2DA41A8BC7F7935={isa=PBXBuildFile;fileRef=D27BD9201845486DA9D0D873;};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A6D602A6615D4371896522F0 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
-		D74CBA09BD4244788BFE949B /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
-		FE99D414119B42D8932C092D /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
-		2C5584F2E85147B19B670881 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		471D86324D9B4C7191118CA1 /* ExploitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploitsView.swift; sourceTree = "<group>"; };
-		9E36E81A964E44DFB1273E58 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
-		4D2A06B573BE45838A19F3EE /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
-		8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		F3FED558DF984A8B9A5D312E /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
-		515E81382C424D5D87D2A5A7 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyView.swift; sourceTree = "<group>"; };
-		03F9344A8938419CBF9E7404 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
-		954F49E43FD34DA8A4484ACA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		56B788F7FC6946219FDD8318 /* TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStorage.swift; sourceTree = "<group>"; };
-		713636A30C064F1E81FB868F /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
-		9CFA128CA3164A2C99363586 /* VKAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKAPIClient.swift; sourceTree = "<group>"; };
-		33EF61377198462B9C4BF950 /* VKModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKModels.swift; sourceTree = "<group>"; };
-		FD937A202BD9462BBF18815B /* VKPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKPlusApp.swift; sourceTree = "<group>"; };
-		7BFA6DCFA44040A0B3483516 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		3C65AA3E3A204731AB9A112C /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
-		86BE1BA7295347A993A95178 /* VKPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VKPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D72CDAD934814C7D9117C7B9={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
+		87C325C4E4AE4EF7ACF77F66={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthView.swift;sourceTree="<group>";};
+		5087F5B2735343B2A3E889F7={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthViewModel.swift;sourceTree="<group>";};
+		35AAC553951745CABEB0812A={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AvatarView.swift;sourceTree="<group>";};
+		0A8A3F113D7B4EB6A5D41424={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ChatView.swift;sourceTree="<group>";};
+		CC029E2986604F59A9E93C0B={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ContentView.swift;sourceTree="<group>";};
+		53DB0EE49D0244D69FD47072={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=CurrencyExchangeView.swift;sourceTree="<group>";};
+		904B4DB2FBD74262833FE518={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ExploitsView.swift;sourceTree="<group>";};
+		1204888FF3C04C539C4DD845={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FeedView.swift;sourceTree="<group>";};
+		02BE47EB6B1349EC95076E92={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=FriendsView.swift;sourceTree="<group>";};
+		01F755D8893B43359A44C2E8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MainTabView.swift;sourceTree="<group>";};
+		E114223E22FA4946B3E037B7={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=MessagesView.swift;sourceTree="<group>";};
+		0E334941CE9B47E08C6CC788={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=PrivacyEngine.swift;sourceTree="<group>";};
+		D316AC83DE6F4ABBA71CD404={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProfileView.swift;sourceTree="<group>";};
+		CA7BBEF944B24925B53DCD98={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ProxyView.swift;sourceTree="<group>";};
+		337CF01BA2EC498DB6F9B492={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RemoveBannedView.swift;sourceTree="<group>";};
+		706B763AE26C4E1CA50D9DDD={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsStore.swift;sourceTree="<group>";};
+		9982D13B25D04AD189BA7E59={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SettingsView.swift;sourceTree="<group>";};
+		EA7DE2BEC206451B903729D5={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=SplashView.swift;sourceTree="<group>";};
+		0B8D059B07C045D38B9D7726={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=Theme.swift;sourceTree="<group>";};
+		2FCCC739600540DBBB010027={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=TokenStorage.swift;sourceTree="<group>";};
+		53D975AD393E433488FC3E77={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ToolsView.swift;sourceTree="<group>";};
+		85178955F0FE49A3A82FB308={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKAPIClient.swift;sourceTree="<group>";};
+		40CC183EF1B04C87A039E515={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKModels.swift;sourceTree="<group>";};
+		C972BA1D70B0474091F9ACA5={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=VKPlusApp.swift;sourceTree="<group>";};
+		251F240867824477B19AE169={isa=PBXFileReference;lastKnownFileType=folder.assetcatalog;path=Assets.xcassets;sourceTree="<group>";};
+		D27BD9201845486DA9D0D873={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=Network.framework;path=System/Library/Frameworks/Network.framework;sourceTree=SDKROOT;};
+		50547DBA2E7245808A48817B={isa=PBXFileReference;explicitFileType=wrapper.application;includeInIndex=0;path=VKPlus.app;sourceTree=BUILT_PRODUCTS_DIR;};
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		E48BAE88E248413DA361823C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				EE2C0CB4A8C44A0B802190AC /* Network.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+		BDF4FFC014D84CE9BD945144={isa=PBXFrameworksBuildPhase;buildActionMask=2147483647;files=(290084E2F2DA41A8BC7F7935,);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		99E4A137683D426F8E23D9A8 = {
-			isa = PBXGroup;
-			children = (
-				88B21C3F691C47B99AC4421E /* VKPlus */,
-				6E0E5FFC7567426CA4D654CA /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		88B21C3F691C47B99AC4421E /* VKPlus */ = {
-			isa = PBXGroup;
-			children = (
-				A6D602A6615D4371896522F0 /* AuthView.swift */,
-				D74CBA09BD4244788BFE949B /* AuthViewModel.swift */,
-				FE99D414119B42D8932C092D /* AvatarView.swift */,
-				2C5584F2E85147B19B670881 /* ChatView.swift */,
-				B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */,
-				471D86324D9B4C7191118CA1 /* ExploitsView.swift */,
-				9E36E81A964E44DFB1273E58 /* FeedView.swift */,
-				4D2A06B573BE45838A19F3EE /* FriendsView.swift */,
-				8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */,
-				F3FED558DF984A8B9A5D312E /* MessagesView.swift */,
-				515E81382C424D5D87D2A5A7 /* ProfileView.swift */,
-				65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */,
-				03F9344A8938419CBF9E7404 /* SettingsView.swift */,
-				B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */,
-				954F49E43FD34DA8A4484ACA /* Theme.swift */,
-				56B788F7FC6946219FDD8318 /* TokenStorage.swift */,
-				713636A30C064F1E81FB868F /* ToolsView.swift */,
-				9CFA128CA3164A2C99363586 /* VKAPIClient.swift */,
-				33EF61377198462B9C4BF950 /* VKModels.swift */,
-				FD937A202BD9462BBF18815B /* VKPlusApp.swift */,
-				7BFA6DCFA44040A0B3483516 /* Assets.xcassets */,
-			);
-			path = VKPlus;
-			sourceTree = "<group>";
-		};
-		6E0E5FFC7567426CA4D654CA /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				86BE1BA7295347A993A95178 /* VKPlus.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
+		A2E9CBE550684E0E8CBACBAD={isa=PBXGroup;children=(A384962059264DF0865C5D9A,605455D2EB3343178A67C1F3,);sourceTree="<group>";};
+		A384962059264DF0865C5D9A={isa=PBXGroup;children=(
+			D72CDAD934814C7D9117C7B9,
+			87C325C4E4AE4EF7ACF77F66,
+			5087F5B2735343B2A3E889F7,
+			35AAC553951745CABEB0812A,
+			0A8A3F113D7B4EB6A5D41424,
+			CC029E2986604F59A9E93C0B,
+			53DB0EE49D0244D69FD47072,
+			904B4DB2FBD74262833FE518,
+			1204888FF3C04C539C4DD845,
+			02BE47EB6B1349EC95076E92,
+			01F755D8893B43359A44C2E8,
+			E114223E22FA4946B3E037B7,
+			0E334941CE9B47E08C6CC788,
+			D316AC83DE6F4ABBA71CD404,
+			CA7BBEF944B24925B53DCD98,
+			337CF01BA2EC498DB6F9B492,
+			706B763AE26C4E1CA50D9DDD,
+			9982D13B25D04AD189BA7E59,
+			EA7DE2BEC206451B903729D5,
+			0B8D059B07C045D38B9D7726,
+			2FCCC739600540DBBB010027,
+			53D975AD393E433488FC3E77,
+			85178955F0FE49A3A82FB308,
+			40CC183EF1B04C87A039E515,
+			C972BA1D70B0474091F9ACA5,
+			251F240867824477B19AE169,
+		);path=VKPlus;sourceTree="<group>";};
+		605455D2EB3343178A67C1F3={isa=PBXGroup;children=(50547DBA2E7245808A48817B,);name=Products;sourceTree="<group>";};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AAE3FE1F7DEC424599AEFE31 /* VKPlus */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = EEF22ABBDBB544509361E36F /* Build configuration list for PBXNativeTarget "VKPlus" */;
-			buildPhases = (
-				485F089549994192AF7FDF20 /* Sources */,
-				E48BAE88E248413DA361823C /* Frameworks */,
-				0F95FAFBE52E4533B2FF5507 /* Resources */,
-			);
-			buildRules = ();
-			dependencies = ();
-			name = VKPlus;
-			productName = VKPlus;
-			productReference = 86BE1BA7295347A993A95178 /* VKPlus.app */;
-			productType = "com.apple.product-type.application";
-		};
+		F4DB97BDB293405E81FC8CA6={isa=PBXNativeTarget;buildConfigurationList=AD7E0DF8071646E2A4C50488;buildPhases=(BCAC9C82B3F14EE69F227143,BDF4FFC014D84CE9BD945144,93EDC4F143F141FC886FACCD,);buildRules=();dependencies=();name=VKPlus;productName=VKPlus;productReference=50547DBA2E7245808A48817B;productType="com.apple.product-type.application";};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		91AA51555AEC40649D5158C2 /* Project object */ = {
-			isa = PBXProject;
-			buildConfigurationList = E079EA0402814CDCB9C63840 /* Build configuration list for PBXProject "VKPlus" */;
-			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (en, Base,);
-			mainGroup = 99E4A137683D426F8E23D9A8;
-			productRefGroup = 6E0E5FFC7567426CA4D654CA /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				AAE3FE1F7DEC424599AEFE31 /* VKPlus */,
-			);
-		};
+		3257E835853D442993DF79B4={isa=PBXProject;buildConfigurationList=E3131E009EFF4E44A1B96950;compatibilityVersion="Xcode 14.0";developmentRegion=en;hasScannedForEncodings=0;knownRegions=(en,Base,);mainGroup=A2E9CBE550684E0E8CBACBAD;productRefGroup=605455D2EB3343178A67C1F3;projectDirPath="";projectRoot="";targets=(F4DB97BDB293405E81FC8CA6,);};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		0F95FAFBE52E4533B2FF5507 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				925D098DAA10403D9CE09297 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+		93EDC4F143F141FC886FACCD={isa=PBXResourcesBuildPhase;buildActionMask=2147483647;files=(13DB955822164A4FB9F892F2,);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		485F089549994192AF7FDF20 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E2BE8BF94486442899EA315A /* AuthView.swift in Sources */,
-				54740FC4467F4FA39DE06BAD /* AuthViewModel.swift in Sources */,
-				AC7B385E1E3042DD835165B7 /* AvatarView.swift in Sources */,
-				0E25D157D0DE46599DB1FC80 /* ChatView.swift in Sources */,
-				440CDB69D0934096A7696DF6 /* ContentView.swift in Sources */,
-				4CC2FE84649A4693826C9B8A /* ExploitsView.swift in Sources */,
-				DDB2F4C4572146F8B4791AB7 /* FeedView.swift in Sources */,
-				C8FD5ADC2C0C498E94E55054 /* FriendsView.swift in Sources */,
-				8B0C3662CFD94D098292691B /* MainTabView.swift in Sources */,
-				725ADC9801AE4E72ADA26217 /* MessagesView.swift in Sources */,
-				8E7E293622AA478AA8DBFD79 /* ProfileView.swift in Sources */,
-				3A647DDD029749279D677937 /* ProxyView.swift in Sources */,
-				B5B34199339341D0AD5877F7 /* SettingsView.swift in Sources */,
-				7DFE40DE74D74EBD9ED9B8C8 /* SplashView.swift in Sources */,
-				9CC1C1F7949C44C39BF4A61C /* Theme.swift in Sources */,
-				6D6AA72CAF0341738D9A0286 /* TokenStorage.swift in Sources */,
-				272294B70BB6452C83965DBC /* ToolsView.swift in Sources */,
-				F3834546D60D4518A089CF02 /* VKAPIClient.swift in Sources */,
-				180D2EBD3C2D4A4AB883C3F6 /* VKModels.swift in Sources */,
-				F0B8B6832C6F4114B90487B7 /* VKPlusApp.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+		BCAC9C82B3F14EE69F227143={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+			8899F6A0EA854C3FB4995AF2,
+			F04F184227054322872E5E73,
+			0C543F7675CD4D218FC1B6FF,
+			002657022C9544DD805918DA,
+			5788FE5401B14F3C9B96A830,
+			4B1AC7A64EAF47B2825F77CB,
+			97F0E624297247DEB657428C,
+			B13FAFBA3D27459E9FDA731E,
+			F95E31B1DB2E4AA28A23F1BE,
+			1C6FDA89CBE44520826EBB95,
+			C489977A3C94418F9EFAC7CB,
+			7E4F02C9ABCE49658E271B28,
+			51203F3C25C24375A4550884,
+			2D40077D4646434680DA2461,
+			1EDC4F35F7AB4B0083826154,
+			815DBEF233464BBBA2FF13E0,
+			AFE7BC0C4D164C0CB7FE85AD,
+			1F305E58C97041A380425CA1,
+			DF43596122F345F8981A1AB6,
+			D2DCC807B3684715A14A9DE8,
+			EC49DA2FA4444C7EB7F5B342,
+			063D0706A1A14BA8829CAD20,
+			9A87C3616507465FBE32C607,
+			9672ACF38D5840929FC3A693,
+			D479F8AB5083415085965247,
+		);runOnlyForDeploymentPostprocessing=0;};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		471F306436F14F39B86CDFBE /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "VK+";
-				INFOPLIST_KEY_NSAppTransportSecurity = "<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
-				PRODUCT_NAME = VKPlus;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		AB8B313F70A946C4A7E14B75 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "VK+";
-				INFOPLIST_KEY_NSAppTransportSecurity = "<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
-				PRODUCT_NAME = VKPlus;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		523656AC8FB4446AA369A6D2 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		48C1C4E5FA254BF59682E67F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
+		6710A5A71A874A24BFB483BD={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;GENERATE_INFOPLIST_FILE=YES;INFOPLIST_KEY_CFBundleDisplayName="VK+";INFOPLIST_KEY_NSAppTransportSecurity="<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";INFOPLIST_KEY_UIApplicationSceneManifest_Generation=YES;INFOPLIST_KEY_UILaunchScreen_Generation=YES;INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone=UIInterfaceOrientationPortrait;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Debug;};
+		57E6876822B146A382D2ED04={isa=XCBuildConfiguration;buildSettings={ASETCATALOG_COMPILER_APPICON_NAME=AppIcon;CODE_SIGN_IDENTITY="";CODE_SIGNING_ALLOWED=NO;CODE_SIGNING_REQUIRED=NO;CURRENT_PROJECT_VERSION=1;GENERATE_INFOPLIST_FILE=YES;INFOPLIST_KEY_CFBundleDisplayName="VK+";INFOPLIST_KEY_NSAppTransportSecurity="<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";INFOPLIST_KEY_UIApplicationSceneManifest_Generation=YES;INFOPLIST_KEY_UILaunchScreen_Generation=YES;INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone=UIInterfaceOrientationPortrait;IPHONEOS_DEPLOYMENT_TARGET=17.0;MARKETING_VERSION=1.0;PRODUCT_BUNDLE_IDENTIFIER=com.selfcode.vkplus;PRODUCT_NAME=VKPlus;SWIFT_EMIT_LOC_STRINGS=YES;SWIFT_VERSION=5.0;TARGETED_DEVICE_FAMILY=1;};name=Release;};
+		112C403A49174421971FD939={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT=dwarf;GCC_NO_COMMON_BLOCKS=YES;GCC_OPTIMIZATION_LEVEL=0;ONLY_ACTIVE_ARCH=YES;SDKROOT=iphoneos;SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG;SWIFT_OPTIMIZATION_LEVEL="-Onone";};name=Debug;};
+		5C70AD74AC184B0A9D05D731={isa=XCBuildConfiguration;buildSettings={ALWAYS_SEARCH_USER_PATHS=NO;CLANG_ENABLE_MODULES=YES;CLANG_ENABLE_OBJC_ARC=YES;COPY_PHASE_STRIP=NO;DEBUG_INFORMATION_FORMAT="dwarf-with-dsym";ENABLE_NS_ASSERTIONS=NO;GCC_NO_COMMON_BLOCKS=YES;SDKROOT=iphoneos;SWIFT_COMPILATION_MODE=wholemodule;SWIFT_OPTIMIZATION_LEVEL="-O";VALIDATE_PRODUCT=YES;};name=Release;};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		EEF22ABBDBB544509361E36F /* Build configuration list for PBXNativeTarget "VKPlus" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				471F306436F14F39B86CDFBE /* Debug */,
-				AB8B313F70A946C4A7E14B75 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		E079EA0402814CDCB9C63840 /* Build configuration list for PBXProject "VKPlus" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				523656AC8FB4446AA369A6D2 /* Debug */,
-				48C1C4E5FA254BF59682E67F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
+		AD7E0DF8071646E2A4C50488={isa=XCConfigurationList;buildConfigurations=(6710A5A71A874A24BFB483BD,57E6876822B146A382D2ED04,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
+		E3131E009EFF4E44A1B96950={isa=XCConfigurationList;buildConfigurations=(112C403A49174421971FD939,5C70AD74AC184B0A9D05D731,);defaultConfigurationIsVisible=0;defaultConfigurationName=Release;};
 /* End XCConfigurationList section */
 
 	};
-	rootObject = 91AA51555AEC40649D5158C2 /* Project object */;
+	rootObject=3257E835853D442993DF79B4;
 }

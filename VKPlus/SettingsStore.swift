@@ -1,0 +1,184 @@
+import Foundation
+
+// MARK: - Enums (Android parity)
+enum TypeStatus: String, CaseIterable {
+    case none         = "none"
+    case typing       = "typing"
+    case audioMessage = "audiomessage"
+    case videoMessage = "videomessage"
+    case photo        = "photo"
+    case file         = "file"
+
+    var label: String {
+        switch self {
+        case .none:         return "Отключено"
+        case .typing:       return "Печатает..."
+        case .audioMessage: return "Записывает голосовое"
+        case .videoMessage: return "Записывает видео"
+        case .photo:        return "Загружает фото"
+        case .file:         return "Отправляет файл"
+        }
+    }
+    var emoji: String {
+        switch self {
+        case .none: return "❌"; case .typing: return "⌨️"
+        case .audioMessage: return "🎤"; case .videoMessage: return "📹"
+        case .photo: return "📸"; case .file: return "📎"
+        }
+    }
+}
+
+enum DeviceProfile: String, CaseIterable {
+    case kate    = "kate"
+    case android = "android"
+    case iphone  = "iphone"
+    case windows = "windows"
+
+    var label: String {
+        switch self {
+        case .kate:    return "Kate Mobile"
+        case .android: return "VK Android"
+        case .iphone:  return "VK iPhone"
+        case .windows: return "VK Windows"
+        }
+    }
+    var ua: String {
+        switch self {
+        case .kate:
+            return "KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)"
+        case .android:
+            return "VKAndroidApp/7.43-15079 (Android 12; SDK 31; arm64-v8a; Samsung Galaxy S21; ru; 2960x1440)"
+        case .iphone:
+            return "com.vk.vkclient/2316 CFNetwork/1240.0.4 Darwin/20.6.0"
+        case .windows:
+            return "VKDesktopApp/6.8.0 (Windows; 10; 19042)"
+        }
+    }
+    var uaPreview: String { String(ua.prefix(52)) + "…" }
+}
+
+// MARK: - Hardware Spoofing
+struct SpoofedDevice {
+    let model: String; let brand: String
+    let androidVersion: String; let sdkVersion: Int
+    let screenWidth: Int; let screenHeight: Int
+    let dpi: Int; let batteryLevel: Int; let userAgent: String
+
+    var headers: [String: String] {
+        [
+            "User-Agent":          userAgent,
+            "X-VK-Android-Client": "new",
+            "X-Screen-Width":      "\(screenWidth)",
+            "X-Screen-Height":     "\(screenHeight)",
+            "X-Screen-DPI":        "\(dpi)",
+            "X-Battery-Level":     "\(batteryLevel)",
+            "X-Android-SDK":       "\(sdkVersion)",
+            "X-Device-Model":      model,
+        ]
+    }
+}
+
+enum HardwareSpoofing {
+    private static let devices: [(String, String, [(String, Int)])] = [
+        ("Samsung Galaxy S23",    "samsung", [("13",33),("14",34)]),
+        ("Samsung Galaxy S22",    "samsung", [("13",33),("12",32)]),
+        ("Samsung Galaxy A54",    "samsung", [("13",33),("14",34)]),
+        ("Google Pixel 7",        "google",  [("13",33),("14",34)]),
+        ("Google Pixel 7a",       "google",  [("13",33),("14",34)]),
+        ("Google Pixel 6",        "google",  [("12",32),("13",33)]),
+        ("Xiaomi 13",             "xiaomi",  [("13",33)]),
+        ("Xiaomi Redmi Note 12",  "xiaomi",  [("12",32),("13",33)]),
+        ("OnePlus 11",            "oneplus", [("13",33)]),
+        ("Realme GT 5",           "realme",  [("13",33)]),
+    ]
+    private static let screens: [(Int,Int,Int)] = [
+        (1080,2340,420),(1080,2400,440),(1440,3200,560),
+        (1080,2316,400),(1080,2408,420),(1440,3088,515),
+    ]
+
+    static func generate() -> SpoofedDevice {
+        let (model, brand, versions) = devices.randomElement()!
+        let (ver, sdk) = versions.randomElement()!
+        let (w, h, dpi) = screens.randomElement()!
+        let battery = Int.random(in: 15...94)
+        let ua = "VKAndroidApp/8.10-17315 (Android \(ver); SDK \(sdk); arm64-v8a; \(brand) \(model); ru; \(w)x\(h))"
+        return SpoofedDevice(model: model, brand: brand, androidVersion: ver,
+                             sdkVersion: sdk, screenWidth: w, screenHeight: h,
+                             dpi: dpi, batteryLevel: battery, userAgent: ua)
+    }
+}
+
+// MARK: - SettingsStore
+final class SettingsStore: ObservableObject {
+    static let shared = SettingsStore()
+    private let ud = UserDefaults.standard
+
+    // Privacy — Режим невидимки
+    @Published var ghostMode:       Bool { didSet { ud.set(ghostMode,       forKey: "ghost_mode")       } }
+    @Published var antiTyping:      Bool { didSet { ud.set(antiTyping,      forKey: "anti_typing")      } }
+    @Published var forceOffline:    Bool { didSet { ud.set(forceOffline,    forKey: "force_offline")    } }
+    @Published var ghostOnline:     Bool { didSet { ud.set(ghostOnline,     forKey: "ghost_online")     } }
+    @Published var ghostStory:      Bool { didSet { ud.set(ghostStory,      forKey: "ghost_story")      } }
+
+    // Privacy — Антислежка
+    @Published var antiTelemetry:   Bool { didSet { ud.set(antiTelemetry,   forKey: "anti_telemetry")   } }
+    @Published var antiScreen:      Bool { didSet { ud.set(antiScreen,      forKey: "anti_screen")      } }
+    @Published var bypassLinks:     Bool { didSet { ud.set(bypassLinks,     forKey: "bypass_links")     } }
+    @Published var bypassShortUrl:  Bool { didSet { ud.set(bypassShortUrl,  forKey: "bypass_short_url") } }
+
+    // Engine — Anti-Ban
+    @Published var antiBan:         Bool { didSet { ud.set(antiBan,         forKey: "anti_ban")         } }
+    @Published var offlinePost:     Bool { didSet { ud.set(offlinePost,     forKey: "offline_post")     } }
+    @Published var bypassActivity:  Bool { didSet { ud.set(bypassActivity,  forKey: "bypass_activity")  } }
+    @Published var longPollOnly:    Bool { didSet { ud.set(longPollOnly,    forKey: "longpoll_only")    } }
+
+    // Engine — Silent VM
+    @Published var silentVm:        Bool { didSet { ud.set(silentVm,        forKey: "silent_vm")        } }
+
+    // Engine — Type Status Changer
+    @Published var typeStatus:      String { didSet { ud.set(typeStatus,    forKey: "type_status")      } }
+
+    // Engine — Bypass Copy
+    @Published var bypassCopy:      Bool { didSet { ud.set(bypassCopy,     forKey: "bypass_copy")      } }
+
+    // Notifications
+    @Published var typePush:        Bool { didSet { ud.set(typePush,       forKey: "type_push")        } }
+
+    // Device
+    @Published var hardwareSpoof:   Bool { didSet { ud.set(hardwareSpoof,   forKey: "hardware_spoof")   } }
+    @Published var deviceUa:        String { didSet { ud.set(deviceUa,      forKey: "device_ua")        } }
+
+    // Verification / Exploits
+    @Published var verifyChecker:    Bool { didSet { ud.set(verifyChecker,   forKey: "verify_checker")   } }
+    @Published var fakeVerification: Bool { didSet { ud.set(fakeVerification, forKey: "fake_verif")      } }
+
+    // Computed
+    var currentDeviceProfile: DeviceProfile {
+        DeviceProfile.allCases.first { $0.ua == deviceUa } ?? .kate
+    }
+    var currentTypeStatus: TypeStatus { TypeStatus(rawValue: typeStatus) ?? .none }
+
+    private init() {
+        ghostMode        = ud.bool(forKey: "ghost_mode")
+        antiTyping       = ud.bool(forKey: "anti_typing")
+        forceOffline     = ud.bool(forKey: "force_offline")
+        ghostOnline      = ud.bool(forKey: "ghost_online")
+        ghostStory       = ud.bool(forKey: "ghost_story")
+        antiTelemetry    = ud.bool(forKey: "anti_telemetry")
+        antiScreen       = ud.bool(forKey: "anti_screen")
+        bypassLinks      = ud.object(forKey: "bypass_links")    == nil ? true  : ud.bool(forKey: "bypass_links")
+        bypassShortUrl   = ud.bool(forKey: "bypass_short_url")
+        antiBan          = ud.bool(forKey: "anti_ban")
+        offlinePost      = ud.bool(forKey: "offline_post")
+        bypassActivity   = ud.bool(forKey: "bypass_activity")
+        longPollOnly     = ud.bool(forKey: "longpoll_only")
+        silentVm         = ud.bool(forKey: "silent_vm")
+        typeStatus       = ud.string(forKey: "type_status")    ?? TypeStatus.none.rawValue
+        bypassCopy       = ud.object(forKey: "bypass_copy")    == nil ? true  : ud.bool(forKey: "bypass_copy")
+        typePush         = ud.bool(forKey: "type_push")
+        hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
+        deviceUa         = ud.string(forKey: "device_ua")      ?? DeviceProfile.kate.ua
+        verifyChecker    = ud.object(forKey: "verify_checker") == nil ? true  : ud.bool(forKey: "verify_checker")
+        fakeVerification = ud.bool(forKey: "fake_verif")
+    }
+}

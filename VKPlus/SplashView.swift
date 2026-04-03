@@ -15,12 +15,13 @@ struct SplashView: View {
     @State private var titleOpacity:    Double  = 0.0
     @State private var titleOffset:     CGFloat = 24
     @State private var subtitleOpacity: Double  = 0.0
+    @State private var brandOpacity:    Double  = 0.0
+    @State private var brandOffset:     CGFloat = 16
     @State private var dotPhase: Bool = false
 
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
-
             RadialGradient(
                 colors: [Color.cyberBlue.opacity(0.10), Color.clear],
                 center: .center, startRadius: 0, endRadius: 280
@@ -38,19 +39,16 @@ struct SplashView: View {
                                 style: StrokeStyle(lineWidth: 1, dash: [6, 10]))
                         .frame(width: 280, height: 280)
                         .scaleEffect(ring3Scale)
-
                     Circle()
                         .stroke(Color.cyberBlue.opacity(ring2Opacity * 0.35),
                                 style: StrokeStyle(lineWidth: 1, dash: [4, 7]))
                         .frame(width: 200, height: 200)
                         .scaleEffect(ring2Scale)
-
                     Circle()
                         .stroke(Color.cyberBlue.opacity(ring1Opacity * 0.5), lineWidth: 1.5)
                         .frame(width: 134, height: 134)
                         .scaleEffect(ring1Scale)
 
-                    // Logo with uploaded VK+ icon
                     ZStack {
                         Circle()
                             .fill(RadialGradient(
@@ -58,11 +56,9 @@ struct SplashView: View {
                                 center: .center, startRadius: 0, endRadius: 52
                             ))
                             .frame(width: 104, height: 104)
-
                         Circle()
                             .stroke(LinearGradient.cyberGrad, lineWidth: 2)
                             .frame(width: 104, height: 104)
-
                         Image("AppLogo")
                             .resizable()
                             .scaledToFit()
@@ -76,26 +72,36 @@ struct SplashView: View {
 
                 Spacer().frame(height: 38)
 
+                // Title
                 VStack(spacing: 6) {
                     Text("VK+")
                         .font(.system(size: 46, weight: .black, design: .rounded))
                         .foregroundStyle(LinearGradient.cyberGrad)
                         .shadow(color: Color.cyberBlue.opacity(0.45), radius: 14)
-
                     Text("Enhanced VKontakte")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color.onSurfaceMut)
-                        .opacity(subtitleOpacity)
-
-                    Text("by SelfCode")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.onSurfaceMut.opacity(0.5))
                         .opacity(subtitleOpacity)
                 }
                 .offset(y: titleOffset)
                 .opacity(titleOpacity)
 
                 Spacer()
+
+                // SelfCode branding
+                VStack(spacing: 8) {
+                    Image("SelfCodeLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                    Text("by SelfCode")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.onSurfaceMut.opacity(0.6))
+                }
+                .offset(y: brandOffset)
+                .opacity(brandOpacity)
 
                 // Pulse dots
                 HStack(spacing: 6) {
@@ -113,7 +119,8 @@ struct SplashView: View {
                             )
                     }
                 }
-                .padding(.bottom, 56)
+                .padding(.top, 12)
+                .padding(.bottom, 48)
             }
         }
         .onAppear { runAnimation() }
@@ -123,25 +130,18 @@ struct SplashView: View {
         withAnimation(.spring(response: 0.65, dampingFraction: 0.62).delay(0.15)) {
             logoScale = 1.0; logoOpacity = 1.0
         }
-        withAnimation(.easeInOut(duration: 1.0).delay(0.4)) {
-            logoGlow = 0.55
-        }
-        withAnimation(.easeOut(duration: 0.75).delay(0.45)) {
-            ring1Scale = 1.0; ring1Opacity = 1.0
-        }
-        withAnimation(.easeOut(duration: 0.90).delay(0.60)) {
-            ring2Scale = 1.0; ring2Opacity = 1.0
-        }
-        withAnimation(.easeOut(duration: 1.10).delay(0.75)) {
-            ring3Scale = 1.0; ring3Opacity = 1.0
-        }
+        withAnimation(.easeInOut(duration: 1.0).delay(0.4)) { logoGlow = 0.55 }
+        withAnimation(.easeOut(duration: 0.75).delay(0.45)) { ring1Scale = 1.0; ring1Opacity = 1.0 }
+        withAnimation(.easeOut(duration: 0.90).delay(0.60)) { ring2Scale = 1.0; ring2Opacity = 1.0 }
+        withAnimation(.easeOut(duration: 1.10).delay(0.75)) { ring3Scale = 1.0; ring3Opacity = 1.0 }
         withAnimation(.spring(response: 0.55, dampingFraction: 0.72).delay(0.95)) {
             titleOpacity = 1.0; titleOffset = 0
         }
-        withAnimation(.easeIn(duration: 0.45).delay(1.2)) {
-            subtitleOpacity = 1.0
+        withAnimation(.easeIn(duration: 0.45).delay(1.2)) { subtitleOpacity = 1.0 }
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(1.4)) {
+            brandOpacity = 1.0; brandOffset = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { dotPhase = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { onFinished() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) { onFinished() }
     }
 }

@@ -1,9 +1,10 @@
 import SwiftUI
 
-private let tabs = ["Приватность", "Инструменты", "Эксплойты", "Прокси"]
+private let tabs = ["Приватность", "Движок", "Устройство", "Прокси"]
 
 struct SettingsView: View {
     @State private var selectedTab = 0
+    @State private var appeared    = false
 
     var body: some View {
         ZStack {
@@ -11,212 +12,455 @@ struct SettingsView: View {
             VStack(spacing: 0) {
                 tabBar
                 Divider().background(Color.divider)
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     Group {
                         switch selectedTab {
                         case 0: PrivacyTab()
-                        case 1: ToolsTab()
-                        case 2: ExploitsTab()
-                        default: ProxyTab()
+                        case 1: EngineTab()
+                        case 2: DeviceTab()
+                        default: ProxyTabView()
                         }
                     }
                     .padding(16)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 10)
                 }
             }
         }
-        .navigationTitle("Настройки")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Настройки").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .onAppear { withAnimation(.easeOut(duration: 0.3)) { appeared = true } }
+        .onChange(of: selectedTab) { _, _ in
+            appeared = false
+            withAnimation(.easeOut(duration: 0.25)) { appeared = true }
+        }
     }
 
     private var tabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(tabs.indices, id: \.self) { i in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { selectedTab = i }
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = i }
                     } label: {
                         Text(tabs[i])
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(selectedTab == i ? Color.background : Color.onSurface)
-                            .padding(.horizontal, 16).padding(.vertical, 8)
-                            .background(selectedTab == i ? Color.cyberBlue : Color.surfaceVar)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(selectedTab == i ? Color.background : Color.onSurfaceMut)
+                            .padding(.horizontal, 18).padding(.vertical, 9)
+                            .background(
+                                selectedTab == i
+                                    ? AnyShapeStyle(LinearGradient.cyberGrad)
+                                    : AnyShapeStyle(Color.surfaceVar)
+                            )
                             .clipShape(Capsule())
+                            .shadow(color: selectedTab == i ? Color.cyberBlue.opacity(0.35) : .clear, radius: 6)
                     }
                 }
             }
-            .padding(.horizontal, 16).padding(.vertical, 10)
+            .padding(.horizontal, 16).padding(.vertical, 12)
         }
     }
 }
 
-// MARK: - Privacy
+// MARK: - Privacy Tab
 private struct PrivacyTab: View {
-    @AppStorage("ghost_mode")       private var ghostMode      = false
-    @AppStorage("anti_typing")      private var antiTyping     = false
-    @AppStorage("force_offline")    private var forceOffline   = false
-    @AppStorage("ghost_online")     private var ghostOnline    = false
-    @AppStorage("anti_telemetry")   private var antiTelemetry  = false
-    @AppStorage("anti_screen")      private var antiScreen     = false
-    @AppStorage("ghost_story")      private var ghostStory     = false
-    @AppStorage("silent_vm")        private var silentVm       = false
-    @AppStorage("offline_post")     private var offlinePost    = false
-    @AppStorage("anti_ban")         private var antiBan        = false
-    @AppStorage("bypass_activity")  private var bypassActivity = false
-    @AppStorage("bypass_links")     private var bypassLinks    = true
-    @AppStorage("bypass_short_url") private var bypassShortUrl = false
-    @AppStorage("hardware_spoof")   private var hardwareSpoof  = false
-    @AppStorage("verify_checker")   private var verifyChecker  = true
-
+    @ObservedObject private var s = SettingsStore.shared
     var body: some View {
-        VStack(spacing: 12) {
-            SettingsSection(title: "🛡 Режим невидимки") {
-                SettingsToggle("Не отмечать прочитанным", icon: "eye.slash.fill",            val: $ghostMode)
-                SettingsToggle("Anti-Typing",             icon: "keyboard.fill",              val: $antiTyping)
-                SettingsToggle("Force Offline",           icon: "wifi.slash",                 val: $forceOffline)
-                SettingsToggle("Ghost Online",            icon: "moon.fill",                  val: $ghostOnline)
-                SettingsToggle("Ghost Story",             icon: "circle.dashed",              val: $ghostStory)
+        VStack(spacing: 14) {
+            SettingsSectionCard(title: "🛡 Режим невидимки",
+                                subtitle: "Управление видимостью активности",
+                                icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
+                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.slash",  subtitle: "messages.markAsRead не отправляется",        val: $s.ghostMode)
+                SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "messages.setActivity не отправляется",       val: $s.antiTyping)
+                SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "account.setOffline вместо setOnline",        val: $s.forceOffline)
+                SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "account.setOnline перехватывается",          val: $s.ghostOnline)
+                SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "stories.markAsViewed не отправляется",       val: $s.ghostStory)
             }
-            SettingsSection(title: "📡 Антислежка") {
-                SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", val: $antiTelemetry)
-                SettingsToggle("Anti-Screen",      icon: "camera.viewfinder",                 val: $antiScreen)
-                SettingsToggle("Bypass Links",     icon: "link.badge.plus",                   val: $bypassLinks)
-                SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          val: $bypassShortUrl)
+            SettingsSectionCard(title: "📡 Антислежка",
+                                subtitle: "Блокировка телеметрии и трекеров",
+                                icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
+                SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", subtitle: "stats.vk-portal.net, tns-counter.ru и др.", val: $s.antiTelemetry)
+                SettingsToggle("Anti-Screen",      icon: "camera.viewfinder",                 subtitle: "Защита от скриншотов чужих экранов",       val: $s.antiScreen)
+                SettingsToggle("Bypass Links",     icon: "link.badge.plus",                   subtitle: "Открывать ссылки напрямую без vk.com/away", val: $s.bypassLinks)
+                SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          subtitle: "HEAD-запрос к vk.cc — показывает реальный URL", val: $s.bypassShortUrl)
             }
-            SettingsSection(title: "🔄 Anti-Ban Engine") {
-                SettingsToggle("Anti-Ban",         icon: "shield.fill",                       val: $antiBan)
-                SettingsToggle("Bypass Activity",  icon: "figure.walk",                       val: $bypassActivity)
-                SettingsToggle("Offline Post",     icon: "tray.and.arrow.up.fill",            val: $offlinePost)
+            SettingsSectionCard(title: "🔔 Уведомления",
+                                subtitle: "Push-уведомления VK+",
+                                icon: "bell.badge.fill", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
+                SettingsToggle("Type You Push", icon: "bell.and.waves.left.and.right", subtitle: "Push когда тебе начинают печатать", val: $s.typePush)
             }
-            SettingsSection(title: "🔇 Silent VM") {
-                SettingsToggle("Silent VM Listener", icon: "mic.slash.fill",                  val: $silentVm)
-            }
-            SettingsSection(title: "🖥 Устройство") {
-                SettingsToggle("Hardware Spoof",   icon: "iphone",                            val: $hardwareSpoof)
-            }
-            SettingsSection(title: "✅ Верификация") {
-                SettingsToggle("Verify Checker",   icon: "checkmark.seal.fill",               val: $verifyChecker)
+            NavigationLink(destination: ExploitsView()) {
+                exploitsBanner
             }
         }
     }
-}
 
-// MARK: - Tools
-private struct ToolsTab: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            SettingsSection(title: "🧹 Управление друзьями") {
-                SettingsNavRow(title: "Remove Banned Users", icon: "person.badge.minus") {
-                    PlaceholderView(title: "Remove Banned")
-                }
+    private var exploitsBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10).fill(Color(r:0xFF,g:0xB8,b:0x00).opacity(0.15)).frame(width: 40, height: 40)
+                Image(systemName: "bolt.fill").font(.system(size: 17)).foregroundStyle(Color(r:0xFF,g:0xB8,b:0x00))
             }
-            SettingsSection(title: "💱 Currency Exchange") {
-                SettingsNavRow(title: "Курсы валют", icon: "dollarsign.circle.fill") {
-                    PlaceholderView(title: "Currency Exchange")
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Эксплойты (7)").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                Text("Stickers, Execute, Platform, Groups...").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
             }
+            Spacer()
+            Image(systemName: "arrow.right.circle.fill").foregroundStyle(Color(r:0xFF,g:0xB8,b:0x00).opacity(0.7)).font(.system(size: 18))
         }
+        .padding(14).background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(r:0xFF,g:0xB8,b:0x00).opacity(0.2), lineWidth: 1))
     }
 }
 
-// MARK: - Exploits
-private struct ExploitsTab: View {
+// MARK: - Engine Tab
+private struct EngineTab: View {
+    @ObservedObject private var s = SettingsStore.shared
     var body: some View {
-        VStack(spacing: 12) {
-            SettingsSection(title: "🎭 Profile Changer") {
-                SettingsNavRow(title: "Profile Changer", icon: "person.crop.circle.badge.questionmark.fill") {
-                    PlaceholderView(title: "Profile Changer")
-                }
+        VStack(spacing: 14) {
+            SettingsSectionCard(title: "🎙 Silent VM Listener",
+                                subtitle: "Голосовые сообщения без отметки",
+                                icon: "mic.slash.fill", iconColor: Color(r:0xE9,g:0x3E,b:0xFF)) {
+                SettingsToggle("Silent VM Listener", icon: "mic.slash.fill",
+                               subtitle: "Слушать ГС без отправки markAsListened — метка не улетает",
+                               val: $s.silentVm)
             }
-            SettingsSection(title: "✅ Fake Verification") {
-                SettingsNavRow(title: "Fake Verification", icon: "checkmark.seal.fill") {
-                    PlaceholderView(title: "Fake Verification")
-                }
+            SettingsSectionCard(title: "🔄 Anti-Ban Engine",
+                                subtitle: "Защита аккаунта от блокировок",
+                                icon: "shield.lefthalf.filled", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
+                SettingsToggle("Anti-Ban Engine", icon: "shield.fill",
+                               subtitle: "Авторотация client_id при капче/rate limit",
+                               val: $s.antiBan)
+                SettingsToggle("Offline Post", icon: "tray.and.arrow.up.fill",
+                               subtitle: "Публиковать/отправлять без account.setOnline",
+                               val: $s.offlinePost)
+            }
+            SettingsSectionCard(title: "✅ Верификация",
+                                subtitle: "Значки подтверждения личности",
+                                icon: "checkmark.seal.fill", iconColor: Color(r:0x1D,g:0xA1,b:0xF2)) {
+                SettingsToggle("Verify Checker", icon: "checkmark.seal.fill",
+                               subtitle: "Значки Госуслуги, Сбер, Альфа рядом с именем",
+                               val: $s.verifyChecker)
+                SettingsToggle("Fake Verification", icon: "checkmark.seal.fill",
+                               subtitle: "Показывать синюю галочку в своём профиле",
+                               val: $s.fakeVerification)
+            }
+            SettingsSectionCard(title: "🕵️ Activity Bypass",
+                                subtitle: "Обход отслеживания активности",
+                                icon: "figure.walk", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
+                SettingsToggle("Bypass Activity Status", icon: "eye.slash",
+                               subtitle: "Загружать сообщения через execute — не триггерит Online",
+                               val: $s.bypassActivity)
+                SettingsToggle("LongPoll Only Mode", icon: "wifi.router",
+                               subtitle: "Получать сообщения без setOnline — вечный оффлайн при чтении",
+                               val: $s.longPollOnly)
+            }
+            typeStatusSection
+            NavigationLink(destination: ToolsView()) {
+                toolsBanner
             }
         }
     }
-}
 
-// MARK: - Proxy
-private struct ProxyTab: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            SettingsSection(title: "🌍 Прокси") {
-                SettingsNavRow(title: "Управление прокси", icon: "network") { ProxyView() }
-            }
-        }
-    }
-}
-
-// MARK: - Components
-struct SettingsSection<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-    var body: some View {
+    private var typeStatusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.onSurfaceMut).padding(.horizontal, 4)
-            VStack(spacing: 0) { content }.cyberCard()
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8).fill(Color.cyberBlue.opacity(0.15)).frame(width: 34, height: 34)
+                    Image(systemName: "keyboard.fill").font(.system(size: 16)).foregroundStyle(Color.cyberBlue)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("⌨️ Type Status Changer").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                    Text("Подмена статуса активности в чате").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+            }
+            .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 8)
+
+            VStack(spacing: 0) {
+                ForEach(TypeStatus.allCases, id: \.self) { status in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            SettingsStore.shared.typeStatus = status.rawValue
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(status.emoji).font(.system(size: 18)).frame(width: 26)
+                            Text(status.label).font(.system(size: 14))
+                                .foregroundStyle(SettingsStore.shared.currentTypeStatus == status ? Color.cyberBlue : Color.onSurface)
+                            Spacer()
+                            ZStack {
+                                Circle().stroke(SettingsStore.shared.currentTypeStatus == status ? Color.cyberBlue : Color.divider, lineWidth: 2).frame(width: 20, height: 20)
+                                if SettingsStore.shared.currentTypeStatus == status {
+                                    Circle().fill(Color.cyberBlue).frame(width: 10, height: 10)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    if status != TypeStatus.allCases.last {
+                        Divider().background(Color.divider).padding(.leading, 50)
+                    }
+                }
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
+                Text("«Отключено» = UnType — статус не отправляется. Остальные варианты подменяют реальный статус.")
+                    .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+            }
+            .padding(.horizontal, 14).padding(.bottom, 14)
         }
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.divider, lineWidth: 0.5))
+    }
+
+    private var toolsBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10).fill(Color.cyberBlue.opacity(0.12)).frame(width: 40, height: 40)
+                Image(systemName: "wrench.and.screwdriver.fill").font(.system(size: 17)).foregroundStyle(Color.cyberBlue)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Инструменты").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                Text("Remove Banned, Gift Bypass, Currency...").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+            }
+            Spacer()
+            Image(systemName: "arrow.right.circle.fill").foregroundStyle(Color.cyberBlue.opacity(0.6)).font(.system(size: 18))
+        }
+        .padding(14).background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.cyberBlue.opacity(0.2), lineWidth: 1))
+    }
+}
+
+// MARK: - Device Tab
+private struct DeviceTab: View {
+    @ObservedObject private var s = SettingsStore.shared
+    var body: some View {
+        VStack(spacing: 14) {
+            // Hardware Spoof toggle
+            SettingsSectionCard(title: "🔄 Hardware Spoof",
+                                subtitle: "Рандомизация отпечатка устройства",
+                                icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
+                SettingsToggle("Hardware Spoof", icon: "dice.fill",
+                               subtitle: "Случайные Samsung/Pixel/Xiaomi модель, DPI, разрешение, заряд в каждом запросе",
+                               val: $s.hardwareSpoof)
+            }
+
+            // Device Profile selector
+            deviceProfileSection
+
+            // Bypass copy
+            SettingsSectionCard(title: "📋 Bypass Copy",
+                                subtitle: "Копирование и репосты",
+                                icon: "doc.on.doc.fill", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
+                SettingsToggle("Bypass Copy + Reposts", icon: "doc.on.doc.fill",
+                               subtitle: "Долгое нажатие на сообщение копирует текст без ограничений",
+                               val: $s.bypassCopy)
+            }
+
+            // Current spoof preview (if active)
+            if s.hardwareSpoof {
+                spoofPreview
+            }
+
+            // Footer
+            HStack {
+                Spacer()
+                Text("VK+ by SelfCode").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut.opacity(0.5))
+                Spacer()
+            }
+            .padding(.top, 8)
+        }
+    }
+
+    private var deviceProfileSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8).fill(Color.cyberBlue.opacity(0.15)).frame(width: 34, height: 34)
+                    Image(systemName: "iphone").font(.system(size: 16)).foregroundStyle(Color.cyberBlue)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("📱 Device Spoofer").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                    Text("Подмена User-Agent во всех запросах к API").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+            }
+            .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)
+
+            VStack(spacing: 0) {
+                ForEach(DeviceProfile.allCases, id: \.self) { profile in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            SettingsStore.shared.deviceUa = profile.ua
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            let selected = SettingsStore.shared.currentDeviceProfile == profile
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(profile.label)
+                                    .font(.system(size: 14, weight: selected ? .semibold : .regular))
+                                    .foregroundStyle(selected ? Color.cyberBlue : Color.onSurface)
+                                Text(profile.uaPreview)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(Color.onSurfaceMut)
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            ZStack {
+                                Circle().stroke(selected ? Color.cyberBlue : Color.divider, lineWidth: 2).frame(width: 20, height: 20)
+                                if selected { Circle().fill(Color.cyberBlue).frame(width: 10, height: 10) }
+                            }
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    if profile != DeviceProfile.allCases.last {
+                        Divider().background(Color.divider).padding(.leading, 14)
+                    }
+                }
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
+                Text("Применяется ко всем запросам. Влияет на подпись постов и статус устройства в профиле.")
+                    .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+            }
+            .padding(.horizontal, 14).padding(.bottom, 14)
+        }
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.divider, lineWidth: 0.5))
+    }
+
+    private var spoofPreview: some View {
+        let device = HardwareSpoofing.generate()
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.lefthalf.filled.badge.checkmark").foregroundStyle(Color(r:0xFF,g:0x6B,b:0x35))
+                Text("Пример сгенерированного отпечатка").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.onSurface)
+            }
+            spoofRow("📱 Модель",       device.model)
+            spoofRow("🤖 Android",      device.androidVersion)
+            spoofRow("🖥 Разрешение",   "\(device.screenWidth)×\(device.screenHeight)")
+            spoofRow("🔋 Заряд",        "\(device.batteryLevel)%")
+        }
+        .padding(14)
+        .background(Color(r:0xFF,g:0x6B,b:0x35).opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(r:0xFF,g:0x6B,b:0x35).opacity(0.2), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func spoofRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+            Spacer()
+            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(Color.onSurface)
+        }
+    }
+}
+
+// MARK: - Proxy Tab
+private struct ProxyTabView: View {
+    var body: some View {
+        NavigationLink(destination: ProxyView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12).fill(Color.cyberBlue.opacity(0.15)).frame(width: 48, height: 48)
+                    Image(systemName: "network").font(.system(size: 20)).foregroundStyle(Color.cyberBlue)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Управление прокси").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onSurface)
+                    Text("SOCKS5, MTProto, добавление и пинг")
+                        .font(.system(size: 12)).foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                Image(systemName: "arrow.right.circle.fill").foregroundStyle(Color.cyberBlue.opacity(0.6)).font(.system(size: 20))
+            }
+            .padding(16).background(Color.surface).clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyberBlue.opacity(0.2), lineWidth: 1))
+        }
+    }
+}
+
+// MARK: - Reusable components
+struct SettingsSectionCard<Content: View>: View {
+    let title: String; let subtitle: String; let icon: String; let iconColor: Color
+    @ViewBuilder let content: Content
+    @State private var expanded = true
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { expanded.toggle() } } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8).fill(iconColor.opacity(0.15)).frame(width: 34, height: 34)
+                        Image(systemName: icon).font(.system(size: 16)).foregroundStyle(iconColor)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                    }
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.onSurfaceMut)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            if expanded {
+                Divider().background(Color.divider)
+                content
+            }
+        }
+        .background(Color.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.divider, lineWidth: 0.5))
+        .animation(.spring(response: 0.35), value: expanded)
     }
 }
 
 struct SettingsToggle: View {
-    let title: String; let icon: String
-    @Binding var val: Bool
-    init(_ title: String, icon: String, val: Binding<Bool>) {
-        self.title = title; self.icon = icon; self._val = val
+    let title: String; let icon: String; let subtitle: String; @Binding var val: Bool
+    init(_ title: String, icon: String, subtitle: String = "", val: Binding<Bool>) {
+        self.title = title; self.icon = icon; self.subtitle = subtitle; self._val = val
     }
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: icon).foregroundStyle(Color.cyberBlue).frame(width: 22)
-                Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
+                    if !subtitle.isEmpty {
+                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                    }
+                }
                 Spacer()
                 Toggle("", isOn: $val).tint(.cyberBlue).labelsHidden()
             }
-            .padding(.horizontal, 16).padding(.vertical, 13)
-            Divider().background(Color.divider).padding(.leading, 50)
+            .padding(.horizontal, 14).padding(.vertical, subtitle.isEmpty ? 13 : 10)
+            Divider().background(Color.divider).padding(.leading, 48)
         }
     }
 }
 
 struct SettingsNavRow<Dest: View>: View {
-    let title: String; let icon: String
-    @ViewBuilder let destination: () -> Dest
+    let title: String; let icon: String; @ViewBuilder let destination: () -> Dest
     var body: some View {
         NavigationLink(destination: destination()) {
             HStack(spacing: 12) {
                 Image(systemName: icon).foregroundStyle(Color.cyberBlue).frame(width: 22)
                 Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(Color.onSurfaceMut).font(.system(size: 12, weight: .semibold))
+                Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12, weight: .semibold))
             }
-            .padding(.horizontal, 16).padding(.vertical, 13)
+            .padding(.horizontal, 14).padding(.vertical, 13)
         }
-    }
-}
-
-struct PlaceholderView: View {
-    let title: String
-    var body: some View {
-        ZStack {
-            Color.background.ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: "wrench.and.screwdriver")
-                    .font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
-                Text(title).foregroundStyle(Color.onSurfaceMut)
-                Text("В разработке").font(.system(size: 12))
-                    .foregroundStyle(Color.onSurfaceMut.opacity(0.6))
-            }
-        }
-        .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.surface, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
