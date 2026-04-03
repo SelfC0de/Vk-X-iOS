@@ -1,0 +1,222 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Build files */
+AA01 /* VKPlusApp.swift */           = {isa = PBXBuildFile; fileRef = AB01; };
+AA02 /* ContentView.swift */         = {isa = PBXBuildFile; fileRef = AB02; };
+AA03 /* Theme.swift */               = {isa = PBXBuildFile; fileRef = AB03; };
+AA04 /* SplashView.swift */          = {isa = PBXBuildFile; fileRef = AB04; };
+AA05 /* AuthView.swift */            = {isa = PBXBuildFile; fileRef = AB05; };
+AA06 /* AuthViewModel.swift */       = {isa = PBXBuildFile; fileRef = AB06; };
+AA07 /* TokenStorage.swift */        = {isa = PBXBuildFile; fileRef = AB07; };
+AA08 /* VKAPIClient.swift */         = {isa = PBXBuildFile; fileRef = AB08; };
+AA09 /* VKModels.swift */            = {isa = PBXBuildFile; fileRef = AB09; };
+AA10 /* MainTabView.swift */         = {isa = PBXBuildFile; fileRef = AB10; };
+AA11 /* FeedView.swift */            = {isa = PBXBuildFile; fileRef = AB11; };
+AA12 /* MessagesView.swift */        = {isa = PBXBuildFile; fileRef = AB12; };
+AA13 /* ChatView.swift */            = {isa = PBXBuildFile; fileRef = AB13; };
+AA14 /* ProfileView.swift */         = {isa = PBXBuildFile; fileRef = AB14; };
+AA15 /* FriendsView.swift */         = {isa = PBXBuildFile; fileRef = AB15; };
+AA16 /* SettingsView.swift */        = {isa = PBXBuildFile; fileRef = AB16; };
+AA17 /* ExploitsView.swift */        = {isa = PBXBuildFile; fileRef = AB17; };
+AA18 /* ToolsView.swift */           = {isa = PBXBuildFile; fileRef = AB18; };
+AA19 /* ProxyView.swift */           = {isa = PBXBuildFile; fileRef = AB19; };
+AA21 /* AvatarView.swift */          = {isa = PBXBuildFile; fileRef = AB21; };
+AA20 /* Assets.xcassets */           = {isa = PBXBuildFile; fileRef = AB20; };
+AA30 /* Network.framework */ = {isa = PBXBuildFile; fileRef = AB30; };
+
+/* File references */
+AB01 /* VKPlusApp.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKPlusApp.swift; sourceTree = "<group>"; };
+AB02 /* ContentView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+AB03 /* Theme.swift */               = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+AB04 /* SplashView.swift */          = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+AB05 /* AuthView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+AB06 /* AuthViewModel.swift */       = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+AB07 /* TokenStorage.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStorage.swift; sourceTree = "<group>"; };
+AB08 /* VKAPIClient.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKAPIClient.swift; sourceTree = "<group>"; };
+AB09 /* VKModels.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKModels.swift; sourceTree = "<group>"; };
+AB10 /* MainTabView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+AB11 /* FeedView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+AB12 /* MessagesView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
+AB13 /* ChatView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+AB14 /* ProfileView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+AB15 /* FriendsView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
+AB16 /* SettingsView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+AB17 /* ExploitsView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploitsView.swift; sourceTree = "<group>"; };
+AB18 /* ToolsView.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+AB19 /* ProxyView.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyView.swift; sourceTree = "<group>"; };
+AB21 /* AvatarView.swift */          = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+AB20 /* Assets.xcassets */           = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+AB30 /* Network.framework */
+AB99 /* VKPlus.app */                = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VKPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+
+/* Groups */
+AC00 = {
+	isa = PBXGroup;
+	children = (AC01, AC02);
+	sourceTree = "<group>";
+};
+AC01 /* VKPlus */ = {
+	isa = PBXGroup;
+	children = (
+		AB01, AB02, AB03, AB04, AB05, AB06, AB07,
+		AB08, AB09, AB10, AB11, AB12, AB13, AB14,
+		AB15, AB16, AB17, AB18, AB19, AB20, AB21
+	);
+	path = VKPlus;
+	sourceTree = "<group>";
+};
+AC02 /* Products */ = {
+	isa = PBXGroup;
+	children = (AB99);
+	name = Products;
+	sourceTree = "<group>";
+};
+
+/* Sources phase */
+AD01 = {
+	isa = PBXSourcesBuildPhase;
+	buildActionMask = 2147483647;
+	files = (
+		AA01, AA02, AA03, AA04, AA05, AA06, AA07,
+		AA08, AA09, AA10, AA11, AA12, AA13, AA14,
+		AA15, AA16, AA17, AA18, AA19, AA21
+	);
+	runOnlyForDeploymentPostprocessing = 0;
+};
+
+/* Resources phase */
+AD02 = {
+	isa = PBXResourcesBuildPhase;
+	buildActionMask = 2147483647;
+	files = (AA20);
+	runOnlyForDeploymentPostprocessing = 0;
+};
+
+/* Target */
+AE01 /* VKPlus */ = {
+	isa = PBXNativeTarget;
+	buildConfigurationList = AF01;
+	buildPhases = (AD01, AD02);
+	buildRules = ();
+	dependencies = ();
+	name = VKPlus;
+	productName = VKPlus;
+	productReference = AB99;
+	productType = "com.apple.product-type.application";
+};
+
+/* Project */
+AE00 /* Project */ = {
+	isa = PBXProject;
+	buildConfigurationList = AF00;
+	compatibilityVersion = "Xcode 14.0";
+	developmentRegion = en;
+	hasScannedForEncodings = 0;
+	knownRegions = (en, Base);
+	mainGroup = AC00;
+	productRefGroup = AC02;
+	projectDirPath = "";
+	projectRoot = "";
+	targets = (AE01);
+};
+
+/* Build configs — target */
+AF02 /* Debug */ = {
+	isa = XCBuildConfiguration;
+	buildSettings = {
+		ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+		CODE_SIGN_IDENTITY = "";
+		CODE_SIGNING_ALLOWED = NO;
+		CODE_SIGNING_REQUIRED = NO;
+		CURRENT_PROJECT_VERSION = 1;
+		GENERATE_INFOPLIST_FILE = YES;
+		INFOPLIST_KEY_CFBundleDisplayName = "VK+";
+		INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+		INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+		IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+		MARKETING_VERSION = 1.0;
+		PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
+		PRODUCT_NAME = VKPlus;
+		SWIFT_VERSION = 5.0;
+		TARGETED_DEVICE_FAMILY = 1;
+	};
+	name = Debug;
+};
+AF03 /* Release */ = {
+	isa = XCBuildConfiguration;
+	buildSettings = {
+		ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+		CODE_SIGN_IDENTITY = "";
+		CODE_SIGNING_ALLOWED = NO;
+		CODE_SIGNING_REQUIRED = NO;
+		CURRENT_PROJECT_VERSION = 1;
+		GENERATE_INFOPLIST_FILE = YES;
+		INFOPLIST_KEY_CFBundleDisplayName = "VK+";
+		INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+		INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+		IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+		MARKETING_VERSION = 1.0;
+		PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
+		PRODUCT_NAME = VKPlus;
+		SWIFT_VERSION = 5.0;
+		TARGETED_DEVICE_FAMILY = 1;
+	};
+	name = Release;
+};
+AF01 = {
+	isa = XCConfigurationList;
+	buildConfigurations = (AF02, AF03);
+	defaultConfigurationIsVisible = 0;
+	defaultConfigurationName = Release;
+};
+
+/* Build configs — project */
+AF04 /* Debug */ = {
+	isa = XCBuildConfiguration;
+	buildSettings = {
+		ALWAYS_SEARCH_USER_PATHS = NO;
+		CLANG_ENABLE_MODULES = YES;
+		CLANG_ENABLE_OBJC_ARC = YES;
+		COPY_PHASE_STRIP = NO;
+		DEBUG_INFORMATION_FORMAT = dwarf;
+		GCC_NO_COMMON_BLOCKS = YES;
+		GCC_OPTIMIZATION_LEVEL = 0;
+		ONLY_ACTIVE_ARCH = YES;
+		SDKROOT = iphoneos;
+		SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+		SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+	};
+	name = Debug;
+};
+AF05 /* Release */ = {
+	isa = XCBuildConfiguration;
+	buildSettings = {
+		ALWAYS_SEARCH_USER_PATHS = NO;
+		CLANG_ENABLE_MODULES = YES;
+		CLANG_ENABLE_OBJC_ARC = YES;
+		COPY_PHASE_STRIP = NO;
+		DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+		ENABLE_NS_ASSERTIONS = NO;
+		GCC_NO_COMMON_BLOCKS = YES;
+		SDKROOT = iphoneos;
+		SWIFT_COMPILATION_MODE = wholemodule;
+		SWIFT_OPTIMIZATION_LEVEL = "-O";
+		VALIDATE_PRODUCT = YES;
+	};
+	name = Release;
+};
+AF00 = {
+	isa = XCConfigurationList;
+	buildConfigurations = (AF04, AF05);
+	defaultConfigurationIsVisible = 0;
+	defaultConfigurationName = Release;
+};
+
+	};
+	rootObject = AE00;
+}
