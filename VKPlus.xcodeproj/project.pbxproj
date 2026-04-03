@@ -1,222 +1,303 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 56;
 	objects = {
 
-/* Build files */
-AA01 /* VKPlusApp.swift */           = {isa = PBXBuildFile; fileRef = AB01; };
-AA02 /* ContentView.swift */         = {isa = PBXBuildFile; fileRef = AB02; };
-AA03 /* Theme.swift */               = {isa = PBXBuildFile; fileRef = AB03; };
-AA04 /* SplashView.swift */          = {isa = PBXBuildFile; fileRef = AB04; };
-AA05 /* AuthView.swift */            = {isa = PBXBuildFile; fileRef = AB05; };
-AA06 /* AuthViewModel.swift */       = {isa = PBXBuildFile; fileRef = AB06; };
-AA07 /* TokenStorage.swift */        = {isa = PBXBuildFile; fileRef = AB07; };
-AA08 /* VKAPIClient.swift */         = {isa = PBXBuildFile; fileRef = AB08; };
-AA09 /* VKModels.swift */            = {isa = PBXBuildFile; fileRef = AB09; };
-AA10 /* MainTabView.swift */         = {isa = PBXBuildFile; fileRef = AB10; };
-AA11 /* FeedView.swift */            = {isa = PBXBuildFile; fileRef = AB11; };
-AA12 /* MessagesView.swift */        = {isa = PBXBuildFile; fileRef = AB12; };
-AA13 /* ChatView.swift */            = {isa = PBXBuildFile; fileRef = AB13; };
-AA14 /* ProfileView.swift */         = {isa = PBXBuildFile; fileRef = AB14; };
-AA15 /* FriendsView.swift */         = {isa = PBXBuildFile; fileRef = AB15; };
-AA16 /* SettingsView.swift */        = {isa = PBXBuildFile; fileRef = AB16; };
-AA17 /* ExploitsView.swift */        = {isa = PBXBuildFile; fileRef = AB17; };
-AA18 /* ToolsView.swift */           = {isa = PBXBuildFile; fileRef = AB18; };
-AA19 /* ProxyView.swift */           = {isa = PBXBuildFile; fileRef = AB19; };
-AA21 /* AvatarView.swift */          = {isa = PBXBuildFile; fileRef = AB21; };
-AA20 /* Assets.xcassets */           = {isa = PBXBuildFile; fileRef = AB20; };
-AA30 /* Network.framework */ = {isa = PBXBuildFile; fileRef = AB30; };
+/* Begin PBXBuildFile section */
+		E2BE8BF94486442899EA315A /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D602A6615D4371896522F0 /* AuthView.swift */; };
+		54740FC4467F4FA39DE06BAD /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74CBA09BD4244788BFE949B /* AuthViewModel.swift */; };
+		AC7B385E1E3042DD835165B7 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE99D414119B42D8932C092D /* AvatarView.swift */; };
+		0E25D157D0DE46599DB1FC80 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5584F2E85147B19B670881 /* ChatView.swift */; };
+		440CDB69D0934096A7696DF6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */; };
+		4CC2FE84649A4693826C9B8A /* ExploitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471D86324D9B4C7191118CA1 /* ExploitsView.swift */; };
+		DDB2F4C4572146F8B4791AB7 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E36E81A964E44DFB1273E58 /* FeedView.swift */; };
+		C8FD5ADC2C0C498E94E55054 /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2A06B573BE45838A19F3EE /* FriendsView.swift */; };
+		8B0C3662CFD94D098292691B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */; };
+		725ADC9801AE4E72ADA26217 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3FED558DF984A8B9A5D312E /* MessagesView.swift */; };
+		8E7E293622AA478AA8DBFD79 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 515E81382C424D5D87D2A5A7 /* ProfileView.swift */; };
+		3A647DDD029749279D677937 /* ProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */; };
+		B5B34199339341D0AD5877F7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F9344A8938419CBF9E7404 /* SettingsView.swift */; };
+		7DFE40DE74D74EBD9ED9B8C8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */; };
+		9CC1C1F7949C44C39BF4A61C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954F49E43FD34DA8A4484ACA /* Theme.swift */; };
+		6D6AA72CAF0341738D9A0286 /* TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B788F7FC6946219FDD8318 /* TokenStorage.swift */; };
+		272294B70BB6452C83965DBC /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 713636A30C064F1E81FB868F /* ToolsView.swift */; };
+		F3834546D60D4518A089CF02 /* VKAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFA128CA3164A2C99363586 /* VKAPIClient.swift */; };
+		180D2EBD3C2D4A4AB883C3F6 /* VKModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EF61377198462B9C4BF950 /* VKModels.swift */; };
+		F0B8B6832C6F4114B90487B7 /* VKPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD937A202BD9462BBF18815B /* VKPlusApp.swift */; };
+		925D098DAA10403D9CE09297 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7BFA6DCFA44040A0B3483516 /* Assets.xcassets */; };
+		EE2C0CB4A8C44A0B802190AC /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C65AA3E3A204731AB9A112C /* Network.framework */; };
+/* End PBXBuildFile section */
 
-/* File references */
-AB01 /* VKPlusApp.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKPlusApp.swift; sourceTree = "<group>"; };
-AB02 /* ContentView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-AB03 /* Theme.swift */               = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-AB04 /* SplashView.swift */          = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
-AB05 /* AuthView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
-AB06 /* AuthViewModel.swift */       = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
-AB07 /* TokenStorage.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStorage.swift; sourceTree = "<group>"; };
-AB08 /* VKAPIClient.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKAPIClient.swift; sourceTree = "<group>"; };
-AB09 /* VKModels.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKModels.swift; sourceTree = "<group>"; };
-AB10 /* MainTabView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-AB11 /* FeedView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
-AB12 /* MessagesView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
-AB13 /* ChatView.swift */            = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-AB14 /* ProfileView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-AB15 /* FriendsView.swift */         = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
-AB16 /* SettingsView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-AB17 /* ExploitsView.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploitsView.swift; sourceTree = "<group>"; };
-AB18 /* ToolsView.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
-AB19 /* ProxyView.swift */           = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyView.swift; sourceTree = "<group>"; };
-AB21 /* AvatarView.swift */          = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
-AB20 /* Assets.xcassets */           = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-AB30 /* Network.framework */
-AB99 /* VKPlus.app */                = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VKPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* Begin PBXFileReference section */
+		A6D602A6615D4371896522F0 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		D74CBA09BD4244788BFE949B /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		FE99D414119B42D8932C092D /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		2C5584F2E85147B19B670881 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		471D86324D9B4C7191118CA1 /* ExploitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploitsView.swift; sourceTree = "<group>"; };
+		9E36E81A964E44DFB1273E58 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		4D2A06B573BE45838A19F3EE /* FriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsView.swift; sourceTree = "<group>"; };
+		8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		F3FED558DF984A8B9A5D312E /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
+		515E81382C424D5D87D2A5A7 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyView.swift; sourceTree = "<group>"; };
+		03F9344A8938419CBF9E7404 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		954F49E43FD34DA8A4484ACA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		56B788F7FC6946219FDD8318 /* TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStorage.swift; sourceTree = "<group>"; };
+		713636A30C064F1E81FB868F /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		9CFA128CA3164A2C99363586 /* VKAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKAPIClient.swift; sourceTree = "<group>"; };
+		33EF61377198462B9C4BF950 /* VKModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKModels.swift; sourceTree = "<group>"; };
+		FD937A202BD9462BBF18815B /* VKPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VKPlusApp.swift; sourceTree = "<group>"; };
+		7BFA6DCFA44040A0B3483516 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3C65AA3E3A204731AB9A112C /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
+		86BE1BA7295347A993A95178 /* VKPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VKPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
 
-/* Groups */
-AC00 = {
-	isa = PBXGroup;
-	children = (AC01, AC02);
-	sourceTree = "<group>";
-};
-AC01 /* VKPlus */ = {
-	isa = PBXGroup;
-	children = (
-		AB01, AB02, AB03, AB04, AB05, AB06, AB07,
-		AB08, AB09, AB10, AB11, AB12, AB13, AB14,
-		AB15, AB16, AB17, AB18, AB19, AB20, AB21
-	);
-	path = VKPlus;
-	sourceTree = "<group>";
-};
-AC02 /* Products */ = {
-	isa = PBXGroup;
-	children = (AB99);
-	name = Products;
-	sourceTree = "<group>";
-};
+/* Begin PBXFrameworksBuildPhase section */
+		E48BAE88E248413DA361823C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE2C0CB4A8C44A0B802190AC /* Network.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
-/* Sources phase */
-AD01 = {
-	isa = PBXSourcesBuildPhase;
-	buildActionMask = 2147483647;
-	files = (
-		AA01, AA02, AA03, AA04, AA05, AA06, AA07,
-		AA08, AA09, AA10, AA11, AA12, AA13, AA14,
-		AA15, AA16, AA17, AA18, AA19, AA21
-	);
-	runOnlyForDeploymentPostprocessing = 0;
-};
+/* Begin PBXGroup section */
+		99E4A137683D426F8E23D9A8 = {
+			isa = PBXGroup;
+			children = (
+				88B21C3F691C47B99AC4421E /* VKPlus */,
+				6E0E5FFC7567426CA4D654CA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		88B21C3F691C47B99AC4421E /* VKPlus */ = {
+			isa = PBXGroup;
+			children = (
+				A6D602A6615D4371896522F0 /* AuthView.swift */,
+				D74CBA09BD4244788BFE949B /* AuthViewModel.swift */,
+				FE99D414119B42D8932C092D /* AvatarView.swift */,
+				2C5584F2E85147B19B670881 /* ChatView.swift */,
+				B1FEAD0E3B194CF9B3DE6008 /* ContentView.swift */,
+				471D86324D9B4C7191118CA1 /* ExploitsView.swift */,
+				9E36E81A964E44DFB1273E58 /* FeedView.swift */,
+				4D2A06B573BE45838A19F3EE /* FriendsView.swift */,
+				8F1A9EAAF8934D30814FCE91 /* MainTabView.swift */,
+				F3FED558DF984A8B9A5D312E /* MessagesView.swift */,
+				515E81382C424D5D87D2A5A7 /* ProfileView.swift */,
+				65F09AD1028A4E4B9C1D1B85 /* ProxyView.swift */,
+				03F9344A8938419CBF9E7404 /* SettingsView.swift */,
+				B6A75B2BE0B94D9AB8F4DF03 /* SplashView.swift */,
+				954F49E43FD34DA8A4484ACA /* Theme.swift */,
+				56B788F7FC6946219FDD8318 /* TokenStorage.swift */,
+				713636A30C064F1E81FB868F /* ToolsView.swift */,
+				9CFA128CA3164A2C99363586 /* VKAPIClient.swift */,
+				33EF61377198462B9C4BF950 /* VKModels.swift */,
+				FD937A202BD9462BBF18815B /* VKPlusApp.swift */,
+				7BFA6DCFA44040A0B3483516 /* Assets.xcassets */,
+			);
+			path = VKPlus;
+			sourceTree = "<group>";
+		};
+		6E0E5FFC7567426CA4D654CA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				86BE1BA7295347A993A95178 /* VKPlus.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
 
-/* Resources phase */
-AD02 = {
-	isa = PBXResourcesBuildPhase;
-	buildActionMask = 2147483647;
-	files = (AA20);
-	runOnlyForDeploymentPostprocessing = 0;
-};
+/* Begin PBXNativeTarget section */
+		AAE3FE1F7DEC424599AEFE31 /* VKPlus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EEF22ABBDBB544509361E36F /* Build configuration list for PBXNativeTarget "VKPlus" */;
+			buildPhases = (
+				485F089549994192AF7FDF20 /* Sources */,
+				E48BAE88E248413DA361823C /* Frameworks */,
+				0F95FAFBE52E4533B2FF5507 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = VKPlus;
+			productName = VKPlus;
+			productReference = 86BE1BA7295347A993A95178 /* VKPlus.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
 
-/* Target */
-AE01 /* VKPlus */ = {
-	isa = PBXNativeTarget;
-	buildConfigurationList = AF01;
-	buildPhases = (AD01, AD02);
-	buildRules = ();
-	dependencies = ();
-	name = VKPlus;
-	productName = VKPlus;
-	productReference = AB99;
-	productType = "com.apple.product-type.application";
-};
+/* Begin PBXProject section */
+		91AA51555AEC40649D5158C2 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = E079EA0402814CDCB9C63840 /* Build configuration list for PBXProject "VKPlus" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base,);
+			mainGroup = 99E4A137683D426F8E23D9A8;
+			productRefGroup = 6E0E5FFC7567426CA4D654CA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AAE3FE1F7DEC424599AEFE31 /* VKPlus */,
+			);
+		};
+/* End PBXProject section */
 
-/* Project */
-AE00 /* Project */ = {
-	isa = PBXProject;
-	buildConfigurationList = AF00;
-	compatibilityVersion = "Xcode 14.0";
-	developmentRegion = en;
-	hasScannedForEncodings = 0;
-	knownRegions = (en, Base);
-	mainGroup = AC00;
-	productRefGroup = AC02;
-	projectDirPath = "";
-	projectRoot = "";
-	targets = (AE01);
-};
+/* Begin PBXResourcesBuildPhase section */
+		0F95FAFBE52E4533B2FF5507 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				925D098DAA10403D9CE09297 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
-/* Build configs — target */
-AF02 /* Debug */ = {
-	isa = XCBuildConfiguration;
-	buildSettings = {
-		ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-		CODE_SIGN_IDENTITY = "";
-		CODE_SIGNING_ALLOWED = NO;
-		CODE_SIGNING_REQUIRED = NO;
-		CURRENT_PROJECT_VERSION = 1;
-		GENERATE_INFOPLIST_FILE = YES;
-		INFOPLIST_KEY_CFBundleDisplayName = "VK+";
-		INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-		INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-		IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-		MARKETING_VERSION = 1.0;
-		PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
-		PRODUCT_NAME = VKPlus;
-		SWIFT_VERSION = 5.0;
-		TARGETED_DEVICE_FAMILY = 1;
+/* Begin PBXSourcesBuildPhase section */
+		485F089549994192AF7FDF20 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2BE8BF94486442899EA315A /* AuthView.swift in Sources */,
+				54740FC4467F4FA39DE06BAD /* AuthViewModel.swift in Sources */,
+				AC7B385E1E3042DD835165B7 /* AvatarView.swift in Sources */,
+				0E25D157D0DE46599DB1FC80 /* ChatView.swift in Sources */,
+				440CDB69D0934096A7696DF6 /* ContentView.swift in Sources */,
+				4CC2FE84649A4693826C9B8A /* ExploitsView.swift in Sources */,
+				DDB2F4C4572146F8B4791AB7 /* FeedView.swift in Sources */,
+				C8FD5ADC2C0C498E94E55054 /* FriendsView.swift in Sources */,
+				8B0C3662CFD94D098292691B /* MainTabView.swift in Sources */,
+				725ADC9801AE4E72ADA26217 /* MessagesView.swift in Sources */,
+				8E7E293622AA478AA8DBFD79 /* ProfileView.swift in Sources */,
+				3A647DDD029749279D677937 /* ProxyView.swift in Sources */,
+				B5B34199339341D0AD5877F7 /* SettingsView.swift in Sources */,
+				7DFE40DE74D74EBD9ED9B8C8 /* SplashView.swift in Sources */,
+				9CC1C1F7949C44C39BF4A61C /* Theme.swift in Sources */,
+				6D6AA72CAF0341738D9A0286 /* TokenStorage.swift in Sources */,
+				272294B70BB6452C83965DBC /* ToolsView.swift in Sources */,
+				F3834546D60D4518A089CF02 /* VKAPIClient.swift in Sources */,
+				180D2EBD3C2D4A4AB883C3F6 /* VKModels.swift in Sources */,
+				F0B8B6832C6F4114B90487B7 /* VKPlusApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		471F306436F14F39B86CDFBE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "VK+";
+				INFOPLIST_KEY_NSAppTransportSecurity = "<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
+				PRODUCT_NAME = VKPlus;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AB8B313F70A946C4A7E14B75 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "VK+";
+				INFOPLIST_KEY_NSAppTransportSecurity = "<dict><key>NSAllowsArbitraryLoads</key><true/></dict>";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
+				PRODUCT_NAME = VKPlus;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		523656AC8FB4446AA369A6D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		48C1C4E5FA254BF59682E67F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EEF22ABBDBB544509361E36F /* Build configuration list for PBXNativeTarget "VKPlus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				471F306436F14F39B86CDFBE /* Debug */,
+				AB8B313F70A946C4A7E14B75 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E079EA0402814CDCB9C63840 /* Build configuration list for PBXProject "VKPlus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				523656AC8FB4446AA369A6D2 /* Debug */,
+				48C1C4E5FA254BF59682E67F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
 	};
-	name = Debug;
-};
-AF03 /* Release */ = {
-	isa = XCBuildConfiguration;
-	buildSettings = {
-		ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-		CODE_SIGN_IDENTITY = "";
-		CODE_SIGNING_ALLOWED = NO;
-		CODE_SIGNING_REQUIRED = NO;
-		CURRENT_PROJECT_VERSION = 1;
-		GENERATE_INFOPLIST_FILE = YES;
-		INFOPLIST_KEY_CFBundleDisplayName = "VK+";
-		INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-		INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-		IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-		MARKETING_VERSION = 1.0;
-		PRODUCT_BUNDLE_IDENTIFIER = com.selfcode.vkplus;
-		PRODUCT_NAME = VKPlus;
-		SWIFT_VERSION = 5.0;
-		TARGETED_DEVICE_FAMILY = 1;
-	};
-	name = Release;
-};
-AF01 = {
-	isa = XCConfigurationList;
-	buildConfigurations = (AF02, AF03);
-	defaultConfigurationIsVisible = 0;
-	defaultConfigurationName = Release;
-};
-
-/* Build configs — project */
-AF04 /* Debug */ = {
-	isa = XCBuildConfiguration;
-	buildSettings = {
-		ALWAYS_SEARCH_USER_PATHS = NO;
-		CLANG_ENABLE_MODULES = YES;
-		CLANG_ENABLE_OBJC_ARC = YES;
-		COPY_PHASE_STRIP = NO;
-		DEBUG_INFORMATION_FORMAT = dwarf;
-		GCC_NO_COMMON_BLOCKS = YES;
-		GCC_OPTIMIZATION_LEVEL = 0;
-		ONLY_ACTIVE_ARCH = YES;
-		SDKROOT = iphoneos;
-		SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-		SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-	};
-	name = Debug;
-};
-AF05 /* Release */ = {
-	isa = XCBuildConfiguration;
-	buildSettings = {
-		ALWAYS_SEARCH_USER_PATHS = NO;
-		CLANG_ENABLE_MODULES = YES;
-		CLANG_ENABLE_OBJC_ARC = YES;
-		COPY_PHASE_STRIP = NO;
-		DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-		ENABLE_NS_ASSERTIONS = NO;
-		GCC_NO_COMMON_BLOCKS = YES;
-		SDKROOT = iphoneos;
-		SWIFT_COMPILATION_MODE = wholemodule;
-		SWIFT_OPTIMIZATION_LEVEL = "-O";
-		VALIDATE_PRODUCT = YES;
-	};
-	name = Release;
-};
-AF00 = {
-	isa = XCConfigurationList;
-	buildConfigurations = (AF04, AF05);
-	defaultConfigurationIsVisible = 0;
-	defaultConfigurationName = Release;
-};
-
-	};
-	rootObject = AE00;
+	rootObject = 91AA51555AEC40649D5158C2 /* Project object */;
 }
