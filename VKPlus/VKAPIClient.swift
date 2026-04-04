@@ -135,21 +135,52 @@ final class VKAPIClient {
 
     // MARK: - Dialogs
     func getDialogs(count: Int = 30) async throws -> [DialogItem] {
-        let r: VKConversationsResponse = try await call("messages.getConversations", params: [
+        let json = try await rawCall("messages.getConversations", params: [
             "count": "\(count)", "extended": "1", "fields": "photo_100,online"
         ])
-        let profileMap = Dictionary(uniqueKeysWithValues: (r.profiles ?? []).map { ($0.id, $0) })
-        let groupMap   = Dictionary(uniqueKeysWithValues: (r.groups   ?? []).map { ($0.id, $0) })
-        return r.items.compactMap { item in
-            let peer  = item.conversation.peer
-            let msg   = item.lastMessage?.text ?? ""
-            let unread = item.conversation.unreadCount ?? 0
-            if peer.type == "user", let u = profileMap[peer.localId] {
-                return DialogItem(id: peer.id, name: u.fullName, avatar: u.photo100,
-                                  lastMessage: msg, isOnline: u.isOnline, unreadCount: unread, peerId: peer.id)
-            } else if peer.type == "group", let g = groupMap[abs(peer.localId)] {
-                return DialogItem(id: peer.id, name: g.name, avatar: g.photo100,
-                                  lastMessage: msg, isOnline: false, unreadCount: unread, peerId: peer.id)
+        guard let response = json["response"] as? [String: Any] else { return [] }
+        let items    = response["items"]    as? [[String: Any]] ?? []
+        let rawProfs = response["profiles"] as? [[String: Any]] ?? []
+        let rawGrps  = response["groups"]   as? [[String: Any]] ?? []
+
+        // Build profile map: id -> (name, photo, online)
+        var profMap = [Int: (name: String, photo: String?, online: Bool)]()
+        for p in rawProfs {
+            guard let id = p["id"] as? Int else { continue }
+            let fn = p["first_name"] as? String ?? ""
+            let ln = p["last_name"]  as? String ?? ""
+            let ph = p["photo_100"]  as? String
+            let on = (p["online"] as? Int) == 1
+            profMap[id] = (fn + " " + ln, ph, on)
+        }
+        var grpMap = [Int: (name: String, photo: String?)]()
+        for g in rawGrps {
+            guard let id = g["id"] as? Int else { continue }
+            grpMap[id] = (g["name"] as? String ?? "Сообщество", g["photo_100"] as? String)
+        }
+
+        return items.compactMap { item -> DialogItem? in
+            guard let conv   = item["conversation"] as? [String: Any],
+                  let peer   = conv["peer"]         as? [String: Any],
+                  let peerId = peer["id"]            as? Int,
+                  let pType  = peer["type"]          as? String,
+                  let localId = peer["local_id"]     as? Int else { return nil }
+
+            let lastMsg   = (item["last_message"] as? [String: Any])?["text"] as? String ?? ""
+            let unread    = (conv["unread_count"] as? Int) ?? 0
+
+            if pType == "user", let u = profMap[localId] {
+                return DialogItem(id: peerId, name: u.name.trimmingCharacters(in: .whitespaces),
+                                  avatar: u.photo, lastMessage: lastMsg,
+                                  isOnline: u.online, unreadCount: unread, peerId: peerId)
+            } else if pType == "group", let g = grpMap[abs(localId)] {
+                return DialogItem(id: peerId, name: g.name, avatar: g.photo,
+                                  lastMessage: lastMsg, isOnline: false, unreadCount: unread, peerId: peerId)
+            } else if pType == "chat" {
+                let title = (conv["chat_settings"] as? [String: Any])?["title"] as? String ?? "Беседа"
+                let photo = ((conv["chat_settings"] as? [String: Any])?["photo"] as? [String: Any])?["photo_100"] as? String
+                return DialogItem(id: peerId, name: title, avatar: photo,
+                                  lastMessage: lastMsg, isOnline: false, unreadCount: unread, peerId: peerId)
             }
             return nil
         }
@@ -157,11 +188,16 @@ final class VKAPIClient {
 
     // MARK: - Messages
     func getMessages(peerId: Int, count: Int = 50) async throws -> [VKMessage] {
-        struct MR: Decodable { let count: Int; let items: [VKMessage] }
-        let r: MR = try await call("messages.getHistory", params: [
+        let json = try await rawCall("messages.getHistory", params: [
             "peer_id": "\(peerId)", "count": "\(count)"
         ])
-        return r.items
+        guard let response = json["response"] as? [String: Any],
+              let items = response["items"] as? [[String: Any]] else { return [] }
+        let decoder = JSONDecoder()
+        return items.compactMap { dict -> VKMessage? in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(VKMessage.self, from: data)
+        }
     }
 
     func sendMessage(peerId: Int, text: String, replyTo: Int? = nil) async throws -> Int {
