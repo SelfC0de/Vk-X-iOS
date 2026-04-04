@@ -393,7 +393,7 @@ private struct ProxyTabView: View {
 struct SettingsSectionCard<Content: View>: View {
     let title: String; let subtitle: String; let icon: String; let iconColor: Color
     @ViewBuilder let content: Content
-    @State private var expanded = true
+    @State private var expanded = false
 
     var body: some View {
         VStack(spacing: 0) {

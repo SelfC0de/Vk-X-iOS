@@ -5,220 +5,145 @@ struct SplashView: View {
     let onFinished: () -> Void
     var isAuthenticated: Bool = false
 
-    // Split animation
-    @State private var splitTop:    CGFloat = 0
-    @State private var splitBot:    CGFloat = 0
-    @State private var splitting    = false
-    @State private var canvasPhase  = SplashPhase.drawing
-    @State private var screenH:     CGFloat = 0
+    @State private var splitTop: CGFloat = 0
+    @State private var splitBot: CGFloat = 0
+    @State private var splitting = false
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color(red: 0.02, green: 0.03, blue: 0.06).ignoresSafeArea()
-
+                Color(red:0.02,green:0.03,blue:0.06).ignoresSafeArea()
                 if !splitting {
-                    // Full canvas animation
                     SplashCanvas(
-                        phase: $canvasPhase,
-                        onBySelfCodeShown: {
-                            if isAuthenticated {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    startSplit(h: geo.size.height)
-                                }
-                            } else {
-                                // Not authenticated — go to auth after short hold
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    onFinished()
-                                }
-                            }
+                        isAuthenticated: isAuthenticated,
+                        onReadyToTransition: {
+                            if isAuthenticated { startSplit(h: geo.size.height) }
+                            else { DispatchQueue.main.asyncAfter(deadline: .now()+0.4) { onFinished() } }
                         }
                     )
                     .ignoresSafeArea()
-
                 } else {
-                    // Top half: clip to upper portion, slide up
-                    SplashCanvas(phase: $canvasPhase, onBySelfCodeShown: {})
+                    // top half slides up
+                    SplashCanvas(isAuthenticated: isAuthenticated, onReadyToTransition: {})
                         .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                        .frame(width: geo.size.width, height: geo.size.height / 2, alignment: .top)
+                        .frame(width: geo.size.width, height: geo.size.height/2, alignment: .top)
                         .clipped()
                         .offset(y: -splitTop)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .frame(maxWidth:.infinity, maxHeight:.infinity, alignment:.top)
                         .ignoresSafeArea()
-
-                    // Bottom half: clip to lower portion, slide down
-                    SplashCanvas(phase: $canvasPhase, onBySelfCodeShown: {})
+                    // bottom half slides down
+                    SplashCanvas(isAuthenticated: isAuthenticated, onReadyToTransition: {})
                         .frame(width: geo.size.width, height: geo.size.height)
-                        .offset(y: -geo.size.height / 2)
-                        .frame(width: geo.size.width, height: geo.size.height / 2, alignment: .top)
+                        .offset(y: -geo.size.height/2)
+                        .frame(width: geo.size.width, height: geo.size.height/2, alignment: .top)
                         .clipped()
-                        .offset(y: geo.size.height / 2 + splitBot)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .offset(y: geo.size.height/2 + splitBot)
+                        .frame(maxWidth:.infinity, maxHeight:.infinity, alignment:.top)
                         .ignoresSafeArea()
                 }
             }
-            .onAppear { screenH = geo.size.height }
         }
     }
 
     private func startSplit(h: CGFloat) {
         splitting = true
         withAnimation(.easeIn(duration: 0.55).delay(0.05)) {
-            splitTop = h / 2 + 80
-            splitBot = h / 2 + 80
+            splitTop = h/2 + 80; splitBot = h/2 + 80
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            onFinished()
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now()+0.6) { onFinished() }
     }
 }
 
-// MARK: - Phase
-enum SplashPhase: Equatable {
-    case drawing, holding, bruteforce, done
-}
-
-// MARK: - SplashCanvas (TimelineView wrapper)
+// MARK: - SplashCanvas
 struct SplashCanvas: View {
-    @Binding var phase: SplashPhase
-    let onBySelfCodeShown: () -> Void
+    var isAuthenticated: Bool = false
+    var onReadyToTransition: () -> Void = {}
+
+    // ── timing (seconds) ─────────────────────────────────────────────
+    // Phase 1: circuit traces draw           0 … 3.6
+    // Phase 2: hold + bySelfCode fully shown 3.6 … 4.5
+    // Phase 3: bruteforce "Welcome to VK+"   4.5 … 7.0
+    // Phase 4: hold complete                 7.0 … 8.5  → transition
+    private let T_DRAW:  Double = 3.6
+    private let T_BRUTE: Double = 4.5   // brute starts here
+    private let T_DONE:  Double = 8.5   // transition fires here
 
     @State private var startDate = Date()
-    @State private var bySelfCodeFired = false
+    @State private var doneFired = false
 
-    // Bruteforce state
-    @State private var bruteChars: [Character] = Array(repeating: " ", count: 14)
-    @State private var bruteSolved: [Bool]     = Array(repeating: false, count: 14)
-    @State private var bruteSolveAt: [Date]    = Array(repeating: Date(), count: 14)
-    @State private var bruteStarted = false
-    @State private var bruteFlashAt: [Date]    = Array(repeating: Date.distantPast, count: 14)
-
-    private let target = Array("Welcome to VK+")
-    private let glyphs = Array("/\\|!@#$%&*?^~<>_=+")
-
-    // Timing constants (seconds)
-    private let DRAW_DUR: Double  = 3.6
-    private let HOLD_DUR: Double  = 0.9
-    private let BRUTE_DELAY: Double = 1.5   // after bySelfCode fully visible
-    private let LABEL_START: Double = 0.82  // fraction of DRAW_DUR
+    // brute state
+    private let TARGET = Array("Welcome to VK+")
+    @State private var bChars:   [Character] = Array(repeating: " ", count: 14)
+    @State private var bSolved:  [Bool]      = Array(repeating: false, count: 14)
+    @State private var bSolveAt: [Date]      = []
+    @State private var bFlashAt: [Date]      = Array(repeating: Date.distantPast, count: 14)
+    @State private var bInited   = false
+    private let GLYPHS = Array("/\\|!@#$%&*?^~<>_=+")
 
     var body: some View {
         TimelineView(.animation) { tl in
             let now = tl.date
-            let el  = now.timeIntervalSince(startDate)
-            let dp  = min(1.0, el / DRAW_DUR)
-
+            let el  = max(0, now.timeIntervalSince(startDate))
             Canvas { ctx, size in
-                drawFrame(ctx: ctx, size: size, el: el, dp: dp, now: now)
+                draw(ctx: ctx, size: size, el: el, now: now)
             }
-            .onChange(of: dp) { _, newVal in
-                handlePhaseTransitions(el: el, dp: newVal, now: now)
+            .onChange(of: el >= T_BRUTE) { _, active in
+                if active && !bInited { initBrute(now: now) }
+            }
+            .onChange(of: el >= T_DONE) { _, active in
+                if active && !doneFired { doneFired = true; onReadyToTransition() }
             }
         }
-        .background(Color(red: 0.02, green: 0.03, blue: 0.06))
+        .background(Color(red:0.02,green:0.03,blue:0.06))
         .onAppear { startDate = Date() }
-    }
-
-    // MARK: - Phase transitions
-    private func handlePhaseTransitions(el: Double, dp: Double, now: Date) {
-        // by SelfCode fully visible → fire callback
-        if dp > 0.97 && !bySelfCodeFired {
-            bySelfCodeFired = true
-            onBySelfCodeShown()
+        .task {
+            // watchdog — poll every 0.1s for state changes
+            while !doneFired {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                let el = Date().timeIntervalSince(startDate)
+                if el >= T_BRUTE && !bInited { initBrute(now: Date()) }
+                if el >= T_DONE  && !doneFired { doneFired = true; onReadyToTransition(); break }
+            }
         }
-        // Start bruteforce after label shown + delay
-        let bruteStartEl = DRAW_DUR * LABEL_START / 0.97 + HOLD_DUR + BRUTE_DELAY
-        if el >= bruteStartEl && !bruteStarted {
-            bruteStarted = true
-            initBrute(now: now)
-        }
-        // Tick brute
-        if bruteStarted { tickBrute(now: now) }
     }
 
     private func initBrute(now: Date) {
-        for i in 0..<14 {
-            bruteSolveAt[i] = now.addingTimeInterval(Double(i) * 0.062 + Double.random(in: 0...0.028))
-            bruteSolved[i]  = false
-            bruteChars[i]   = glyphs[Int.random(in: 0..<glyphs.count)]
+        bInited = true
+        bSolveAt = (0..<14).map { i in
+            now.addingTimeInterval(Double(i)*0.062 + Double.random(in: 0...0.028))
         }
     }
 
     private func tickBrute(now: Date) {
+        guard bInited else { return }
         for i in 0..<14 {
-            if bruteSolved[i] { continue }
-            if now >= bruteSolveAt[i] {
-                if !bruteSolved[i] { bruteFlashAt[i] = now }
-                bruteSolved[i] = true
-                bruteChars[i]  = target[i]
+            if bSolved[i] { continue }
+            if now >= bSolveAt[i] {
+                bFlashAt[i] = now
+                bSolved[i]  = true
+                bChars[i]   = TARGET[i]
             } else {
-                bruteChars[i] = glyphs[Int.random(in: 0..<glyphs.count)]
+                bChars[i] = GLYPHS[Int.random(in: 0..<GLYPHS.count)]
             }
         }
     }
 
     // MARK: - Draw
-    private func drawFrame(ctx: GraphicsContext, size: CGSize, el: Double, dp: Double, now: Date) {
+    private func draw(ctx: GraphicsContext, size: CGSize, el: Double, now: Date) {
         let W = size.width, H = size.height
-        let cx = W / 2
-        // VK+ logo positioned at 45% height
-        let cy = H * 0.45
+        let cx = W/2, cy = H*0.42
+        let BLUE = Color(red:0,green:0.706,blue:1)
+        let ACC  = Color(red:0,green:0.933,blue:1)
+        let dp   = min(1.0, el / T_DRAW)
 
-        // ── helpers ──────────────────────────────────────────────────
-        let BLUE = Color(red: 0, green: 0.706, blue: 1)
-        let ACC  = Color(red: 0, green: 0.933, blue: 1)
-
-        func pLen(_ pts: [CGPoint]) -> CGFloat {
-            var l: CGFloat = 0
-            for i in 1..<pts.count {
-                let dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y
-                l += sqrt(dx*dx + dy*dy)
-            }
-            return l
-        }
-
-        func endPoint(_ pts: [CGPoint], _ prog: Double) -> CGPoint {
-            let total = pLen(pts); var draw = CGFloat(prog) * total
-            var ex = pts[0].x, ey = pts[0].y
-            for i in 1..<pts.count {
-                let dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y
-                let sl = sqrt(dx*dx + dy*dy); if draw <= 0 { break }
-                let tk = min(sl, draw)
-                ex = pts[i-1].x + dx*(tk/sl); ey = pts[i-1].y + dy*(tk/sl)
-                draw -= tk
-            }
-            return CGPoint(x: ex, y: ey)
-        }
-
-        func drawTrace(_ pts: [CGPoint], _ prog: Double, _ color: Color, _ lw: CGFloat) {
-            guard prog > 0, pts.count >= 2 else { return }
-            let total = pLen(pts); var draw = CGFloat(prog) * total
-            var path = Path(); path.move(to: pts[0])
-            var ex = pts[0].x, ey = pts[0].y
-            for i in 1..<pts.count {
-                let dx = pts[i].x-pts[i-1].x, dy = pts[i].y-pts[i-1].y
-                let sl = sqrt(dx*dx+dy*dy); if draw <= 0 { break }
-                let tk = min(sl, draw)
-                ex = pts[i-1].x+dx*(tk/sl); ey = pts[i-1].y+dy*(tk/sl)
-                path.addLine(to: CGPoint(x: ex, y: ey)); draw -= tk
-            }
-            ctx.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round))
-            // endpoint dot
-            ctx.fill(Path(ellipseIn: CGRect(x: ex-lw*1.8, y: ey-lw*1.8, width: lw*3.6, height: lw*3.6)), with: .color(ACC))
-        }
-
-        // ── geometry anchors ──────────────────────────────────────────
-        // VK+ text approx bounds at font size 42
+        // ── geometry ──────────────────────────────────────────────────
         let FS: CGFloat = 42
-        let tw: CGFloat = 78  // approx width of "VK+" at 42px bold
-        let th: CGFloat = FS * 0.72
-        let lL = cx-tw/2, lR = cx+tw/2, lT = cy-th/2, lB = cy+th/2
-
-        let bx1 = cx-112, by1 = cy-98, bx2 = cx+112, by2 = cy+98
+        let tw: CGFloat = 78, th: CGFloat = FS*0.72
+        let lL=cx-tw/2, lR=cx+tw/2, lT=cy-th/2, lB=cy+th/2
+        let bx1=cx-112, by1=cy-98, bx2=cx+112, by2=cy+98
         let br: CGFloat = 18
 
-        let traces: [[CGPoint]] = [
+        let traces:[[CGPoint]] = [
             [.init(x:lL,y:lT),.init(x:lL-20,y:lT),.init(x:lL-20,y:lT-24),.init(x:lL+10,y:lT-24)],
             [.init(x:cx-8,y:lT),.init(x:cx-8,y:lT-36),.init(x:cx+20,y:lT-36)],
             [.init(x:lR-12,y:lT),.init(x:lR-12,y:lT-20),.init(x:lR+14,y:lT-20),.init(x:lR+14,y:lT-44)],
@@ -233,8 +158,7 @@ struct SplashCanvas: View {
             [.init(x:cx-4,y:lT-24),.init(x:cx-4,y:lT-48)],
             [.init(x:cx+6,y:lB+30),.init(x:cx+6,y:lB+52),.init(x:cx-14,y:lB+52)],
         ]
-
-        let borderPaths: [[CGPoint]] = [
+        let borders:[[CGPoint]] = [
             [.init(x:bx1+br,y:by1),.init(x:bx1,y:by1),.init(x:bx1,y:by1+br)],
             [.init(x:bx2-br,y:by1),.init(x:bx2,y:by1),.init(x:bx2,y:by1+br)],
             [.init(x:bx1,y:by2-br),.init(x:bx1,y:by2),.init(x:bx1+br,y:by2)],
@@ -246,8 +170,7 @@ struct SplashCanvas: View {
             [.init(x:bx1,y:by1+br+4),.init(x:bx1,y:by2-br-4)],
             [.init(x:bx2,y:by1+br+4),.init(x:bx2,y:by2-br-4)],
         ]
-
-        let vias: [CGPoint] = [
+        let vias:[CGPoint] = [
             .init(x:bx1,y:by1),.init(x:bx2,y:by1),.init(x:bx1,y:by2),.init(x:bx2,y:by2),
             .init(x:lL+10,y:lT-24),.init(x:cx+20,y:lT-36),
             .init(x:lR+14,y:lT-44),.init(x:lR+24,y:lB+40),
@@ -255,116 +178,137 @@ struct SplashCanvas: View {
             .init(x:lL-22,y:cy+38),.init(x:cx-14,y:lB+52),
             .init(x:cx+6,y:lT-48),.init(x:lR+44,y:cy-18),
         ]
+        let labelY  = by2+52
+        let welcomeY = by2+100
 
-        let labelY  = by2 + 52
-        let welcomeY = by2 + 100
+        // ── helpers ───────────────────────────────────────────────────
+        func pLen(_ pts:[CGPoint]) -> CGFloat {
+            var l:CGFloat=0
+            for i in 1..<pts.count { let dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y; l += sqrt(dx*dx+dy*dy) }
+            return l
+        }
+        func drawTrace(_ pts:[CGPoint],_ prog:Double,_ color:Color,_ lw:CGFloat) {
+            guard prog>0, pts.count>=2 else { return }
+            let tot=pLen(pts); var d=CGFloat(prog)*tot
+            var path=Path(); path.move(to:pts[0])
+            var ex=pts[0].x,ey=pts[0].y
+            for i in 1..<pts.count {
+                let dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y,sl=sqrt(dx*dx+dy*dy)
+                guard d>0 else { break }
+                let tk=min(sl,d); ex=pts[i-1].x+dx*(tk/sl); ey=pts[i-1].y+dy*(tk/sl)
+                path.addLine(to:.init(x:ex,y:ey)); d-=tk
+            }
+            ctx.stroke(path, with:.color(color), style:StrokeStyle(lineWidth:lw,lineCap:.round,lineJoin:.round))
+            ctx.fill(Path(ellipseIn:CGRect(x:ex-lw*1.8,y:ey-lw*1.8,width:lw*3.6,height:lw*3.6)), with:.color(ACC))
+        }
 
-        // ── draw borders ───────────────────────────────────────────────
-        for (i, bp) in borderPaths.enumerated() {
-            let delay = Double(i) * 0.03
-            let p = min(1.0, max(0, (dp - delay) / (1 - delay)) * 1.1)
+        // ── borders ───────────────────────────────────────────────────
+        for (i,bp) in borders.enumerated() {
+            let p = min(1.0, max(0,(dp-Double(i)*0.03)/(1-Double(i)*0.03))*1.1)
             drawTrace(bp, p, BLUE.opacity(0.3), 0.9)
         }
-
-        // ── draw traces ────────────────────────────────────────────────
-        for (i, tr) in traces.enumerated() {
-            let delay = 0.05 + Double(i) * 0.05
-            let p = min(1.0, max(0, (dp - delay) / (1 - delay)))
+        // ── traces ────────────────────────────────────────────────────
+        for (i,tr) in traces.enumerated() {
+            let delay = 0.05+Double(i)*0.05
+            let p = min(1.0, max(0,(dp-delay)/(1-delay)))
             drawTrace(tr, p, BLUE.opacity(0.6), 1.1)
         }
-
-        // ── vias ───────────────────────────────────────────────────────
-        if dp > 0.35 {
-            let va = min(1.0, (dp - 0.35) / 0.3)
+        // ── vias ──────────────────────────────────────────────────────
+        if dp>0.35 {
+            let va=min(1.0,(dp-0.35)/0.3)
             for v in vias {
-                ctx.fill(Path(ellipseIn: CGRect(x: v.x-3, y: v.y-3, width: 6, height: 6)),
-                         with: .color(ACC.opacity(va * 0.85)))
-                ctx.stroke(Path(ellipseIn: CGRect(x: v.x-6, y: v.y-6, width: 12, height: 12)),
-                           with: .color(BLUE.opacity(va * 0.2)), lineWidth: 0.5)
+                ctx.fill(Path(ellipseIn:CGRect(x:v.x-3,y:v.y-3,width:6,height:6)), with:.color(ACC.opacity(va*0.85)))
+                ctx.stroke(Path(ellipseIn:CGRect(x:v.x-6,y:v.y-6,width:12,height:12)), with:.color(BLUE.opacity(va*0.2)), lineWidth:0.5)
             }
         }
-
-        // ── VK+ text ───────────────────────────────────────────────────
-        if dp > 0.55 {
-            let ta = min(1.0, (dp - 0.55) / 0.28)
-            var txt = AttributedString("VK+")
-            txt.font = .systemFont(ofSize: FS, weight: .black)
-            txt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: CGFloat(ta))
-            let r = ctx.resolve(Text(txt))
-            ctx.draw(r, at: CGPoint(x: cx, y: cy), anchor: .center)
+        // ── VK+ text ──────────────────────────────────────────────────
+        if dp>0.55 {
+            let ta=min(1.0,(dp-0.55)/0.28)
+            var t=AttributedString("VK+")
+            t.font = .systemFont(ofSize:FS,weight:.black)
+            t.foregroundColor = UIColor(red:0,green:0.706,blue:1,alpha:CGFloat(ta))
+            ctx.draw(Text(t), at:.init(x:cx,y:cy), anchor:.center)
+        }
+        // ── by SelfCode ───────────────────────────────────────────────
+        let bsStart=0.82, bsEnd=0.97
+        if dp>bsStart {
+            let la=min(1.0,(dp-bsStart)/(bsEnd-bsStart))
+            let ease=1.0-pow(1.0-la,3.0)
+            var t=AttributedString("by SelfCode")
+            t.font = .systemFont(ofSize:15,weight:.semibold)
+            t.foregroundColor = UIColor(red:0.71,green:0.75,blue:0.82,alpha:CGFloat(ease))
+            ctx.draw(Text(t), at:.init(x:cx,y:labelY+CGFloat((1-ease)*18)), anchor:.center)
         }
 
-        // ── by SelfCode ────────────────────────────────────────────────
-        let bsStart = LABEL_START, bsEnd = 0.97
-        if dp > bsStart {
-            let la  = min(1.0, (dp - bsStart) / (bsEnd - bsStart))
-            let ease = 1.0 - pow(1.0 - la, 3.0)
-            let offY = CGFloat((1 - ease) * 18)
-            var txt = AttributedString("by SelfCode")
-            txt.font = .systemFont(ofSize: 15, weight: .semibold)
-            txt.foregroundColor = UIColor(red: 0.71, green: 0.75, blue: 0.82, alpha: CGFloat(ease))
-            let r = ctx.resolve(Text(txt))
-            ctx.draw(r, at: CGPoint(x: cx, y: labelY + offY), anchor: .center)
-        }
+        // ── bruteforce ────────────────────────────────────────────────
+        if el >= T_BRUTE {
+            tickBrute(now: now)
+            let elapsed = el - T_BRUTE
+            let solvedN = bSolved.filter{$0}.count
+            let ratio   = Double(solvedN)/14.0
 
-        // ── bruteforce ─────────────────────────────────────────────────
-        if bruteStarted {
-            let solvedN  = bruteSolved.filter { $0 }.count
-            let ratio    = Double(solvedN) / 14.0
+            // scanline
+            let scanY = CGFloat((elapsed*40).truncatingRemainder(dividingBy: Double(H)))
+            ctx.fill(Path(CGRect(x:0,y:scanY,width:W,height:3)), with:.color(BLUE.opacity(0.025)))
 
-            // divider lines grow from center
-            if ratio > 0.1 {
-                let lAlpha = min(1.0, (ratio - 0.1) / 0.5) * 0.45
-                let lLen   = CGFloat(min(1.0, (ratio - 0.1) / 0.6) * 110)
-                var lp = Path()
-                lp.move(to: .init(x: cx-lLen, y: welcomeY-18))
-                lp.addLine(to: .init(x: cx+lLen, y: welcomeY-18))
-                ctx.stroke(lp, with: .color(BLUE.opacity(lAlpha)), lineWidth: 0.5)
-                var lp2 = Path()
-                lp2.move(to: .init(x: cx-lLen, y: welcomeY+18))
-                lp2.addLine(to: .init(x: cx+lLen, y: welcomeY+18))
-                ctx.stroke(lp2, with: .color(BLUE.opacity(lAlpha)), lineWidth: 0.5)
+            // ambient glow
+            ctx.fill(
+                Path(CGRect(x:cx-160,y:welcomeY-70,width:320,height:140)),
+                with:.color(BLUE.opacity(ratio*0.08))
+            )
+
+            // divider lines
+            if ratio>0.1 {
+                let lA=min(1.0,(ratio-0.1)/0.5)*0.45
+                let lLen=CGFloat(min(1.0,(ratio-0.1)/0.6)*110)
+                var l1=Path(); l1.move(to:.init(x:cx-lLen,y:welcomeY-18)); l1.addLine(to:.init(x:cx+lLen,y:welcomeY-18))
+                var l2=Path(); l2.move(to:.init(x:cx-lLen,y:welcomeY+18)); l2.addLine(to:.init(x:cx+lLen,y:welcomeY+18))
+                ctx.stroke(l1,with:.color(BLUE.opacity(lA)),lineWidth:0.5)
+                ctx.stroke(l2,with:.color(BLUE.opacity(lA)),lineWidth:0.5)
             }
 
-            // render each char
-            let CW: CGFloat = 13.8
-            let ox  = cx - CGFloat(14) * CW / 2 + CW / 2
+            // chars
+            let CW:CGFloat=13.8
+            let ox=cx-CGFloat(14)*CW/2+CW/2
             for i in 0..<14 {
-                let x = ox + CGFloat(i) * CW
-                let ch = String(bruteChars[i])
-                if bruteSolved[i] {
-                    // flash burst
-                    let age = now.timeIntervalSince(bruteFlashAt[i])
-                    if age < 0.18 {
-                        let fl = 1.0 - age / 0.18
-                        var ft = AttributedString(ch)
-                        ft.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                        ft.foregroundColor = UIColor(red: 0, green: 0.933, blue: 1, alpha: CGFloat(fl * 0.9))
-                        ctx.draw(Text(ft), at: .init(x: x, y: welcomeY), anchor: .center)
+                let x=ox+CGFloat(i)*CW
+                let ch=String(bChars[i])
+                if bSolved[i] {
+                    let age=now.timeIntervalSince(bFlashAt[i])
+                    if age<0.18 {
+                        let fl=1.0-age/0.18
+                        var ft=AttributedString(ch)
+                        ft.font = .monospacedSystemFont(ofSize:16,weight:.bold)
+                        ft.foregroundColor=UIColor(red:0,green:0.933,blue:1,alpha:CGFloat(fl*0.9))
+                        ctx.draw(Text(ft),at:.init(x:x,y:welcomeY),anchor:.center)
                     }
-                    // solid
-                    var st = AttributedString(ch)
-                    st.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                    st.foregroundColor = UIColor(red: 0, green: 0.882, blue: 1, alpha: 1)
-                    ctx.draw(Text(st), at: .init(x: x, y: welcomeY), anchor: .center)
+                    var st=AttributedString(ch)
+                    st.font = .monospacedSystemFont(ofSize:16,weight:.bold)
+                    st.foregroundColor=UIColor(red:0,green:0.882,blue:1,alpha:1)
+                    ctx.draw(Text(st),at:.init(x:x,y:welcomeY),anchor:.center)
                 } else {
-                    var dt = AttributedString(ch)
-                    dt.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                    dt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: 0.28)
-                    ctx.draw(Text(dt), at: .init(x: x, y: welcomeY), anchor: .center)
+                    var dt=AttributedString(ch)
+                    dt.font = .monospacedSystemFont(ofSize:16,weight:.bold)
+                    dt.foregroundColor=UIColor(red:0,green:0.706,blue:1,alpha:0.28)
+                    ctx.draw(Text(dt),at:.init(x:x,y:welcomeY),anchor:.center)
                 }
             }
 
-            // all solved — pulse glow
-            if bruteSolved.allSatisfy({ $0 }) {
-                let age  = now.timeIntervalSince(bruteSolveAt[13])
-                let pulse = 0.12 + sin(age / 0.55) * 0.12
+            // all solved — pulse
+            if bSolved.allSatisfy({$0}) {
+                let age = bSolveAt.last.map { now.timeIntervalSince($0) } ?? 0
+                let pulse = 0.10 + sin(age/0.55)*0.10
                 for i in 0..<14 {
-                    let x = ox + CGFloat(i) * CW
-                    var gt = AttributedString(String(target[i]))
-                    gt.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                    gt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: CGFloat(max(0, pulse)))
-                    ctx.draw(Text(gt), at: .init(x: x, y: welcomeY), anchor: .center)
+                    let x=ox+CGFloat(i)*CW
+                    var gt=AttributedString(String(TARGET[i]))
+                    gt.font = .monospacedSystemFont(ofSize:16,weight:.bold)
+                    gt.foregroundColor=UIColor(red:0,green:0.706,blue:1,alpha:CGFloat(max(0,pulse)))
+                    ctx.draw(Text(gt),at:.init(x:x,y:welcomeY),anchor:.center)
+                }
+                // flash on complete
+                if age<0.4 {
+                    let fl=1.0-age/0.4
+                    ctx.fill(Path(CGRect(x:0,y:welcomeY-22,width:W,height:44)), with:.color(BLUE.opacity(fl*0.05)))
                 }
             }
         }
