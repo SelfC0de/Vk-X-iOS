@@ -389,7 +389,7 @@ private struct ClockColorRow: View {
                                     Circle()
                                         .fill(hex == "auto"
                                               ? AnyShapeStyle(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
-                                              : AnyShapeStyle(Color(hex: hex) ?? .white))
+                                              : AnyShapeStyle(Color(hex: hex)))
                                         .frame(width: 34, height: 34)
                                     if s.clockColorHex == hex {
                                         Circle()

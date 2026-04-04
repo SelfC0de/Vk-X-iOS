@@ -26,8 +26,9 @@ struct ClockView: View {
                 ? Color.white.opacity(0.85)
                 : Color.black.opacity(0.75)
         }
-        if let c = Color(hex: s.clockColorHex) { return c }
-        return colorScheme == .dark ? .white.opacity(0.85) : .black.opacity(0.75)
+        return s.clockColorHex == "auto"
+            ? (colorScheme == .dark ? .white.opacity(0.85) : .black.opacity(0.75))
+            : Color(hex: s.clockColorHex)
     }
 
     // MARK: - Time string

@@ -33,6 +33,7 @@ struct SettingsView: View {
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar { ToolbarItem(placement: .navigationBarLeading) { ClockView().padding(.leading, 4) } }
         .onAppear { withAnimation(.easeOut(duration: 0.3)) { appeared = true } }
         .onChange(of: selectedTab) { _, _ in
             appeared = false
