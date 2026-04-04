@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FF1122334455667788990022={isa=PBXBuildFile;fileRef=FF1122334455667788990011 /* GarlandView.swift */;settings={};};
+		EE1122334455667788990022={isa=PBXBuildFile;fileRef=EE1122334455667788990011 /* WeatherOverlayView.swift */;settings={};};
+		DD1122334455667788990022={isa=PBXBuildFile;fileRef=DD1122334455667788990011 /* PetView.swift */;settings={};};
 		BB2233445566778899AABB11={isa=PBXBuildFile;fileRef=BB2233445566778899AABB00 /* ClockView.swift */;settings={};};
 		AA00BB11CC22DD3344556677={isa=PBXBuildFile;fileRef=3EEACAC82B7249DA8FEE5DE8 /* AboutView.swift */;settings={};};
 		CC1122334455668800112233={isa=PBXBuildFile;fileRef=CC1122334455667700112233 /* RegDateCheckerView.swift */;settings={};};
@@ -46,6 +49,9 @@
 
 /* Begin PBXFileReference section */
 		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
+		FF1122334455667788990011={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=GarlandView.swift;sourceTree="<group>";};
+		EE1122334455667788990011={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=WeatherOverlayView.swift;sourceTree="<group>";};
+		DD1122334455667788990011={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=PetView.swift;sourceTree="<group>";};
 		BB2233445566778899AABB00={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ClockView.swift;sourceTree="<group>";};
 		CC1122334455667700112233={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";};
 		309AE0DA42554419BB1A2AC6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedComponents.swift;sourceTree="<group>";};
@@ -89,6 +95,9 @@
 /* Begin PBXGroup section */
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
+				FF1122334455667788990011,
+				EE1122334455667788990011,
+				DD1122334455667788990011,
 				BB2233445566778899AABB00,
 				CC1122334455667700112233,
 				3EEACAC82B7249DA8FEE5DE8,
@@ -140,6 +149,9 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		1EF9FD6FDCE44A6EA87FDBBA={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+			FF1122334455667788990022,
+			EE1122334455667788990022,
+			DD1122334455667788990022,
 			BB2233445566778899AABB11,
 			AA00BB11CC22DD3344556677,
 			CC1122334455668800112233,

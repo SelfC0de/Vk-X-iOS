@@ -161,6 +161,12 @@ final class SettingsStore: ObservableObject {
     @Published var liquidGlass:     Bool   { didSet { ud.set(liquidGlass,     forKey: "liquid_glass")     } }
 
     // Visual
+    @Published var weatherGarland: Bool { didSet { ud.set(weatherGarland, forKey: "weather_garland") } }
+    @Published var weatherRain: Bool { didSet { ud.set(weatherRain, forKey: "weather_rain") } }
+    @Published var weatherSnow: Bool { didSet { ud.set(weatherSnow, forKey: "weather_snow") } }
+    @Published var weatherFog:  Bool { didSet { ud.set(weatherFog,  forKey: "weather_fog")  } }
+    @Published var showPet:        Bool   { didSet { ud.set(showPet,        forKey: "show_pet")         } }
+    @Published var petType:        String { didSet { ud.set(petType,        forKey: "pet_type")         } }
     @Published var showClock:       Bool   { didSet { ud.set(showClock,       forKey: "show_clock")       } }
     @Published var clockStyle:      String { didSet { ud.set(clockStyle,      forKey: "clock_style")      } }
     @Published var clockAmPm:       Bool   { didSet { ud.set(clockAmPm,       forKey: "clock_ampm")       } }
@@ -202,6 +208,12 @@ final class SettingsStore: ObservableObject {
         typePush         = ud.bool(forKey: "type_push")
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
         liquidGlass      = ud.bool(forKey: "liquid_glass")
+        weatherGarland   = ud.bool(forKey: "weather_garland")
+        weatherRain      = ud.bool(forKey: "weather_rain")
+        weatherSnow      = ud.bool(forKey: "weather_snow")
+        weatherFog       = ud.bool(forKey: "weather_fog")
+        showPet          = ud.bool(forKey: "show_pet")
+        petType          = ud.string(forKey: "pet_type")         ?? "cat"
         showClock        = ud.bool(forKey: "show_clock")
         clockStyle       = ud.string(forKey: "clock_style")      ?? "digital"
         clockAmPm        = ud.bool(forKey: "clock_ampm")

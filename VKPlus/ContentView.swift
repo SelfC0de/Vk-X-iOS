@@ -10,6 +10,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
+            WeatherOverlayView().zIndex(99)
 
             // Main tab always underneath — revealed by split
             if showMain || phase == .main {

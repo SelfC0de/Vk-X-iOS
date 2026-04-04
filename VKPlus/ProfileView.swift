@@ -45,7 +45,14 @@ struct ProfileView: View {
             }
         }
         .sheet(isPresented: $showMirrorSheet) { ProfileChangerSheet(mirror: $mirror) }
-        .toolbar { ToolbarItem(placement: .navigationBarLeading) { ClockView().padding(.leading, 4) } }
+        .toolbar { ToolbarItem(placement: .navigationBarLeading) {
+                VStack(spacing: 0) {
+                    GarlandView()
+                    PetView()
+                    ClockView().padding(.leading, 4)
+                }
+                .frame(width: 200, alignment: .leading)
+            } }
         .task { await load() }
         .onChange(of: settings.verifyChecker) { _, on in
             if on, let uid = user?.id {

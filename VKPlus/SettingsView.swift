@@ -33,7 +33,14 @@ struct SettingsView: View {
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbar { ToolbarItem(placement: .navigationBarLeading) { ClockView().padding(.leading, 4) } }
+        .toolbar { ToolbarItem(placement: .navigationBarLeading) {
+                VStack(spacing: 0) {
+                    GarlandView()
+                    PetView()
+                    ClockView().padding(.leading, 4)
+                }
+                .frame(width: 200, alignment: .leading)
+            } }
         .onAppear { withAnimation(.easeOut(duration: 0.3)) { appeared = true } }
         .onChange(of: selectedTab) { _, _ in
             appeared = false

@@ -75,7 +75,14 @@ struct FriendsView: View {
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbar { ToolbarItem(placement: .navigationBarLeading) { ClockView().padding(.leading, 4) } }
+        .toolbar { ToolbarItem(placement: .navigationBarLeading) {
+                VStack(spacing: 0) {
+                    GarlandView()
+                    PetView()
+                    ClockView().padding(.leading, 4)
+                }
+                .frame(width: 200, alignment: .leading)
+            } }
         .task { await load() }
     }
 

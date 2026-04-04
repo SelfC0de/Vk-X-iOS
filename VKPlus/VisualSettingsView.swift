@@ -12,6 +12,82 @@ struct VisualTab: View {
     var body: some View {
         VStack(spacing: 14) {
 
+            // Pet
+            SettingsSectionCard(title: "🐾 Питомец",
+                                subtitle: s.showPet ? (allPets.first { $0.id == s.petType }?.label ?? "Кот") : "Выключен",
+                                icon: "pawprint.fill",
+                                iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
+                VStack(spacing: 0) {
+                    SettingsToggle("Показывать питомца", icon: "pawprint",
+                                   subtitle: "Животное бегает по шапке приложения",
+                                   val: $s.showPet)
+                    if s.showPet {
+                        Divider().background(Color.divider).padding(.leading, 14)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Выбрать питомца")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color.onSurfaceMut)
+                                .padding(.horizontal, 14).padding(.top, 12)
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                                ForEach(allPets, id: \.id) { pet in
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.15)) { s.petType = pet.id }
+                                    } label: {
+                                        VStack(spacing: 4) {
+                                            Text(pet.frames[0])
+                                                .font(.system(size: 28))
+                                            Text(String(pet.label.split(separator: " ").last ?? ""))
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(s.petType == pet.id ? Color.cyberBlue : Color.onSurfaceMut)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(s.petType == pet.id ? Color.cyberBlue.opacity(0.12) : Color(red:0.07,green:0.08,blue:0.13))
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(
+                                            s.petType == pet.id ? Color.cyberBlue.opacity(0.5) : Color.divider, lineWidth: 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 14).padding(.bottom, 12)
+                        }
+                    }
+                }
+            }
+
+            // Weather
+            SettingsSectionCard(title: "🌧 Погода",
+                                subtitle: [s.weatherRain ? "Дождь" : nil,
+                                           s.weatherSnow ? "Снег"  : nil,
+                                           s.weatherFog  ? "Туман" : nil]
+                                           .compactMap { $0 }.joined(separator: ", ")
+                                           .isEmpty ? "Выключено" :
+                                           [s.weatherRain ? "Дождь" : nil,
+                                            s.weatherSnow ? "Снег"  : nil,
+                                            s.weatherFog  ? "Туман" : nil]
+                                           .compactMap { $0 }.joined(separator: ", "),
+                                icon: "cloud.rain.fill",
+                                iconColor: Color(r:0x4D,g:0xA6,b:0xFF)) {
+                VStack(spacing: 0) {
+                    SettingsToggle("Garland Lights", icon: "light.ribbon.fill",
+                                   subtitle: "Новогодняя гирлянда в шапке",
+                                   val: $s.weatherGarland)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Дождь", icon: "cloud.rain",
+                                   subtitle: "Капли дождя на экране",
+                                   val: $s.weatherRain)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Снег", icon: "snowflake",
+                                   subtitle: "Снежинки падают по экрану",
+                                   val: $s.weatherSnow)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Туман", icon: "cloud.fog",
+                                   subtitle: "Лёгкая дымка поверх интерфейса",
+                                   val: $s.weatherFog)
+                }
+            }
+
             // Clock
             SettingsSectionCard(title: "🕐 Часы",
                                 subtitle: s.showClock ? (s.clockSeconds ? "С секундами" : "Без секунд") : "Выключены",
