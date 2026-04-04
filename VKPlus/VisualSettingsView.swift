@@ -204,16 +204,8 @@ struct VisualTab: View {
     }
 
     private func applyTheme(_ t: String) {
-        for scene in UIApplication.shared.connectedScenes {
-            guard let ws = scene as? UIWindowScene else { continue }
-            for window in ws.windows {
-                switch t {
-                case "light":  window.overrideUserInterfaceStyle = .light
-                case "dark":   window.overrideUserInterfaceStyle = .dark
-                default:       window.overrideUserInterfaceStyle = .unspecified
-                }
-            }
-        }
+        // preferredColorScheme is driven by SettingsStore.appTheme via VKPlusApp
+        // Nothing extra needed — store.appTheme = t triggers the change
     }
 }
 

@@ -2,31 +2,32 @@ import SwiftUI
 
 @main
 struct VKPlusApp: App {
+    @ObservedObject private var store = SettingsStore.shared
+
     init() {
         URLProtocol.registerClass(PrivacyURLProtocol.self)
-        // Apply saved theme
-        DispatchQueue.main.async {
-            guard let window = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene }).first?.windows.first else { return }
-            switch SettingsStore.shared.appTheme {
-            case "light":  window.overrideUserInterfaceStyle = .light
-            case "dark":   window.overrideUserInterfaceStyle = .dark
-            default:       window.overrideUserInterfaceStyle = .unspecified
-            }
-        }
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(colorScheme)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    if SettingsStore.shared.forceOffline { ForceOfflineManager.shared.start() }
+                    if store.forceOffline { ForceOfflineManager.shared.start() }
                     else { ForceOfflineManager.shared.stop() }
                 }
-                .onChange(of: SettingsStore.shared.forceOffline) { _, val in
+                .onChange(of: store.forceOffline) { _, val in
                     if val { ForceOfflineManager.shared.start() }
                     else   { ForceOfflineManager.shared.stop()  }
                 }
+        }
+    }
+
+    private var colorScheme: ColorScheme? {
+        switch store.appTheme {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil  // system
         }
     }
 }
