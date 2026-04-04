@@ -289,7 +289,7 @@ struct SplashCanvas: View {
             let ta = min(1.0, (dp - 0.55) / 0.28)
             var txt = AttributedString("VK+")
             txt.font = .systemFont(ofSize: FS, weight: .black)
-            txt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: Float(ta))
+            txt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: CGFloat(ta))
             let r = ctx.resolve(Text(txt))
             ctx.draw(r, at: CGPoint(x: cx, y: cy), anchor: .center)
         }
@@ -302,7 +302,7 @@ struct SplashCanvas: View {
             let offY = CGFloat((1 - ease) * 18)
             var txt = AttributedString("by SelfCode")
             txt.font = .systemFont(ofSize: 15, weight: .semibold)
-            txt.foregroundColor = UIColor(red: 0.71, green: 0.75, blue: 0.82, alpha: Float(ease))
+            txt.foregroundColor = UIColor(red: 0.71, green: 0.75, blue: 0.82, alpha: CGFloat(ease))
             let r = ctx.resolve(Text(txt))
             ctx.draw(r, at: CGPoint(x: cx, y: labelY + offY), anchor: .center)
         }
@@ -339,7 +339,7 @@ struct SplashCanvas: View {
                         let fl = 1.0 - age / 0.18
                         var ft = AttributedString(ch)
                         ft.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                        ft.foregroundColor = UIColor(red: 0, green: 0.933, blue: 1, alpha: Float(fl * 0.9))
+                        ft.foregroundColor = UIColor(red: 0, green: 0.933, blue: 1, alpha: CGFloat(fl * 0.9))
                         ctx.draw(Text(ft), at: .init(x: x, y: welcomeY), anchor: .center)
                     }
                     // solid
@@ -363,7 +363,7 @@ struct SplashCanvas: View {
                     let x = ox + CGFloat(i) * CW
                     var gt = AttributedString(String(target[i]))
                     gt.font = .monospacedSystemFont(ofSize: 16, weight: .bold)
-                    gt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: Float(max(0, pulse)))
+                    gt.foregroundColor = UIColor(red: 0, green: 0.706, blue: 1, alpha: CGFloat(max(0, pulse)))
                     ctx.draw(Text(gt), at: .init(x: x, y: welcomeY), anchor: .center)
                 }
             }

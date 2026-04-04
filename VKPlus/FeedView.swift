@@ -216,17 +216,9 @@ private struct PostCard: View {
 
             // Actions
             HStack(spacing: 20) {
-                Button(action: onLike) {
-                    HStack(spacing: 4) {
-                        Image(systemName: post.likes?.isLiked == true ? "heart.fill" : "heart")
-                            .font(.system(size: 16))
-                            .foregroundStyle(post.likes?.isLiked == true ? Color.errorRed : Color.onSurfaceMut)
-                        if let c = post.likes?.count, c > 0 {
-                            Text("\(c)").font(.system(size: 13))
-                                .foregroundStyle(post.likes?.isLiked == true ? Color.errorRed : Color.onSurfaceMut)
-                        }
-                    }
-                }.buttonStyle(.plain)
+                AnimatedLikeButton(isLiked: post.likes?.isLiked == true,
+                                   count: post.likes?.count ?? 0,
+                                   onTap: onLike)
 
                 HStack(spacing: 4) {
                     Image(systemName: "bubble.left").font(.system(size: 15)).foregroundStyle(Color.onSurfaceMut)

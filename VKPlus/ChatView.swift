@@ -116,8 +116,10 @@ struct ChatView: View {
         do {
             _ = try await VKAPIClient.shared.sendMessage(peerId: peerId, text: text)
             messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? messages
+            ToastManager.shared.show("Сообщение отправлено", icon: "paperplane.fill", style: .success)
         } catch {
-            draft = text // restore on failure
+            draft = text
+            ToastManager.shared.show("Ошибка отправки", icon: "exclamationmark.triangle.fill", style: .warning)
         }
         isSending = false
     }
