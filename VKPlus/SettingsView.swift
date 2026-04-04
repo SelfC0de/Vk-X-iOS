@@ -172,27 +172,34 @@ private struct EngineTab: View {
     }
 
     private var typeStatusSection: some View {
-        SettingsSectionCard(
-            title: "⌨️ Type Status",
-            subtitle: "Сейчас: \(SettingsStore.shared.currentTypeStatus.label)",
-            icon: "keyboard.fill",
-            iconColor: Color.cyberBlue
-        ) {
+        TypeStatusCard()
+    }
+
+    // Separate view so @ObservedObject works correctly
+    private struct TypeStatusCard: View {
+        @ObservedObject private var s = SettingsStore.shared
+        var body: some View {
+            SettingsSectionCard(
+                title: "⌨️ Type Status",
+                subtitle: "Сейчас: \(s.currentTypeStatus.label)",
+                icon: "keyboard.fill",
+                iconColor: Color.cyberBlue
+            ) {
             VStack(spacing: 0) {
                 ForEach(TypeStatus.allCases, id: \.self) { status in
                     Button {
                         withAnimation(.easeInOut(duration: 0.15)) {
-                            SettingsStore.shared.typeStatus = status.rawValue
+                            s.typeStatus = status.rawValue
                         }
                     } label: {
                         HStack(spacing: 12) {
                             Text(status.emoji).font(.system(size: 18)).frame(width: 26)
                             Text(status.label).font(.system(size: 14))
-                                .foregroundStyle(SettingsStore.shared.currentTypeStatus == status ? Color.cyberBlue : Color.onSurface)
+                                .foregroundStyle(s.currentTypeStatus == status ? Color.cyberBlue : Color.onSurface)
                             Spacer()
                             ZStack {
-                                Circle().stroke(SettingsStore.shared.currentTypeStatus == status ? Color.cyberBlue : Color.divider, lineWidth: 2).frame(width: 20, height: 20)
-                                if SettingsStore.shared.currentTypeStatus == status {
+                                Circle().stroke(s.currentTypeStatus == status ? Color.cyberBlue : Color.divider, lineWidth: 2).frame(width: 20, height: 20)
+                                if s.currentTypeStatus == status {
                                     Circle().fill(Color.cyberBlue).frame(width: 10, height: 10)
                                 }
                             }
@@ -206,7 +213,8 @@ private struct EngineTab: View {
                 }
             }
         }
-    }
+        } // end body
+    } // end TypeStatusCard
 
     private var toolsBanner: some View {
         HStack(spacing: 12) {
@@ -380,9 +388,16 @@ private struct ProxyTabView: View {
 
 // MARK: - Reusable components
 struct SettingsSectionCard<Content: View>: View {
-    let title: String; let subtitle: String; let icon: String; let iconColor: Color
+    let title: String
+    let subtitle: String
+    let icon: String
+    let iconColor: Color
     @ViewBuilder let content: Content
     @State private var expanded = false
+    // Optional reactive subtitle override
+    var subtitleProvider: (() -> String)? = nil
+
+    private var displaySubtitle: String { subtitleProvider?() ?? subtitle }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -394,7 +409,7 @@ struct SettingsSectionCard<Content: View>: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        Text(displaySubtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                     }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
@@ -427,7 +442,7 @@ struct SettingsToggle: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                     if !subtitle.isEmpty {
-                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        Text(displaySubtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                     }
                 }
                 Spacer()

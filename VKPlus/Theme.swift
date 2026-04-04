@@ -1,37 +1,31 @@
 import SwiftUI
 
-// MARK: - Adaptive Colors
-// Colors respond to colorScheme — dark/light/system works automatically
+// MARK: - Adaptive Colors via UIColor dynamicProvider
 extension Color {
-    // Accent — same in both themes
-    static let cyberBlue   = Color(r: 0x00, g: 0xB4, b: 0xFF)
-    static let cyberAccent = Color(r: 0x00, g: 0xEE, b: 0xFF)
-    static let errorRed    = Color(r: 0xFF, g: 0x44, b: 0x66)
+    static let cyberBlue    = Color(r: 0x00, g: 0xB4, b: 0xFF)
+    static let cyberAccent  = Color(r: 0x00, g: 0xEE, b: 0xFF)
+    static let errorRed     = Color(r: 0xFF, g: 0x44, b: 0x66)
 
-    // Adaptive backgrounds
-    static let background  = Color(adaptive: dark: (0x05, 0x08, 0x10), light: (0xF2, 0xF4, 0xF7))
-    static let surface     = Color(adaptive: dark: (0x0D, 0x13, 0x20), light: (0xFF, 0xFF, 0xFF))
-    static let surfaceVar  = Color(adaptive: dark: (0x11, 0x18, 0x27), light: (0xE8, 0xEC, 0xF2))
-    static let onSurface   = Color(adaptive: dark: (0xE8, 0xEE, 0xF4), light: (0x0D, 0x13, 0x20))
-    static let onSurfaceMut = Color(adaptive: dark: (0x6B, 0x7A, 0x8D), light: (0x5A, 0x66, 0x78))
-    static let divider     = Color(adaptive: dark: (0x1E, 0x2A, 0x3A), light: (0xD0, 0xD6, 0xDF))
+    static let background   = Color(UIColor.vkBackground)
+    static let surface      = Color(UIColor.vkSurface)
+    static let surfaceVar   = Color(UIColor.vkSurfaceVar)
+    static let onSurface    = Color(UIColor.vkOnSurface)
+    static let onSurfaceMut = Color(UIColor.vkOnSurfaceMut)
+    static let divider      = Color(UIColor.vkDivider)
 
-    // Hex init
     init(r: Int, g: Int, b: Int) {
         self.init(red: Double(r)/255, green: Double(g)/255, blue: Double(b)/255)
     }
-
-    // Adaptive UIColor-backed init
-    init(adaptive dark: (Int, Int, Int), light: (Int, Int, Int)) {
-        self.init(UIColor { trait in
-            trait.userInterfaceStyle == .dark
-                ? UIColor(r: dark.0,  g: dark.1,  b: dark.2)
-                : UIColor(r: light.0, g: light.1, b: light.2)
-        })
-    }
 }
 
-private extension UIColor {
+extension UIColor {
+    static let vkBackground  = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0x05,g:0x08,b:0x10) : .init(r:0xF2,g:0xF4,b:0xF7) }
+    static let vkSurface     = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0x0D,g:0x13,b:0x20) : .init(r:0xFF,g:0xFF,b:0xFF) }
+    static let vkSurfaceVar  = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0x11,g:0x18,b:0x27) : .init(r:0xE8,g:0xEC,b:0xF2) }
+    static let vkOnSurface   = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0xE8,g:0xEE,b:0xF4) : .init(r:0x0D,g:0x13,b:0x20) }
+    static let vkOnSurfaceMut = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0x6B,g:0x7A,b:0x8D) : .init(r:0x5A,g:0x66,b:0x78) }
+    static let vkDivider     = UIColor { t in t.userInterfaceStyle == .dark ? .init(r:0x1E,g:0x2A,b:0x3A) : .init(r:0xD0,g:0xD6,b:0xDF) }
+
     convenience init(r: Int, g: Int, b: Int) {
         self.init(red: CGFloat(r)/255, green: CGFloat(g)/255, blue: CGFloat(b)/255, alpha: 1)
     }
@@ -44,7 +38,6 @@ extension LinearGradient {
     )
 }
 
-// MARK: - Card modifier
 struct CyberCard: ViewModifier {
     func body(content: Content) -> some View {
         content
