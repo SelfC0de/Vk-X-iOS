@@ -838,7 +838,6 @@ private struct VKProfileResolverSheet: View {
     @Environment(\.dismiss) var dismiss
     @State private var user: VKUser? = nil
     @State private var isLoading = true
-    @State private var failed = false
 
     var body: some View {
         NavigationStack {
@@ -855,8 +854,6 @@ private struct VKProfileResolverSheet: View {
                     }
                 }
             }
-            .navigationTitle(screenName)
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Закрыть") { dismiss() }
@@ -866,40 +863,13 @@ private struct VKProfileResolverSheet: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
-        .task { await resolve() }
+        .task { await load() }
     }
 
-    private func resolve() async {
+    private func load() async {
         isLoading = true
-        defer { isLoading = false }
-
-        let name = screenName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // 1. Pure numeric id  e.g. "123456"
-        if let numId = Int(name) {
-            if let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
-               let first = users.first { user = first; return }
-        }
-
-        // 2. "id123456" format — strip "id" prefix only when the rest is all digits
-        if name.lowercased().hasPrefix("id") {
-            let tail = String(name.dropFirst(2))
-            if let numId = Int(tail) {
-                if let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
-                   let first = users.first { user = first; return }
-            }
-        }
-
-        // 3. screen_name e.g. "durov", "club12345"
-        if let userId = try? await VKAPIClient.shared.resolveScreenName(name) {
-            if let users = try? await VKAPIClient.shared.getUsers(ids: "\(userId)"),
-               let first = users.first { user = first; return }
-        }
-
-        // 4. Try direct users.get by screen_name as user_ids string
-        if let users = try? await VKAPIClient.shared.getUsers(ids: name),
-           let first = users.first { user = first; return }
-
-        failed = true
+        // getUserById accepts: numeric id, "id123", screen_name — all in one call
+        user = try? await VKAPIClient.shared.getUserById(screenName)
+        isLoading = false
     }
 }
