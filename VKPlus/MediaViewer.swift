@@ -102,58 +102,94 @@ struct AudioPlayerView: View {
 
     @StateObject private var player = AudioPlayerModel()
 
+    // Fake waveform bars — pseudo-random but stable per url
+    private var bars: [CGFloat] {
+        var rng = url.hashValue
+        return (0..<28).map { _ -> CGFloat in
+            rng = rng &* 1664525 &+ 1013904223
+            let v = CGFloat((rng >> 16) & 0xFF) / 255.0
+            return 0.15 + v * 0.85
+        }
+    }
+
+    private var isActive: Bool { player.currentUrl == url }
+    private var progress: Double { isActive ? player.progress : 0 }
+
     var body: some View {
         HStack(spacing: 10) {
             // Play/pause button
-            Button {
-                player.toggle(url: url)
-            } label: {
+            Button { player.toggle(url: url) } label: {
                 ZStack {
                     Circle()
-                        .fill(Color.cyberBlue.opacity(0.15))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: player.isPlaying && player.currentUrl == url
-                          ? "pause.fill" : (isVoice ? "waveform" : "play.fill"))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.cyberBlue)
+                        .fill(isVoice ? Color(red:0.11,green:0.63,blue:0.95) : Color.cyberBlue.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: isActive && player.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(isVoice ? .white : Color.cyberBlue)
                 }
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 4) {
-                // Waveform progress bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
-                        Capsule()
-                            .fill(Color.cyberBlue)
-                            .frame(width: geo.size.width * CGFloat(player.currentUrl == url ? player.progress : 0),
-                                   height: 3)
+            VStack(alignment: .leading, spacing: 5) {
+                if isVoice {
+                    // VK-style waveform
+                    GeometryReader { geo in
+                        let barW: CGFloat = (geo.size.width - CGFloat(bars.count - 1) * 2) / CGFloat(bars.count)
+                        let filled = Int(progress * Double(bars.count))
+                        HStack(spacing: 2) {
+                            ForEach(Array(bars.enumerated()), id: \.offset) { i, h in
+                                Capsule()
+                                    .fill(i < filled
+                                          ? Color(red:0.11,green:0.63,blue:0.95)
+                                          : Color.white.opacity(0.25))
+                                    .frame(width: max(2, barW), height: geo.size.height * h)
+                            }
+                        }
+                        .frame(height: geo.size.height)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onEnded { v in
+                            player.seek(to: Double(v.location.x / geo.size.width))
+                        })
+                    }
+                    .frame(height: 28)
+                } else {
+                    // Regular audio — slim bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
+                            Capsule().fill(Color.cyberBlue)
+                                .frame(width: geo.size.width * CGFloat(progress), height: 3)
+                        }
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onEnded { v in
+                            player.seek(to: Double(v.location.x / geo.size.width))
+                        })
                     }
                     .frame(height: 3)
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 0)
-                        .onEnded { v in
-                            let pct = v.location.x / geo.size.width
-                            player.seek(to: Double(pct))
-                        })
                 }
-                .frame(height: 3)
 
-                // Time
-                Text(timeStr(player.currentUrl == url
-                             ? Int(player.progress * Double(duration)) : 0, total: duration))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(Color(red:0.55,green:0.75,blue:0.95))
+                HStack {
+                    Text(timeStr(isActive ? Int(progress * Double(duration)) : duration))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(isVoice
+                            ? (isActive && player.isPlaying ? Color(red:0.11,green:0.63,blue:0.95) : Color.white.opacity(0.5))
+                            : Color(red:0.55,green:0.75,blue:0.95))
+                    if !isVoice {
+                        Spacer()
+                        Text(timeStr(duration))
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.4))
+                    }
+                }
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .onDisappear { if player.currentUrl == url { player.stop() } }
+        .onDisappear { if isActive { player.stop() } }
     }
 
-    private func timeStr(_ cur: Int, total: Int) -> String {
-        String(format: "%d:%02d / %d:%02d", cur/60, cur%60, total/60, total%60)
+    private func timeStr(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
 

@@ -31,10 +31,14 @@ struct ChatView: View {
     @State private var searchQuery  = ""
     // Emoji
     @State private var showEmoji    = false
-    // Voice record
-    @State private var isRecording  = false
+    // Voice record (VK-style hold-to-record)
+    @State private var isRecording    = false
+    @State private var isCancelling   = false   // swipe-left cancel zone
+    @State private var recordSeconds  = 0
+    @State private var recordTimer:   Timer? = nil
     @State private var audioRecorder: AVAudioRecorder? = nil
     @State private var recordedURL:   URL? = nil
+    @State private var dragOffsetX:   CGFloat = 0
     @State private var videoItem2:  PhotosPickerItem? = nil
     @State private var audioItem:   PhotosPickerItem? = nil
     @State private var showFilePicker = false
@@ -283,14 +287,14 @@ struct ChatView: View {
                     .onChange(of: draft) { _, v in if !v.isEmpty { simulateTyping() } }
 
                 if draft.trimmingCharacters(in: .whitespaces).isEmpty && pendingAttach == nil && !isSending {
-                    Button {
-                        if isRecording { stopRecording() }
-                        else { startRecording() }
-                    } label: {
-                        Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                            .font(.system(size: 34))
-                            .foregroundStyle(isRecording ? Color.red : Color(red:0.4,green:0.5,blue:0.65))
-                    }
+                    VoiceRecordButton(
+                        isRecording: $isRecording,
+                        isCancelling: $isCancelling,
+                        dragOffsetX: $dragOffsetX,
+                        onStart: { startRecording() },
+                        onStop: { stopRecording() },
+                        onCancel: { cancelRecording() }
+                    )
                 } else {
                     Button { Task { await send() } } label: {
                         if isSending { ProgressView().tint(.cyberBlue).frame(width: 34, height: 34) }
@@ -556,20 +560,41 @@ struct ChatView: View {
         .background(Color(red:0.07,green:0.08,blue:0.13))
     }
 
-    // MARK: - Recording banner
+    // MARK: - Recording overlay (VK-style)
     private var recordingBanner: some View {
-        HStack(spacing: 10) {
-            Circle().fill(Color.red).frame(width: 10, height: 10)
+        HStack(spacing: 12) {
+            // Red dot pulse
+            Circle().fill(Color.red).frame(width: 8, height: 8)
                 .opacity(isRecording ? 1 : 0)
-                .animation(.easeInOut(duration: 0.6).repeatForever(), value: isRecording)
-            Text("Запись...").font(.system(size: 13)).foregroundStyle(Color.onSurface)
+                .scaleEffect(isRecording ? 1 : 0.5)
+                .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isRecording)
+            // Timer
+            Text(String(format: "%d:%02d", recordSeconds / 60, recordSeconds % 60))
+                .font(.system(size: 15, design: .monospaced))
+                .foregroundStyle(Color.onSurface)
             Spacer()
-            Button { audioRecorder?.stop(); audioRecorder = nil; isRecording = false; recordedURL = nil } label: {
-                Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+            // Swipe hint
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 12))
+                    .opacity(0.6)
+                Text("Смахните для отмены")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.onSurfaceMut)
+            }
+            .opacity(isCancelling ? 0 : 1)
+            .animation(.easeOut(duration: 0.15), value: isCancelling)
+
+            if isCancelling {
+                Text("Отмена")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.red)
+                    .transition(.opacity.combined(with: .scale))
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(Color(red:0.12,green:0.06,blue:0.06))
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Color(red:0.05,green:0.05,blue:0.09))
+        .offset(x: min(0, dragOffsetX * 0.4))
     }
 
     private func deleteMsg(_ msg: VKMessage) async {
@@ -1084,6 +1109,64 @@ private struct LinkableText: UIViewRepresentable {
 }
 
 
+
+// MARK: - Voice Record Button (VK-style hold-to-record)
+private struct VoiceRecordButton: View {
+    @Binding var isRecording: Bool
+    @Binding var isCancelling: Bool
+    @Binding var dragOffsetX: CGFloat
+    let onStart: () -> Void
+    let onStop: () -> Void
+    let onCancel: () -> Void
+
+    @State private var isPressed = false
+    private let cancelThreshold: CGFloat = -80
+
+    var body: some View {
+        ZStack {
+            // Пульсирующий круг при записи
+            if isRecording {
+                Circle()
+                    .fill(Color.red.opacity(0.15))
+                    .frame(width: 56, height: 56)
+                    .scaleEffect(isRecording ? 1.3 : 1)
+                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: isRecording)
+            }
+            // Кнопка
+            Circle()
+                .fill(isRecording ? Color.red : Color(red:0.1,green:0.12,blue:0.18))
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Image(systemName: isRecording ? "mic.fill" : "mic")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(isRecording ? .white : Color(red:0.4,green:0.5,blue:0.65))
+                )
+                .scaleEffect(isPressed ? 1.1 : 1.0)
+                .animation(.spring(response: 0.2), value: isPressed)
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { val in
+                    if !isRecording {
+                        isPressed = true
+                        onStart()
+                    }
+                    dragOffsetX = val.translation.width
+                    isCancelling = dragOffsetX < cancelThreshold
+                }
+                .onEnded { _ in
+                    isPressed = false
+                    if isCancelling {
+                        onCancel()
+                    } else if isRecording {
+                        onStop()
+                    }
+                    dragOffsetX = 0
+                    isCancelling = false
+                }
+        )
+    }
+}
 
 // MARK: - Forward Sheet
 struct ForwardSheet: View {

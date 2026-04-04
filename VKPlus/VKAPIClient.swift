@@ -85,6 +85,68 @@ final class VKAPIClient {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
     }
 
+    // MARK: - Raw call with custom headers (for verification endpoint)
+    func rawCallWithHeaders(_ method: String,
+                            params: [String: String] = [:],
+                            headers: [String: String] = [:]) async throws -> [String: Any] {
+        var comps = URLComponents(string: "\(base)/\(method)")!
+        var items = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+        items += [
+            URLQueryItem(name: "access_token", value: token),
+            URLQueryItem(name: "v", value: version)
+        ]
+        comps.queryItems = items
+        guard let url = comps.url else { throw VKError.network("Bad URL") }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        // POST body
+        let body = items.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&")
+        req.httpBody = body.data(using: .utf8)
+        // Custom headers
+        headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
+        let (data, _) = try await session.data(for: req)
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+    }
+
+    // MARK: - Get user verification via execute (Android UA for full verification_info)
+    func getUserVerification(userId: Int) async throws -> VKVerificationInfo? {
+        let code = """
+        var u = \(userId);
+        return API.users.get({
+            'user_ids': u,
+            'fields': 'verification_info,verified,is_verified,service_description',
+            'v': '5.199',
+            'extend': 1
+        })[0];
+        """
+        let deviceId = (0..<16).map { _ in "0123456789abcdef".randomElement()! }.map(String.init).joined()
+        let json = try await rawCallWithHeaders("execute", params: ["code": code], headers: [
+            "User-Agent": "VKAndroidApp/8.55-12345 (Android 14; SDK 34; arm64-v8a; ru)",
+            "X-VK-Android-Client": "new",
+            "X-VK-Device-Id": deviceId,
+            "X-VK-App-Build": "12345",
+            "X-Get-User-Verification": "1"
+        ])
+        guard let response = json["response"] as? [String: Any] else { return nil }
+        // Parse verification_info from response
+        if let vi = response["verification_info"] as? [String: Any],
+           let rawVerifs = vi["verifications"] as? [[String: Any]] {
+            let verifs = rawVerifs.compactMap { v -> VKVerification? in
+                guard let type = v["type"] as? String else { return nil }
+                return VKVerification(type: type,
+                                      priority: v["priority"] as? Int,
+                                      name: v["name"] as? String)
+            }
+            return VKVerificationInfo(verifications: verifs)
+        }
+        // Fallback — check verified field
+        if let verified = response["verified"] as? Int, verified == 1 {
+            return VKVerificationInfo(verifications: [])
+        }
+        return nil
+    }
+
     // MARK: - Auth
     func getMe(token t: String) async throws -> VKUser {
         let users: [VKUser] = try await call("users.get",
@@ -263,6 +325,27 @@ final class VKAPIClient {
               let photoId  = item["id"] as? Int,
               let ownerId  = item["owner_id"] as? Int else { throw VKError.api(0, "Save failed") }
         return "photo\(ownerId)_\(photoId)"
+    }
+
+    // MARK: - Upload voice message (audio_message type)
+    func uploadVoiceMessage(peerId: Int, data: Data) async throws -> String {
+        let urlJson = try await rawCall("docs.getMessagesUploadServer", params: [
+            "peer_id": "\(peerId)", "type": "audio_message"
+        ])
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
+            throw VKError.api(0, "No upload URL for voice")
+        }
+        let uploaded = try await uploadMultipart(url: uploadUrl, data: data, name: "file",
+                                                 filename: "voice.m4a", mimeType: "audio/m4a")
+        guard let file = uploaded["file"] else { throw VKError.api(0, "Voice upload failed") }
+        let saveJson = try await rawCall("docs.save", params: ["file": file])
+        guard let response = saveJson["response"] as? [String: Any],
+              let obj = response["audio_message"] as? [String: Any],
+              let docId  = obj["id"] as? Int,
+              let ownerId = obj["owner_id"] as? Int else {
+            throw VKError.api(0, "Voice save failed")
+        }
+        return "doc\(ownerId)_\(docId)"
     }
 
     // MARK: - Upload doc (video/audio/file) to messages

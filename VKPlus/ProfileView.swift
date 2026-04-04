@@ -45,6 +45,11 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showMirrorSheet) { ProfileChangerSheet(mirror: $mirror) }
         .task { await load() }
+        .onChange(of: settings.verifyChecker) { _, on in
+            if on, let uid = user?.id {
+                Task { fetchedVerifInfo = try? await VKAPIClient.shared.getUserVerification(userId: uid) }
+            }
+        }
     }
 
     @ViewBuilder
@@ -237,7 +242,11 @@ struct ProfileView: View {
             }
             if settings.verifyChecker {
                 divider
-                VerificationRow(user: u, fakeVerif: settings.fakeVerification)
+VerificationRowFetched(
+                                    user: u,
+                                    fetchedInfo: fetchedVerifInfo,
+                                    fakeVerif: settings.fakeVerification
+                                )
             }
         }
         .background(Color.surface)
@@ -319,6 +328,10 @@ struct ProfileView: View {
         isLoading = true
         user = try? await VKAPIClient.shared.getProfile()
         isLoading = false
+        // Fetch fresh verification via execute+Android UA if checker enabled
+        if settings.verifyChecker, let uid = user?.id {
+            fetchedVerifInfo = try? await VKAPIClient.shared.getUserVerification(userId: uid)
+        }
     }
 
     private func formatNum(_ n: Int) -> String {

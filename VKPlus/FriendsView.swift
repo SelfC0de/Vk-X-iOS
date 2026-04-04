@@ -206,9 +206,13 @@ struct FriendProfileView: View {
                                 Divider().background(Color.divider).padding(.leading, 44)
                                 infoRow(icon: "mappin.and.ellipse", label: "Город", value: city)
                             }
-                            if SettingsStore.shared.verifyChecker {
+                            if settings.verifyChecker {
                                 Divider().background(Color.divider).padding(.leading, 44)
-                                VerificationRow(user: display, fakeVerif: false)
+                                VerificationRowFetched(
+                                    user: display,
+                                    fetchedInfo: verificationInfo,
+                                    fakeVerif: false
+                                )
                             }
                         }
                         .cyberCard().padding(.horizontal, 16).padding(.top, 16)
@@ -233,7 +237,12 @@ struct FriendProfileView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
             isLoading = true
-            fullUser = try? await VKAPIClient.shared.getUserById("\(user.id)")
+            async let u = VKAPIClient.shared.getUserById("\(user.id)")
+            async let v = SettingsStore.shared.verifyChecker
+                ? VKAPIClient.shared.getUserVerification(userId: user.id)
+                : nil
+            fullUser = try? await u
+            verificationInfo = try? await v
             isLoading = false
             SettingsStore.shared.addProfileHistory(user.id)
         }
@@ -300,6 +309,86 @@ struct VerificationBadgesInline: View {
                 ForEach(verifications, id: \.type) { v in
                     ServiceFaviconView(type: v.type)
                         .frame(width: 14, height: 14)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - VerificationRow with fetched override
+struct VerificationRowFetched: View {
+    let user: VKUser
+    let fetchedInfo: VKVerificationInfo?
+    let fakeVerif: Bool
+
+    // Use fetched info if available, else fall back to user.verificationInfo
+    private var effectiveInfo: VKVerificationInfo? { fetchedInfo ?? user.verificationInfo }
+
+    private var isVKVerified: Bool { fakeVerif || user.verified == 1 }
+    private var verifications: [VKVerification] {
+        (effectiveInfo?.verifications ?? []).sorted { ($0.priority ?? 99) < ($1.priority ?? 99) }
+    }
+    private var hasAny: Bool { isVKVerified || !verifications.isEmpty }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(hasAny ? Color(r:0x1D,g:0xA1,b:0xF2).opacity(0.15) : Color.surfaceVar)
+                        .frame(width: 28, height: 28)
+                    Image(systemName: hasAny ? "checkmark.seal.fill" : "checkmark.seal")
+                        .font(.system(size: 14))
+                        .foregroundStyle(hasAny ? Color(r:0x1D,g:0xA1,b:0xF2) : Color.onSurfaceMut)
+                }
+                Text("Верификация")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.onSurface)
+                Spacer()
+                if !hasAny {
+                    Text("Отсутствует")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.onSurfaceMut)
+                } else {
+                    HStack(spacing: 5) {
+                        if isVKVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(Color(r:0x1D,g:0xA1,b:0xF2))
+                        }
+                        ForEach(verifications, id: \.type) { v in
+                            ServiceFaviconView(type: v.type)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+
+            if !verifications.isEmpty {
+                let vNames: [String: String] = [
+                    "gosuslugi": "Госуслуги", "alfa": "Альфа-Банк",
+                    "tinkoff": "Т-Банк", "sber": "СберБанк", "vtb": "ВТБ"
+                ]
+                Divider().background(Color.divider).padding(.leading, 56)
+                VStack(spacing: 0) {
+                    ForEach(Array(verifications.enumerated()), id: \.element.type) { idx, v in
+                        HStack(spacing: 12) {
+                            ServiceFaviconView(type: v.type).frame(width: 28)
+                            Text(vNames[v.type] ?? v.name ?? v.type)
+                                .font(.system(size: 13)).foregroundStyle(Color.onSurface)
+                            Spacer()
+                            Text("Подтверждено")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color(r:0x52,g:0xC4,b:0x1A))
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color(r:0x52,g:0xC4,b:0x1A).opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        if idx < verifications.count - 1 {
+                            Divider().background(Color.divider).padding(.leading, 56)
+                        }
+                    }
                 }
             }
         }
