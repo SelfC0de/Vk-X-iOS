@@ -19,7 +19,6 @@ struct VKPlusApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(.dark)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     if SettingsStore.shared.forceOffline { ForceOfflineManager.shared.start() }
                     else { ForceOfflineManager.shared.stop() }

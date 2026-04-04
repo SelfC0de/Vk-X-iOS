@@ -1,6 +1,7 @@
 import SwiftUI
 
 private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Прокси"]
+private let tabIcons = ["lock.shield.fill", "cpu.fill", "iphone", "paintbrush.fill", "network"]
 
 struct SettingsView: View {
     @State private var selectedTab = 0
@@ -46,10 +47,14 @@ struct SettingsView: View {
                     Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = i }
                     } label: {
-                        Text(tabs[i])
-                            .font(.system(size: 13, weight: .semibold))
+                        HStack(spacing: 5) {
+                                Image(systemName: tabIcons[i])
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(tabs[i])
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
                             .foregroundStyle(selectedTab == i ? Color.background : Color.onSurfaceMut)
-                            .padding(.horizontal, 18).padding(.vertical, 9)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(
                                 selectedTab == i
                                     ? AnyShapeStyle(LinearGradient.cyberGrad)

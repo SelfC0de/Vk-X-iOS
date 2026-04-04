@@ -103,34 +103,29 @@ struct AnimatedTabBar: View {
         .background(
             ZStack {
                 if store.liquidGlass {
-                    // Liquid Glass: blur + translucent overlay
-                    if #available(iOS 26.0, *) {
+                    // iOS 26-style Liquid Glass: layered translucency
+                    Rectangle().fill(.ultraThinMaterial)
+                    // Specular highlight — top edge shimmer
+                    VStack(spacing: 0) {
                         Rectangle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                LinearGradient(
-                                    colors: [Color.cyberBlue.opacity(0.08), Color.clear],
-                                    startPoint: .top, endPoint: .bottom
-                                )
-                            )
-                    } else {
-                        // iOS 17-25 fallback
-                        Rectangle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(Color.cyberBlue.opacity(0.04))
+                            .fill(LinearGradient(
+                                colors: [Color.white.opacity(0.18), Color.white.opacity(0.04), Color.clear],
+                                startPoint: .top, endPoint: .bottom))
+                            .frame(height: 14)
+                        Spacer()
                     }
+                    // Tint
+                    Color.cyberBlue.opacity(0.04)
                 } else {
                     Color.surface
                 }
                 // Top separator
                 VStack {
                     Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.cyberBlue.opacity(store.liquidGlass ? 0.5 : 0.3), Color.divider.opacity(0.3)],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
+                        .fill(LinearGradient(
+                            colors: [Color.white.opacity(store.liquidGlass ? 0.25 : 0),
+                                     Color.cyberBlue.opacity(0.25), Color.clear],
+                            startPoint: .leading, endPoint: .trailing))
                         .frame(height: 0.5)
                     Spacer()
                 }

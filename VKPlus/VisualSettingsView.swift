@@ -56,6 +56,25 @@ struct VisualTab: View {
                     }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 12)
+
+                // Reset theme
+                Button {
+                    s.appTheme = "dark"
+                    applyTheme("dark")
+                    s.myBubbleHex    = "#122846"
+                    s.theirBubbleHex = "#1A1E2E"
+                    s.chatBgImageData = nil
+                    ToastManager.shared.show("Визуал сброшен", icon: "arrow.counterclockwise", style: .info)
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Сбросить настройки визуала", systemImage: "arrow.counterclockwise")
+                            .font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
             }
 
             // Bubble colors
@@ -185,13 +204,14 @@ struct VisualTab: View {
     }
 
     private func applyTheme(_ t: String) {
-        guard let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene }).first?.windows.first else { return }
-        withAnimation {
-            switch t {
-            case "light":  window.overrideUserInterfaceStyle = .light
-            case "dark":   window.overrideUserInterfaceStyle = .dark
-            default:       window.overrideUserInterfaceStyle = .unspecified
+        for scene in UIApplication.shared.connectedScenes {
+            guard let ws = scene as? UIWindowScene else { continue }
+            for window in ws.windows {
+                switch t {
+                case "light":  window.overrideUserInterfaceStyle = .light
+                case "dark":   window.overrideUserInterfaceStyle = .dark
+                default:       window.overrideUserInterfaceStyle = .unspecified
+                }
             }
         }
     }
