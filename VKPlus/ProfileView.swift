@@ -564,7 +564,7 @@ struct VerificationRow: View {
 }
 
 // MARK: - Service favicon view
-private struct ServiceFaviconView: View {
+struct ServiceFaviconView: View {
     let type: String
     @State private var image: UIImage? = nil
     @State private var failed = false
