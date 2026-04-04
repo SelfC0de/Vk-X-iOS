@@ -85,7 +85,7 @@ private struct PrivacyTab: View {
                 SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "Смотреть истории анонимно",       val: $s.ghostStory)
             }
             SettingsSectionCard(title: "🕶 Локальная Приватность",
-                                subtitle: "Скрытие данных на устройстве",
+                                subtitle: "Приватность в интерфейсе приложения",
                                 icon: "lock.shield.fill", iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
                 SettingsToggle("Скрыть отправителя",
                                icon: "person.fill.xmark",
@@ -97,7 +97,7 @@ private struct PrivacyTab: View {
                                val: $s.blurScreen)
             }
             SettingsSectionCard(title: "🕵️ Deep Privacy",
-                                subtitle: "Блокировка сбора данных устройства",
+                                subtitle: "Защита персональных данных устройства",
                                 icon: "antenna.radiowaves.left.and.right.slash", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
                 SettingsToggle("Spoof Ads ID",
                                icon: "qrcode",
@@ -113,7 +113,7 @@ private struct PrivacyTab: View {
                                val: $s.spoofCarrier)
             }
             SettingsSectionCard(title: "📡 Антислежка",
-                                subtitle: "Блокировка телеметрии и трекеров",
+                                subtitle: "Защита от слежки и сбора данных",
                                 icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
                 SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", subtitle: "Блокировка аналитических трекеров", val: $s.antiTelemetry)
                 SettingsToggle("Anti-Screen",      icon: "camera.viewfinder",                 subtitle: "Защита экрана от захвата",       val: $s.antiScreen)
@@ -121,9 +121,9 @@ private struct PrivacyTab: View {
                 SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          subtitle: "Разворачивать укороченные ссылки", val: $s.bypassShortUrl)
             }
             SettingsSectionCard(title: "🔔 Уведомления",
-                                subtitle: "Push-уведомления VK+",
+                                subtitle: "Уведомления о действиях собеседников",
                                 icon: "bell.badge.fill", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
-                SettingsToggle("Type You Push", icon: "bell.and.waves.left.and.right", subtitle: "Push когда тебе начинают печатать", val: $s.typePush)
+                SettingsToggle("Type You Push", icon: "bell.and.waves.left.and.right", subtitle: "Уведомление когда тебе начинают писать", val: $s.typePush)
             }
             NavigationLink(destination: ExploitsView()) {
                 exploitsBanner
@@ -156,17 +156,17 @@ private struct EngineTab: View {
     var body: some View {
         VStack(spacing: 14) {
             SettingsSectionCard(title: "🎙 Silent VM Listener",
-                                subtitle: "Голосовые сообщения без отметки",
+                                subtitle: "Анонимное прослушивание голосовых",
                                 icon: "mic.slash.fill", iconColor: Color(r:0xE9,g:0x3E,b:0xFF)) {
                 SettingsToggle("Silent VM Listener", icon: "mic.slash.fill",
                                subtitle: "Прослушивать голосовые анонимно",
                                val: $s.silentVm)
             }
             SettingsSectionCard(title: "🔄 Anti-Ban Engine",
-                                subtitle: "Защита аккаунта от блокировок",
+                                subtitle: "Защита от блокировок и ограничений",
                                 icon: "shield.lefthalf.filled", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Anti-Ban Engine", icon: "shield.fill",
-                               subtitle: "Защита аккаунта от блокировок",
+                               subtitle: "Защита от блокировок и ограничений",
                                val: $s.antiBan)
                 SettingsToggle("Offline Post", icon: "tray.and.arrow.up.fill",
                                subtitle: "Отправлять контент без обновления онлайна",
@@ -183,7 +183,7 @@ private struct EngineTab: View {
                                val: $s.fakeVerification)
             }
             SettingsSectionCard(title: "🕵️ Activity Bypass",
-                                subtitle: "Обход отслеживания активности",
+                                subtitle: "Скрытый режим чтения сообщений",
                                 icon: "figure.walk", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
                 SettingsToggle("Bypass Activity Status", icon: "eye.slash",
                                subtitle: "Читать сообщения без обновления статуса",
@@ -252,7 +252,7 @@ private struct EngineTab: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Инструменты").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                Text("Remove Banned, Gift Bypass, Currency...").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                Text("Дополнительные инструменты аккаунта").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
             }
             Spacer()
             Image(systemName: "arrow.right.circle.fill").foregroundStyle(Color.cyberBlue.opacity(0.6)).font(.system(size: 18))
@@ -270,7 +270,7 @@ private struct DeviceTab: View {
         VStack(spacing: 14) {
             // Hardware Spoof toggle
             SettingsSectionCard(title: "🔄 Hardware Spoof",
-                                subtitle: "Рандомизация отпечатка устройства",
+                                subtitle: "Маскировка параметров устройства",
                                 icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 SettingsToggle("Hardware Spoof", icon: "dice.fill",
                                subtitle: "Случайная модель устройства при каждом сеансе",
@@ -282,10 +282,10 @@ private struct DeviceTab: View {
 
             // Bypass copy
             SettingsSectionCard(title: "📋 Bypass Copy",
-                                subtitle: "Копирование и репосты",
+                                subtitle: "Снятие ограничений на копирование",
                                 icon: "doc.on.doc.fill", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Bypass Copy + Reposts", icon: "doc.on.doc.fill",
-                               subtitle: "Копирование без ограничений",
+                               subtitle: "Копировать и репостить любой контент",
                                val: $s.bypassCopy)
             }
 
@@ -307,7 +307,7 @@ private struct DeviceTab: View {
     private var deviceProfileSectionCard: some View {
         SettingsSectionCard(
             title: "📱 Device Spoofer",
-            subtitle: s.deviceUa.isEmpty ? "Подмена User-Agent" : s.currentDeviceProfile.label,
+            subtitle: s.deviceUa.isEmpty ? "Выбрать профиль" : s.currentDeviceProfile.label,
             icon: "iphone",
             iconColor: Color.cyberBlue
         ) {
@@ -344,7 +344,7 @@ private struct DeviceTab: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
-                    Text("Применяется ко всем запросам. Влияет на подпись постов и статус устройства в профиле.")
+                    Text("Выбранный профиль применяется ко всем сетевым запросам.")
                         .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
@@ -391,7 +391,7 @@ private struct ProxyTabView: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Управление прокси").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onSurface)
-                    Text("SOCKS5, MTProto, добавление и пинг")
+                    Text("Настройка и управление подключениями")
                         .font(.system(size: 12)).foregroundStyle(Color.onSurfaceMut)
                 }
                 Spacer()
