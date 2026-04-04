@@ -16,7 +16,12 @@ struct ChatView: View {
     @State private var myAvatar:   String? = nil
     @State private var avatarMap:  [Int: String] = [:]
     @State private var showAttach  = false
-    @State private var photoItem:  PhotosPickerItem? = nil
+    @State private var photoItem:   PhotosPickerItem? = nil
+    @State private var videoItem2:  PhotosPickerItem? = nil
+    @State private var audioItem:   PhotosPickerItem? = nil
+    @State private var showFilePicker = false
+    @State private var pendingAttach: String? = nil
+    @State private var isUploading   = false
     @State private var editingMsg: VKMessage? = nil
     @State private var replyMsg:   VKMessage? = nil
     @State private var peerOnline  = false
@@ -119,10 +124,44 @@ struct ChatView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await load() }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
-            PhotosPicker(selection: $photoItem, matching: .images) { Label("Фото из галереи", systemImage: "photo") }
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label("Фото", systemImage: "photo")
+            }
+            PhotosPicker(selection: $videoItem2, matching: .videos) {
+                Label("Видео", systemImage: "video")
+            }
+            Button("Документ / Файл") { showFilePicker = true }
             Button("Отмена", role: .cancel) {}
         }
-        .onChange(of: photoItem) { _, _ in photoItem = nil }
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.audio, .pdf, .text, .data, .zip, .item],
+            allowsMultipleSelection: false
+        ) { result in
+            Task { await handleFileImport(result) }
+        }
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task { await uploadAndAttach(item: item, isVideo: false) }
+        }
+        .onChange(of: videoItem2) { _, item in
+            guard let item else { return }
+            Task { await uploadAndAttach(item: item, isVideo: true) }
+        }
+        // Uploading toast overlay
+        .overlay(alignment: .top) {
+            if isUploading {
+                HStack(spacing: 8) {
+                    ProgressView().tint(.white).scaleEffect(0.8)
+                    Text("Загрузка...").font(.system(size: 13)).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .background(Color.cyberBlue.opacity(0.9))
+                .clipShape(Capsule())
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
     }
 
     // MARK: - Input bar
@@ -130,6 +169,7 @@ struct ChatView: View {
         VStack(spacing: 0) {
             if let r = replyMsg   { replyBanner(r)  }
             if let e = editingMsg { editBanner(e)   }
+            if let a = pendingAttach { attachBanner(a) }
 
             HStack(spacing: 8) {
                 Button { showAttach = true } label: {
@@ -187,6 +227,23 @@ struct ChatView: View {
         .padding(.horizontal, 14).padding(.vertical, 8).background(Color(red:0.07,green:0.08,blue:0.13))
     }
 
+    @ViewBuilder private func attachBanner(_ att: String) -> some View {
+        HStack(spacing: 8) {
+            let icon = att.hasPrefix("photo") ? "photo.fill" :
+                       att.hasPrefix("video") ? "video.fill" :
+                       att.hasPrefix("audio") ? "waveform" : "paperclip"
+            Rectangle().fill(Color(red:0.0,green:0.7,blue:0.5)).frame(width: 3).clipShape(Capsule())
+            Image(systemName: icon).foregroundStyle(Color(red:0.0,green:0.7,blue:0.5)).font(.system(size: 13))
+            Text("Вложение прикреплено").font(.system(size: 13)).foregroundStyle(Color.onSurface)
+            Spacer()
+            Button { pendingAttach = nil } label: {
+                Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(Color(red:0.07,green:0.08,blue:0.13))
+    }
+
     @ViewBuilder private func editBanner(_ msg: VKMessage) -> some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color.cyberBlue).frame(width: 3).clipShape(Capsule())
@@ -233,14 +290,65 @@ struct ChatView: View {
             } catch { ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
             editingMsg = nil
         } else {
-            let replyId = replyMsg?.id; draft = ""; replyMsg = nil
+            let replyId = replyMsg?.id
+            let attach = pendingAttach
+            draft = ""; replyMsg = nil; pendingAttach = nil
             do {
-                _ = try await VKAPIClient.shared.sendMessage(peerId: peerId, text: text, replyTo: replyId)
+                _ = try await VKAPIClient.shared.sendMessage(peerId: peerId, text: text, replyTo: replyId, attachment: attach)
                 messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? messages
                 ToastManager.shared.show("Отправлено", icon: "paperplane.fill", style: .success)
             } catch { draft = text; ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
         }
         isSending = false; draft = ""
+    }
+
+    // MARK: - Upload & attach helpers
+    private func uploadAndAttach(item: PhotosPickerItem, isVideo: Bool) async {
+        isUploading = true
+        defer { isUploading = false }
+        do {
+            if isVideo {
+                guard let data = try await item.loadTransferable(type: Data.self) else { return }
+                let att = try await VKAPIClient.shared.uploadDocForMessage(
+                    peerId: peerId, data: data, filename: "video.mp4", mimeType: "video/mp4")
+                pendingAttach = att
+                ToastManager.shared.show("Видео прикреплено", icon: "video.fill", style: .success)
+            } else {
+                guard let data = try await item.loadTransferable(type: Data.self) else { return }
+                let att = try await VKAPIClient.shared.uploadPhotoForMessage(peerId: peerId, imageData: data)
+                pendingAttach = att
+                ToastManager.shared.show("Фото прикреплено", icon: "photo.fill", style: .success)
+            }
+        } catch {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+        }
+        photoItem = nil; videoItem2 = nil
+    }
+
+    private func handleFileImport(_ result: Result<[URL], Error>) async {
+        guard case .success(let urls) = result, let url = urls.first else { return }
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        isUploading = true
+        defer { isUploading = false }
+        do {
+            let data = try Data(contentsOf: url)
+            let filename = url.lastPathComponent
+            let ext = url.pathExtension.lowercased()
+            let mime: String
+            switch ext {
+            case "mp3","m4a","aac","ogg","flac": mime = "audio/mpeg"
+            case "mp4","mov","avi":              mime = "video/mp4"
+            case "pdf":                          mime = "application/pdf"
+            default:                             mime = "application/octet-stream"
+            }
+            let att = try await VKAPIClient.shared.uploadDocForMessage(
+                peerId: peerId, data: data, filename: filename, mimeType: mime)
+            pendingAttach = att
+            ToastManager.shared.show("\(filename) прикреплён", icon: "paperclip", style: .success)
+        } catch {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+        }
     }
 
     private func deleteMsg(_ msg: VKMessage) async {

@@ -96,19 +96,27 @@ final class VKAPIClient {
 
     // MARK: - Profile
     func getProfile() async throws -> VKUser {
-        let users: [VKUser] = try await call("users.get", params: [
-            "fields": "photo_200,photo_100,online,status,verified,city,followers_count,bdate"
+        let json = try await rawCall("users.get", params: [
+            "fields": "photo_200,photo_100,online,status,verified,has_mobile,verification_info,city,followers_count,bdate"
         ])
-        guard let u = users.first else { throw VKError.noData }
+        guard let items = json["response"] as? [[String: Any]],
+              let dict = items.first,
+              let data = try? JSONSerialization.data(withJSONObject: dict),
+              let u = try? JSONDecoder().decode(VKUser.self, from: data)
+        else { throw VKError.noData }
         return u
     }
 
     func getUserById(_ id: String) async throws -> VKUser {
-        let users: [VKUser] = try await call("users.get", params: [
+        let json = try await rawCall("users.get", params: [
             "user_ids": id,
-            "fields":   "photo_200,photo_100,online,status,verified,city,followers_count,screen_name"
+            "fields": "photo_200,photo_100,online,status,verified,has_mobile,verification_info,city,followers_count,screen_name"
         ])
-        guard let u = users.first else { throw VKError.noData }
+        guard let items = json["response"] as? [[String: Any]],
+              let dict = items.first,
+              let data = try? JSONSerialization.data(withJSONObject: dict),
+              let u = try? JSONDecoder().decode(VKUser.self, from: data)
+        else { throw VKError.noData }
         return u
     }
 
@@ -134,9 +142,16 @@ final class VKAPIClient {
     }
 
     func getUsers(ids: String) async throws -> [VKUser] {
-        return try await call("users.get", params: [
-            "user_ids": ids, "fields": "photo_100,photo_200,online"
+        let json = try await rawCall("users.get", params: [
+            "user_ids": ids,
+            "fields": "photo_100,photo_200,online,verified,has_mobile,verification_info,city,bdate,followers_count,status"
         ])
+        guard let items = json["response"] as? [[String: Any]] else { return [] }
+        let decoder = JSONDecoder()
+        return items.compactMap { dict -> VKUser? in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(VKUser.self, from: data)
+        }
     }
 
     // MARK: - Friends
@@ -227,14 +242,83 @@ final class VKAPIClient {
         }
     }
 
-    func sendMessage(peerId: Int, text: String, replyTo: Int? = nil) async throws -> Int {
+    // MARK: - Upload photo to messages
+    func uploadPhotoForMessage(peerId: Int, imageData: Data) async throws -> String {
+        // 1. Get upload URL
+        let urlJson = try await rawCall("photos.getMessagesUploadServer", params: ["peer_id": "\(peerId)"])
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
+            throw VKError.api(0, "No upload URL")
+        }
+        // 2. Upload
+        let uploaded = try await uploadMultipart(url: uploadUrl, data: imageData, name: "photo", filename: "photo.jpg", mimeType: "image/jpeg")
+        guard let server = uploaded["server"],
+              let photo  = uploaded["photo"],
+              let hash   = uploaded["hash"] else { throw VKError.api(0, "Upload failed") }
+        // 3. Save
+        let saveJson = try await rawCall("photos.saveMessagesPhoto", params: [
+            "server": server, "photo": photo, "hash": hash
+        ])
+        guard let items = saveJson["response"] as? [[String: Any]],
+              let item  = items.first,
+              let photoId  = item["id"] as? Int,
+              let ownerId  = item["owner_id"] as? Int else { throw VKError.api(0, "Save failed") }
+        return "photo\(ownerId)_\(photoId)"
+    }
+
+    // MARK: - Upload doc (video/audio/file) to messages
+    func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
+        // 1. Get upload URL
+        let type = mimeType.hasPrefix("video") ? "video" : (mimeType.hasPrefix("audio") ? "audio_message" : "doc")
+        let urlJson = try await rawCall("docs.getMessagesUploadServer", params: ["peer_id": "\(peerId)", "type": type])
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
+            throw VKError.api(0, "No upload URL")
+        }
+        // 2. Upload
+        let uploaded = try await uploadMultipart(url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
+        guard let file = uploaded["file"] else { throw VKError.api(0, "Upload failed") }
+        // 3. Save
+        let saveJson = try await rawCall("docs.save", params: ["file": file, "title": filename])
+        // Response can be {type: "doc"/"audio_message", doc/audio_message: {...}}
+        guard let response = saveJson["response"] as? [String: Any] else { throw VKError.api(0, "Save failed") }
+        let docType = response["type"] as? String ?? "doc"
+        if let obj = response[docType] as? [String: Any],
+           let docId = obj["id"] as? Int,
+           let ownerId = obj["owner_id"] as? Int {
+            return "\(docType)\(ownerId)_\(docId)"
+        }
+        throw VKError.api(0, "Save parse failed")
+    }
+
+    // MARK: - Multipart uploader
+    private func uploadMultipart(url: String, data: Data, name: String, filename: String, mimeType: String) async throws -> [String: String] {
+        guard let uploadUrl = URL(string: url) else { throw VKError.api(0, "Bad URL") }
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        var req = URLRequest(url: uploadUrl)
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        let (respData, _) = try await URLSession.shared.data(for: req)
+        let json = try JSONSerialization.jsonObject(with: respData) as? [String: Any] ?? [:]
+        var result: [String: String] = [:]
+        for (k, v) in json { result[k] = "\(v)" }
+        return result
+    }
+
+    func sendMessage(peerId: Int, text: String, replyTo: Int? = nil, attachment: String? = nil) async throws -> Int {
         var params: [String: String] = [
             "peer_id":   "\(peerId)",
             "message":   text,
             "random_id": "\(Int.random(in: 1...Int.max))",
             "v":         version
         ]
-        if let r = replyTo { params["reply_to"] = "\(r)" }
+        if let r = replyTo    { params["reply_to"]   = "\(r)" }
+        if let a = attachment { params["attachment"] = a }
         let json = try await rawCall("messages.send", params: params)
         if let msgId = json["response"] as? Int { return msgId }
         if let err = (json["error"] as? [String: Any])?["error_msg"] as? String {
