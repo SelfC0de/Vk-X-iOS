@@ -172,19 +172,12 @@ private struct EngineTab: View {
     }
 
     private var typeStatusSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8).fill(Color.cyberBlue.opacity(0.15)).frame(width: 34, height: 34)
-                    Image(systemName: "keyboard.fill").font(.system(size: 16)).foregroundStyle(Color.cyberBlue)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("⌨️ Type Status Changer").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                    Text("Подмена статуса активности в чате").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
-                }
-            }
-            .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 8)
-
+        SettingsSectionCard(
+            title: "⌨️ Type Status",
+            subtitle: "Сейчас: \(SettingsStore.shared.currentTypeStatus.label)",
+            icon: "keyboard.fill",
+            iconColor: Color.cyberBlue
+        ) {
             VStack(spacing: 0) {
                 ForEach(TypeStatus.allCases, id: \.self) { status in
                     Button {
@@ -212,17 +205,7 @@ private struct EngineTab: View {
                     }
                 }
             }
-
-            HStack(spacing: 6) {
-                Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
-                Text("«Отключено» = UnType — статус не отправляется. Остальные варианты подменяют реальный статус.")
-                    .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
-            }
-            .padding(.horizontal, 14).padding(.bottom, 14)
         }
-        .background(Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.divider, lineWidth: 0.5))
     }
 
     private var toolsBanner: some View {
