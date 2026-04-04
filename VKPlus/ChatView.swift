@@ -750,10 +750,31 @@ private struct LinkableText: UIViewRepresentable {
         let full = NSRange(location: 0, length: ns.length)
         let linkColor = UIColor(Color.cyberBlue)
 
+        // Parse VK markup [id123|Name] or [club123|Name] — make them tappable links
+        let markupPattern = try? NSRegularExpression(
+            pattern: #"\[([A-Za-z0-9_]+)\|([^\]]+)\]"#, options: [])
+        if let matches = markupPattern?.matches(in: text, range: full) {
+            for m in matches.reversed() {
+                guard m.numberOfRanges >= 3 else { continue }
+                let screenName = ns.substring(with: m.range(at: 1))
+                let displayName = ns.substring(with: m.range(at: 2))
+                let linkUrl = URL(string: "https://vk.com/\(screenName)")!
+                let linked = NSMutableAttributedString(string: displayName, attributes: [
+                    .font: UIFont.systemFont(ofSize: 15),
+                    .foregroundColor: linkColor,
+                    .link: linkUrl
+                ])
+                result.replaceCharacters(in: m.range, with: linked)
+            }
+        }
+        // Rebuild ns after replacements
+        let ns2 = result.string as NSString
+        let full2 = NSRange(location: 0, length: ns2.length)
+
         // Apply VK links
-        if let matches = Self.vkPattern?.matches(in: text, range: full) {
+        if let matches = Self.vkPattern?.matches(in: result.string, range: full2) {
             for m in matches {
-                let urlStr = ns.substring(with: m.range)
+                let urlStr = ns2.substring(with: m.range)
                 if let url = URL(string: urlStr) {
                     result.addAttributes([
                         .link: url,
@@ -764,9 +785,9 @@ private struct LinkableText: UIViewRepresentable {
             }
         }
         // Apply other URLs (skip VK already handled)
-        if let matches = Self.urlPattern?.matches(in: text, range: full) {
+        if let matches = Self.urlPattern?.matches(in: result.string, range: full2) {
             for m in matches {
-                let urlStr = ns.substring(with: m.range)
+                let urlStr = ns2.substring(with: m.range)
                 // Skip if already has link attribute
                 var alreadyLinked = false
                 result.enumerateAttribute(.link, in: m.range) { val, _, _ in
@@ -850,16 +871,35 @@ private struct VKProfileResolverSheet: View {
 
     private func resolve() async {
         isLoading = true
-        // Try numeric id first
-        if let numId = Int(screenName.replacingOccurrences(of: "id", with: "")),
-           let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
-           let first = users.first {
-            user = first
-        } else if let userId = try? await VKAPIClient.shared.resolveScreenName(screenName),
-                  let users = try? await VKAPIClient.shared.getUsers(ids: "\(userId)"),
-                  let first = users.first {
-            user = first
+        defer { isLoading = false }
+
+        let name = screenName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 1. Pure numeric id  e.g. "123456"
+        if let numId = Int(name) {
+            if let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
+               let first = users.first { user = first; return }
         }
-        isLoading = false
+
+        // 2. "id123456" format — strip "id" prefix only when the rest is all digits
+        if name.lowercased().hasPrefix("id") {
+            let tail = String(name.dropFirst(2))
+            if let numId = Int(tail) {
+                if let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
+                   let first = users.first { user = first; return }
+            }
+        }
+
+        // 3. screen_name e.g. "durov", "club12345"
+        if let userId = try? await VKAPIClient.shared.resolveScreenName(name) {
+            if let users = try? await VKAPIClient.shared.getUsers(ids: "\(userId)"),
+               let first = users.first { user = first; return }
+        }
+
+        // 4. Try direct users.get by screen_name as user_ids string
+        if let users = try? await VKAPIClient.shared.getUsers(ids: name),
+           let first = users.first { user = first; return }
+
+        failed = true
     }
 }
