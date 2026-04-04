@@ -70,7 +70,7 @@ final class VKAPIClient {
     }
 
     // raw JSON call (for methods returning non-standard responses)
-    private func rawCall(_ method: String,
+    func rawCall(_ method: String,
                          params: [String: String] = [:],
                          versionOverride: String? = nil) async throws -> [String: Any] {
         var comps = URLComponents(string: "\(base)/\(method)")!

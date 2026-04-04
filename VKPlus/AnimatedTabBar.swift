@@ -99,7 +99,6 @@ struct AnimatedTabBar: View {
                         .onChanged { v in
                             // Find which tab the finger is currently over
                             let tabW = UIScreen.main.bounds.width / CGFloat(tabs.count)
-                            let baseX = tabW * CGFloat(i) - tabW * CGFloat(i) + v.location.x + tabW * CGFloat(i)
                             let newIdx = Int((v.location.x + tabW * CGFloat(i)) / tabW)
                             let clamped = max(0, min(tabs.count-1, newIdx))
                             if clamped != selected { selected = clamped }
