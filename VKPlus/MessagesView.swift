@@ -46,20 +46,32 @@ struct MessagesView: View {
 
 private struct DialogRow: View {
     let dialog: DialogItem
+    @ObservedObject private var settings = SettingsStore.shared
+    private var displayName: String   { settings.hideSender ? "Пользователь скрыт" : dialog.name }
+    private var displayAvatar: String? { settings.hideSender ? nil : dialog.avatar }
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack(alignment: .bottomTrailing) {
-                AvatarView(url: dialog.avatar, size: 48)
-                if dialog.isOnline {
-                    Circle().fill(Color.cyberAccent).frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+                if settings.hideSender {
+                    ZStack {
+                        Circle().fill(Color.surfaceVar).frame(width: 48, height: 48)
+                        Image(systemName: "person.fill.xmark")
+                            .foregroundStyle(Color.onSurfaceMut).font(.system(size: 20))
+                    }
+                } else {
+                    AvatarView(url: dialog.avatar, size: 48)
+                    if dialog.isOnline {
+                        Circle().fill(Color.cyberAccent).frame(width: 12, height: 12)
+                            .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+                    }
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    Text(dialog.name)
-                        .foregroundStyle(Color.onSurface)
-                        .font(.system(size: 15, weight: .medium)).lineLimit(1)
+                    Text(displayName)
+                        .foregroundStyle(settings.hideSender ? Color.onSurfaceMut : Color.onSurface)
+                        .font(.system(size: 15, weight: settings.hideSender ? .regular : .medium)).lineLimit(1)
                     Spacer()
                     if dialog.unreadCount > 0 {
                         Text("\(dialog.unreadCount)")

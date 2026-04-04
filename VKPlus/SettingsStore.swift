@@ -141,6 +141,9 @@ final class SettingsStore: ObservableObject {
     // Engine — Bypass Copy
     @Published var bypassCopy:      Bool { didSet { ud.set(bypassCopy,     forKey: "bypass_copy")      } }
 
+    // Local Privacy
+    @Published var hideSender:      Bool { didSet { ud.set(hideSender,      forKey: "hide_sender")      } }
+
     // Notifications
     @Published var typePush:        Bool { didSet { ud.set(typePush,       forKey: "type_push")        } }
 
@@ -192,5 +195,6 @@ final class SettingsStore: ObservableObject {
         deviceUa         = ud.string(forKey: "device_ua")      ?? DeviceProfile.kate.ua
         verifyChecker    = ud.object(forKey: "verify_checker") == nil ? true  : ud.bool(forKey: "verify_checker")
         fakeVerification = ud.bool(forKey: "fake_verif")
+        hideSender       = ud.bool(forKey: "hide_sender")
     }
 }

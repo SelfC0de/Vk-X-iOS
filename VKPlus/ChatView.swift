@@ -6,6 +6,7 @@ struct ChatView: View {
     let peerId:    Int
     let peerName:  String
     var peerAvatar: String? = nil
+    @ObservedObject private var settings = SettingsStore.shared
 
     @ObservedObject private var store = SettingsStore.shared
     @State private var messages:   [VKMessage] = []
@@ -103,17 +104,27 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
-                    AvatarView(url: peerAvatar, size: 32)
-                        .overlay(Circle().stroke(Color.cyberBlue.opacity(0.3), lineWidth: 0.8))
+                    if settings.hideSender {
+                        ZStack {
+                            Circle().fill(Color.surfaceVar).frame(width: 32, height: 32)
+                            Image(systemName: "person.fill.xmark")
+                                .foregroundStyle(Color.onSurfaceMut).font(.system(size: 14))
+                        }
+                    } else {
+                        AvatarView(url: peerAvatar, size: 32)
+                            .overlay(Circle().stroke(Color.cyberBlue.opacity(0.3), lineWidth: 0.8))
+                    }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(peerName)
+                        Text(settings.hideSender ? "Пользователь скрыт" : peerName)
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color.onSurface)
-                        if peerTyping { TypingStatusView() }
-                        else {
-                            Text(peerOnline ? "в сети" : "не в сети")
-                                .font(.system(size: 11))
-                                .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                            .foregroundStyle(settings.hideSender ? Color.onSurfaceMut : Color.onSurface)
+                        if !settings.hideSender {
+                            if peerTyping { TypingStatusView() }
+                            else {
+                                Text(peerOnline ? "в сети" : "не в сети")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                            }
                         }
                     }
                 }
@@ -416,10 +427,21 @@ private struct BubbleView: View {
             if isMe {
                 Spacer(minLength: AV + 4)
             } else {
-                AvatarView(url: avatarMap[msg.fromId], size: AV)
-                    .overlay(Circle().stroke(Color.white.opacity(0.06), lineWidth: 0.5))
-                    .frame(width: AV)
-                    .alignmentGuide(.bottom) { d in d[.bottom] }
+                let hideIt = SettingsStore.shared.hideSender
+                Group {
+                    if hideIt {
+                        ZStack {
+                            Circle().fill(Color.surfaceVar)
+                            Image(systemName: "person.fill.xmark")
+                                .foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
+                        }
+                    } else {
+                        AvatarView(url: avatarMap[msg.fromId], size: AV)
+                            .overlay(Circle().stroke(Color.white.opacity(0.06), lineWidth: 0.5))
+                    }
+                }
+                .frame(width: AV, height: AV)
+                .alignmentGuide(.bottom) { d in d[.bottom] }
             }
 
             // Bubble content — naturally sized, capped at maxW

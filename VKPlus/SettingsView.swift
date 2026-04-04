@@ -84,6 +84,14 @@ private struct PrivacyTab: View {
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "account.setOnline перехватывается",          val: $s.ghostOnline)
                 SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "stories.markAsViewed не отправляется",       val: $s.ghostStory)
             }
+            SettingsSectionCard(title: "🕶 Локальная Приватность",
+                                subtitle: "Скрытие данных на устройстве",
+                                icon: "lock.shield.fill", iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
+                SettingsToggle("Скрыть отправителя",
+                               icon: "person.fill.xmark",
+                               subtitle: "Аватар и имя заменяются на «Пользователь скрыт»",
+                               val: $s.hideSender)
+            }
             SettingsSectionCard(title: "📡 Антислежка",
                                 subtitle: "Блокировка телеметрии и трекеров",
                                 icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
