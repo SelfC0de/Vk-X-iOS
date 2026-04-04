@@ -330,12 +330,7 @@ private struct BubbleView: View {
                     HStack(alignment: .bottom, spacing: 5) {
                         MessageTextView(
                             text: msg.text,
-                            textColor: fg,
-                            onVKLink: { name in
-                                profileUserName = name
-                                showProfile = true
-                            },
-                            onURL: { url in UIApplication.shared.open(url) }
+                            textColor: fg
                         )
                         .fixedSize(horizontal: false, vertical: true)
                         Text(timeStr(msg.date))
@@ -691,9 +686,8 @@ private struct LinkableText: UIViewRepresentable {
         }
 
         func textView(_ textView: UITextView, shouldInteractWith url: URL,
-                      in range: NSRange, interaction: UITextItemInteraction) -> Bool {
+                      in characterRange: NSRange) -> Bool {
             let str = url.absoluteString
-            // Check VK pattern
             let pattern = try? NSRegularExpression(
                 pattern: #"vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#, options: .caseInsensitive)
             let ns = str as NSString
