@@ -206,6 +206,10 @@ struct FriendProfileView: View {
                                 Divider().background(Color.divider).padding(.leading, 44)
                                 infoRow(icon: "mappin.and.ellipse", label: "Город", value: city)
                             }
+                            if SettingsStore.shared.verifyChecker {
+                                Divider().background(Color.divider).padding(.leading, 44)
+                                VerificationRow(user: display, fakeVerif: false)
+                            }
                         }
                         .cyberCard().padding(.horizontal, 16).padding(.top, 16)
 

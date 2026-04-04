@@ -157,7 +157,7 @@ final class VKAPIClient {
     // MARK: - Friends
     func getFriends(count: Int = 200) async throws -> [VKUser] {
         let r: VKFriendsResponse = try await call("friends.get", params: [
-            "fields": "photo_100,online,status,verified",
+            "fields": "photo_100,online,status,verified,has_mobile,verification_info",
             "order":  "hints", "count": "\(count)"
         ])
         return r.items

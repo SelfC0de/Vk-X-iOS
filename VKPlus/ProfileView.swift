@@ -237,19 +237,7 @@ struct ProfileView: View {
             }
             if settings.verifyChecker {
                 divider
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.seal").foregroundStyle(Color.cyberBlue).frame(width: 20)
-                    Text("Верификация").foregroundStyle(Color.onSurfaceMut).font(.system(size: 13))
-                    Spacer()
-                    if settings.fakeVerification || u.verified == 1 {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(Color(r:0x1D,g:0xA1,b:0xF2))
-                            .help("Официально верифицирован ВКонтакте")
-                    } else {
-                        Text("Отсутствует").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
-                    }
-                }
-                .padding(.horizontal, 16).padding(.vertical, 13)
+                VerificationRow(user: u, fakeVerif: settings.fakeVerification)
             }
         }
         .background(Color.surface)

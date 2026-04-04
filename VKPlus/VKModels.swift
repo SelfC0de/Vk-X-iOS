@@ -179,11 +179,18 @@ struct DialogItem: Identifiable {
 
 struct VKVerificationInfo: Decodable {
     let verifications: [VKVerification]
+    // VK may return null for verifications — treat as empty
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        verifications = (try? c.decodeIfPresent([VKVerification].self, forKey: .verifications)) ?? []
+    }
+    enum CodingKeys: String, CodingKey { case verifications }
 }
 struct VKVerification: Decodable {
     let type: String
     let priority: Int?
     let name: String?
+    enum CodingKeys: String, CodingKey { case type, priority, name }
 }
 
 struct VKFriendsResponse: Decodable { let count: Int; let items: [VKUser] }
