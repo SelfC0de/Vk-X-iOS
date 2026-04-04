@@ -109,6 +109,7 @@ struct FeedView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) { ClockView().padding(.leading, 4) }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     Task { await vm.refresh() }

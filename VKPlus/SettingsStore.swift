@@ -161,6 +161,10 @@ final class SettingsStore: ObservableObject {
     @Published var liquidGlass:     Bool   { didSet { ud.set(liquidGlass,     forKey: "liquid_glass")     } }
 
     // Visual
+    @Published var showClock:       Bool   { didSet { ud.set(showClock,       forKey: "show_clock")       } }
+    @Published var clockStyle:      String { didSet { ud.set(clockStyle,      forKey: "clock_style")      } }
+    @Published var clockAmPm:       Bool   { didSet { ud.set(clockAmPm,       forKey: "clock_ampm")       } }
+    @Published var clockSeconds:    Bool   { didSet { ud.set(clockSeconds,    forKey: "clock_seconds")    } }
     @Published var appTheme:        String { didSet { ud.set(appTheme,        forKey: "app_theme")         } }
     @Published var myBubbleHex:     String { didSet { ud.set(myBubbleHex,     forKey: "my_bubble_hex")     } }
     @Published var theirBubbleHex:  String { didSet { ud.set(theirBubbleHex,  forKey: "their_bubble_hex")  } }
@@ -197,6 +201,10 @@ final class SettingsStore: ObservableObject {
         typePush         = ud.bool(forKey: "type_push")
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
         liquidGlass      = ud.bool(forKey: "liquid_glass")
+        showClock        = ud.bool(forKey: "show_clock")
+        clockStyle       = ud.string(forKey: "clock_style")      ?? "digital"
+        clockAmPm        = ud.bool(forKey: "clock_ampm")
+        clockSeconds     = ud.bool(forKey: "clock_seconds")
         appTheme         = ud.string(forKey: "app_theme")         ?? "dark"
         myBubbleHex      = ud.string(forKey: "my_bubble_hex")     ?? "#122846"
         theirBubbleHex   = ud.string(forKey: "their_bubble_hex")  ?? "#1A1E2E"

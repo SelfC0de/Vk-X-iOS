@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB2233445566778899AABB11={isa=PBXBuildFile;fileRef=BB2233445566778899AABB00 /* ClockView.swift */;settings={};};
 		AA00BB11CC22DD3344556677={isa=PBXBuildFile;fileRef=3EEACAC82B7249DA8FEE5DE8 /* AboutView.swift */;settings={};};
 		CC1122334455668800112233={isa=PBXBuildFile;fileRef=CC1122334455667700112233 /* RegDateCheckerView.swift */;settings={};};
 		32874D2F845044A3={isa=PBXBuildFile;fileRef=3EEACAC82B7249DA8FEE5DE8;};
@@ -45,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
+		BB2233445566778899AABB00={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=ClockView.swift;sourceTree="<group>";};
 		CC1122334455667700112233={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";};
 		309AE0DA42554419BB1A2AC6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedComponents.swift;sourceTree="<group>";};
 		49D1AEB157CA44E2A19BD4E7={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedTabBar.swift;sourceTree="<group>";};
@@ -87,6 +89,7 @@
 /* Begin PBXGroup section */
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
+				BB2233445566778899AABB00,
 				CC1122334455667700112233,
 				3EEACAC82B7249DA8FEE5DE8,
 			309AE0DA42554419BB1A2AC6,
@@ -137,6 +140,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		1EF9FD6FDCE44A6EA87FDBBA={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+			BB2233445566778899AABB11,
 			AA00BB11CC22DD3344556677,
 			CC1122334455668800112233,
 			F7CF856432874D2F845044A3,
