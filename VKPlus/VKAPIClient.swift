@@ -244,18 +244,23 @@ final class VKAPIClient {
     }
 
     func editMessage(peerId: Int, messageId: Int, text: String) async throws {
-        struct ER: Decodable { let response: Int? }
-        let _: ER = try await call("messages.edit", params: [
+        let json = try await rawCall("messages.edit", params: [
             "peer_id": "\(peerId)", "message_id": "\(messageId)", "message": text
         ])
+        if let err = (json["error"] as? [String: Any])?["error_msg"] as? String {
+            throw VKError.api(0, err)
+        }
+        // response == 1 means success, anything else is fine too
     }
 
     func deleteMessage(messageIds: [Int], forAll: Bool = true) async throws {
-        struct DR: Decodable { }
         let ids = messageIds.map(String.init).joined(separator: ",")
-        let _: DR = try await call("messages.delete", params: [
+        let json = try await rawCall("messages.delete", params: [
             "message_ids": ids, "delete_for_all": forAll ? "1" : "0"
         ])
+        if let err = (json["error"] as? [String: Any])?["error_msg"] as? String {
+            throw VKError.api(0, err)
+        }
     }
 
     // MARK: - Newsfeed

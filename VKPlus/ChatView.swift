@@ -291,9 +291,7 @@ private struct BubbleView: View {
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
     @State private var profileUserId: Int? = nil
-    @State private var profileUserName: String = ""
-    @State private var profileUserAvatar: String? = nil
-    @State private var showProfile = false
+
     @State private var photoViewerIndex = 0
     @State private var showVideoPlayer = false
     @State private var videoItem: VKVideoAttachment? = nil
@@ -526,9 +524,7 @@ private struct BubbleView: View {
                 VideoPlayerSheet(videoId: vid.id, ownerId: vid.ownerId, thumb: vid.thumbUrl)
             }
         }
-        .sheet(isPresented: $showProfile) {
-            VKProfileResolverSheet(screenName: profileUserName)
-        }
+
     }
 
     private func durationStr(_ s: Int) -> String { String(format: "%d:%02d", s/60, s%60) }
@@ -577,12 +573,25 @@ private struct AttachmentPhoto: View {
 private struct MessageTextView: View {
     let text: String
     let textColor: Color
-    let onVKLink: (String) -> Void
-    let onURL: (URL) -> Void
+    var onVKLink: ((String) -> Void)? = nil
+    var onURL: ((URL) -> Void)? = nil
+
+    @State private var vkProfileName: String = ""
+    @State private var showVKProfile = false
 
     var body: some View {
-        // Use AttributedString with link attributes — UITextView handles tap natively
-        LinkableText(text: text, textColor: textColor, onVKLink: onVKLink, onURL: onURL)
+        LinkableText(
+            text: text,
+            textColor: textColor,
+            onVKLink: { name in
+                vkProfileName = name
+                showVKProfile = true
+            },
+            onURL: { url in UIApplication.shared.open(url) }
+        )
+        .sheet(isPresented: $showVKProfile) {
+            VKProfileResolverSheet(screenName: vkProfileName)
+        }
     }
 }
 
