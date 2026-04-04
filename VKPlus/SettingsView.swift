@@ -78,7 +78,7 @@ private struct PrivacyTab: View {
             SettingsSectionCard(title: "🛡 Режим невидимки",
                                 subtitle: "Управление видимостью активности",
                                 icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
-                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.slash",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
+                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.shield.half.filled",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
                 SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "Собеседник не видит что ты печатаешь",       val: $s.antiTyping)
                 SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "Всегда показываться офлайн",        val: $s.forceOffline)
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
@@ -113,7 +113,7 @@ private struct PrivacyTab: View {
                                subtitle: "Запретить отправку данных о Wi-Fi окружении",
                                val: $s.blockWifi)
                 SettingsToggle("Spoof Carrier",
-                               icon: "simcard.slash",
+                               icon: "simcard.2",
                                subtitle: "Скрывает название оператора связи",
                                val: $s.spoofCarrier)
             }
