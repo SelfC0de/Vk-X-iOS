@@ -260,6 +260,24 @@ VerificationRowFetched(
     @ViewBuilder
     private func actionsRow(_ u: VKUser) -> some View {
         VStack(spacing: 10) {
+            // Copy profile link
+            Button {
+                let link = "https://vk.com/id\(u.id)"
+                UIPasteboard.general.string = link
+                ToastManager.shared.show("Ссылка скопирована", icon: "link", style: .success)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "link").font(.system(size: 16))
+                    Text("Скопировать ссылку на профиль").font(.system(size: 15, weight: .medium))
+                    Spacer()
+                }
+                .foregroundStyle(Color.onSurface)
+                .padding(.horizontal, 16).padding(.vertical, 14)
+                .background(Color.surfaceVar)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.divider, lineWidth: 1))
+            }
+
             // Profile Changer button
             Button {
                 if mirror.isActive { mirror = MirrorProfile() }

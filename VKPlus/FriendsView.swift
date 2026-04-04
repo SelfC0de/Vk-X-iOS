@@ -219,12 +219,27 @@ struct FriendProfileView: View {
                         }
                         .cyberCard().padding(.horizontal, 16).padding(.top, 16)
 
-                        NavigationLink(destination: ChatView(peerId: display.id, peerName: display.fullName, peerAvatar: display.photo100)) {
-                            Label("Написать сообщение", systemImage: "message.fill")
-                                .font(.system(size: 15, weight: .medium)).foregroundStyle(Color.background)
-                                .frame(maxWidth: .infinity).frame(height: 50)
-                                .background(Color.cyberBlue)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        HStack(spacing: 10) {
+                            NavigationLink(destination: ChatView(peerId: display.id, peerName: display.fullName, peerAvatar: display.photo100)) {
+                                Label("Написать", systemImage: "message.fill")
+                                    .font(.system(size: 15, weight: .medium)).foregroundStyle(Color.background)
+                                    .frame(maxWidth: .infinity).frame(height: 50)
+                                    .background(Color.cyberBlue)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+                            Button {
+                                let link = "https://vk.com/id\(display.id)"
+                                UIPasteboard.general.string = link
+                                ToastManager.shared.show("Ссылка скопирована", icon: "link", style: .success)
+                            } label: {
+                                Image(systemName: "link")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Color.cyberBlue)
+                                    .frame(width: 50, height: 50)
+                                    .background(Color.cyberBlue.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.cyberBlue.opacity(0.3), lineWidth: 1))
+                            }
                         }
                         .padding(.horizontal, 16).padding(.top, 12)
                         Spacer().frame(height: 32)
