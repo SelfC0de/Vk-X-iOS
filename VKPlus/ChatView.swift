@@ -41,7 +41,9 @@ struct ChatView: View {
     @State private var dragOffsetX:   CGFloat = 0
     @State private var videoItem2:  PhotosPickerItem? = nil
     @State private var audioItem:   PhotosPickerItem? = nil
-    @State private var showFilePicker = false
+    @State private var showFilePicker  = false
+    @State private var showPhotoPicker = false
+    @State private var showVideoPicker = false
     @State private var pendingAttach: String? = nil
     @State private var isUploading   = false
     @State private var editingMsg: VKMessage? = nil
@@ -194,15 +196,13 @@ struct ChatView: View {
         }
         .task { await load() }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
-            PhotosPicker(selection: $photoItem, matching: .images) {
-                Label("Фото", systemImage: "photo")
-            }
-            PhotosPicker(selection: $videoItem2, matching: .videos) {
-                Label("Видео", systemImage: "video")
-            }
+            Button("Фото") { showPhotoPicker = true }
+            Button("Видео") { showVideoPicker = true }
             Button("Документ / Файл") { showFilePicker = true }
             Button("Отмена", role: .cancel) {}
         }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
+        .photosPicker(isPresented: $showVideoPicker, selection: $videoItem2, matching: .videos)
         .fileImporter(
             isPresented: $showFilePicker,
             allowedContentTypes: [.audio, .pdf, .text, .data, .zip, .item],

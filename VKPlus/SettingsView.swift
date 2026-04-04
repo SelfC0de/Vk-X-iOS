@@ -78,7 +78,7 @@ private struct PrivacyTab: View {
             SettingsSectionCard(title: "🛡 Режим невидимки",
                                 subtitle: "Управление видимостью активности",
                                 icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
-                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.slash",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
+                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.slash",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
                 SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "Собеседник не видит что ты печатаешь",       val: $s.antiTyping)
                 SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "Всегда показываться офлайн",        val: $s.forceOffline)
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
@@ -96,9 +96,14 @@ private struct PrivacyTab: View {
                                subtitle: "Размывает контент при скриншоте",
                                val: $s.blurScreen)
             }
+            SettingsSectionCard(title: "📅 Дата регистрации",
+                                subtitle: "Узнать дату регистрации аккаунта",
+                                icon: "calendar.badge.clock", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
+                RegDateCheckerView()
+            }
             SettingsSectionCard(title: "🕵️ Deep Privacy",
                                 subtitle: "Защита персональных данных устройства",
-                                icon: "antenna.radiowaves.left.and.right.slash", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
+                                icon: "shield.lefthalf.filled", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
                 SettingsToggle("Spoof Ads ID",
                                icon: "qrcode",
                                subtitle: "Скрыть рекламный идентификатор устройства",
