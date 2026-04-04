@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let tabs = ["Приватность", "Движок", "Устройство", "Прокси"]
+private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Прокси"]
 
 struct SettingsView: View {
     @State private var selectedTab = 0
@@ -18,6 +18,7 @@ struct SettingsView: View {
                         case 0: PrivacyTab()
                         case 1: EngineTab()
                         case 2: DeviceTab()
+                        case 3: VisualTab()
                         default: ProxyTabView()
                         }
                     }
@@ -248,27 +249,8 @@ private struct DeviceTab: View {
                                 subtitle: "Рандомизация отпечатка устройства",
                                 icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 SettingsToggle("Hardware Spoof", icon: "dice.fill",
-                               subtitle: "Случайные Samsung/Pixel/Xiaomi модель, DPI, разрешение, заряд в каждом запросе",
+                               subtitle: "Рандомизация модели, DPI, заряда",
                                val: $s.hardwareSpoof)
-            }
-
-            // Liquid Glass card
-            SettingsSectionCard(title: "✨ Liquid Glass",
-                                subtitle: "Эффект стекла iOS 26+",
-                                icon: "bubbles.and.sparkles.fill", iconColor: Color(r:0x64,g:0xD2,b:0xFF)) {
-                SettingsToggle("Liquid Glass Tab Bar", icon: "rectangle.bottomthird.inset.filled",
-                               subtitle: "Размытое стекло нижнего меню как в Telegram и iOS 26",
-                               val: Binding(
-                                   get: { SettingsStore.shared.liquidGlass },
-                                   set: { v in
-                                       SettingsStore.shared.liquidGlass = v
-                                       ToastManager.shared.show(
-                                           v ? "Liquid Glass включён" : "Liquid Glass выключен",
-                                           icon: v ? "bubbles.and.sparkles.fill" : "rectangle.bottomthird.inset.filled",
-                                           style: v ? .cyber : .info
-                                       )
-                                   }
-                               ))
             }
 
             // Device Profile selector
@@ -279,7 +261,7 @@ private struct DeviceTab: View {
                                 subtitle: "Копирование и репосты",
                                 icon: "doc.on.doc.fill", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Bypass Copy + Reposts", icon: "doc.on.doc.fill",
-                               subtitle: "Долгое нажатие на сообщение копирует текст без ограничений",
+                               subtitle: "Копирование без ограничений",
                                val: $s.bypassCopy)
             }
 

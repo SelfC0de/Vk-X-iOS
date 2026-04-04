@@ -18,7 +18,7 @@ struct MessagesView: View {
                     }
                 } else {
                     List(dialogs) { dialog in
-                        NavigationLink(destination: ChatView(peerId: dialog.id, peerName: dialog.name)) {
+                        NavigationLink(destination: ChatView(peerId: dialog.id, peerName: dialog.name, peerAvatar: dialog.avatar)) {
                             DialogRow(dialog: dialog)
                         }
                         .listRowBackground(Color.surface)

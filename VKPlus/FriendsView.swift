@@ -111,7 +111,7 @@ struct FriendProfileView: View {
                         .cyberCard().padding(.horizontal, 16).padding(.top, 16)
 
                         // Message button
-                        NavigationLink(destination: ChatView(peerId: display.id, peerName: display.fullName)) {
+                        NavigationLink(destination: ChatView(peerId: display.id, peerName: display.fullName, peerAvatar: display.photo100)) {
                             Label("Написать сообщение", systemImage: "message.fill")
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(Color.background)

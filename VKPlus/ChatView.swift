@@ -3,16 +3,22 @@ import PhotosUI
 
 // MARK: - ChatView
 struct ChatView: View {
-    let peerId:   Int
-    let peerName: String
+    let peerId:    Int
+    let peerName:  String
+    var peerAvatar: String? = nil
 
     @State private var messages:     [VKMessage] = []
     @State private var draft         = ""
     @State private var isLoading     = false
     @State private var isSending     = false
     @State private var myId          = 0
+    @State private var myAvatar:     String? = nil
     @State private var showAttach    = false
     @State private var photoItem:    PhotosPickerItem? = nil
+    // fromId -> avatar url (for group chats)
+    @State private var avatarMap:    [Int: String] = [:]
+
+    @ObservedObject private var store = SettingsStore.shared
 
     // Edit mode
     @State private var editingMsg:   VKMessage? = nil
@@ -21,7 +27,15 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            Color(red:0.04,green:0.05,blue:0.09).ignoresSafeArea()
+            // Chat background
+            if let data = store.chatBgImageData, let img = UIImage(data: data) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .ignoresSafeArea()
+                    .overlay(Color.black.opacity(0.45))
+            } else {
+                Color(red:0.04,green:0.05,blue:0.09).ignoresSafeArea()
+            }
 
             VStack(spacing: 0) {
                 if isLoading {
@@ -32,12 +46,14 @@ struct ChatView: View {
                             LazyVStack(spacing: 2) {
                                 ForEach(messages.reversed()) { msg in
                                     BubbleView(
-                                        msg:      msg,
-                                        myId:     myId,
-                                        allMsgs:  messages,
-                                        onReply:  { replyMsg = msg },
-                                        onEdit:   { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
-                                        onDelete: { Task { await deleteMsg(msg) } }
+                                        msg:       msg,
+                                        myId:      myId,
+                                        allMsgs:   messages,
+                                        avatarMap: avatarMap,
+                                        myAvatar:  myAvatar,
+                                        onReply:   { replyMsg = msg },
+                                        onEdit:    { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
+                                        onDelete:  { Task { await deleteMsg(msg) } }
                                     )
                                     .id(msg.id)
                                 }
@@ -56,8 +72,21 @@ struct ChatView: View {
                 inputBar
             }
         }
-        .navigationTitle(peerName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    let avatar = peerAvatar
+                    AvatarView(url: avatar, size: 32)
+                        .overlay(Circle().stroke(Color.cyberBlue.opacity(0.3), lineWidth: 0.8))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(peerName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.onSurface)
+                    }
+                }
+            }
+        }
         .toolbarBackground(Color(red:0.05,green:0.06,blue:0.10), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -205,8 +234,19 @@ struct ChatView: View {
     // MARK: - Actions
     private func load() async {
         isLoading = true
-        if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id }
+        if let me = try? await VKAPIClient.shared.getProfile() {
+            myId     = me.id
+            myAvatar = me.photo100
+        }
         messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? []
+        // Build avatarMap: collect unique fromIds that are not me, fetch profiles
+        let ids = Array(Set(messages.map { $0.fromId }.filter { $0 != myId && $0 > 0 }))
+        if !ids.isEmpty {
+            let idsStr = ids.map(String.init).joined(separator: ",")
+            if let users = try? await VKAPIClient.shared.getUsers(ids: idsStr) {
+                for u in users { avatarMap[u.id] = u.photo100 }
+            }
+        }
         isLoading = false
     }
 
@@ -262,20 +302,22 @@ struct ChatView: View {
 
 // MARK: - BubbleView
 private struct BubbleView: View {
-    let msg:      VKMessage
-    let myId:     Int
-    let allMsgs:  [VKMessage]
-    let onReply:  () -> Void
-    let onEdit:   () -> Void
-    let onDelete: () -> Void
+    let msg:       VKMessage
+    let myId:      Int
+    let allMsgs:   [VKMessage]
+    let avatarMap: [Int: String]
+    let myAvatar:  String?
+    let onReply:   () -> Void
+    let onEdit:    () -> Void
+    let onDelete:  () -> Void
 
     @State private var pressed = false
 
     private var isMe: Bool { msg.fromId == myId }
 
-    // Colors
-    private var myBubbleBg:    Color { Color(red:0.07,green:0.28,blue:0.52) }
-    private var theirBubbleBg: Color { Color(red:0.10,green:0.12,blue:0.18) }
+    // Colors — from SettingsStore, live update
+    private var myBubbleBg:    Color { Color(hex: SettingsStore.shared.myBubbleHex) }
+    private var theirBubbleBg: Color { Color(hex: SettingsStore.shared.theirBubbleHex) }
     private var myTextColor:   Color { Color(red:0.92,green:0.96,blue:1.00) }
     private var theirTextColor:Color { Color(red:0.88,green:0.90,blue:0.95) }
     private var myTimeColor:   Color { Color(red:0.55,green:0.75,blue:0.95) }
@@ -283,7 +325,14 @@ private struct BubbleView: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 6) {
-            if isMe { Spacer(minLength: 60) }
+            if isMe {
+                Spacer(minLength: 60)
+            } else {
+                // Avatar of sender (left side)
+                AvatarView(url: avatarMap[msg.fromId], size: 28)
+                    .overlay(Circle().stroke(Color.white.opacity(0.06), lineWidth: 0.5))
+                    .alignmentGuide(.bottom) { d in d[.bottom] }
+            }
 
             VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
                 // Reply quote
@@ -357,7 +406,14 @@ private struct BubbleView: View {
                 } label: { Label("Копировать", systemImage: "doc.on.doc") }
             }
 
-            if !isMe { Spacer(minLength: 60) }
+            if isMe {
+                // My avatar (right side)
+                AvatarView(url: myAvatar, size: 28)
+                    .overlay(Circle().stroke(Color.cyberBlue.opacity(0.2), lineWidth: 0.5))
+                    .alignmentGuide(.bottom) { d in d[.bottom] }
+            } else {
+                Spacer(minLength: 60)
+            }
         }
         .padding(.vertical, 1)
     }

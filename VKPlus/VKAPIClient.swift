@@ -112,6 +112,12 @@ final class VKAPIClient {
         return u
     }
 
+    func getUsers(ids: String) async throws -> [VKUser] {
+        return try await call("users.get", params: [
+            "user_ids": ids, "fields": "photo_100,photo_200,online"
+        ])
+    }
+
     // MARK: - Friends
     func getFriends(count: Int = 200) async throws -> [VKUser] {
         let r: VKFriendsResponse = try await call("friends.get", params: [

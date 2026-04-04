@@ -12,41 +12,41 @@ struct AnimatedTabItem: View {
     @State private var prevSelected = false
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             ZStack(alignment: .topTrailing) {
-                // Glow ring behind icon when selected
+                // Subtle glow capsule behind selected icon (like iOS 18 style)
                 if isSelected {
-                    Circle()
-                        .fill(Color.cyberBlue.opacity(glowing ? 0.18 : 0.06))
-                        .frame(width: 38, height: 38)
-                        .scaleEffect(glowing ? 1.15 : 0.9)
-                        .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: glowing)
+                    Capsule()
+                        .fill(Color.cyberBlue.opacity(glowing ? 0.16 : 0.08))
+                        .frame(width: 44, height: 28)
+                        .scaleEffect(glowing ? 1.05 : 0.95)
+                        .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: glowing)
                 }
 
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
-                    .scaleEffect(bouncing ? 1.28 : 1.0)
+                    .scaleEffect(bouncing ? 1.22 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.45), value: bouncing)
 
                 // Badge
                 if badgeCount > 0 {
                     Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .background(Color.errorRed)
                         .clipShape(Capsule())
-                        .offset(x: 10, y: -6)
-                        .transition(.scale.combined(with: .opacity))
+                        .offset(x: 10, y: -4)
                 }
             }
-            .frame(width: 38, height: 38)
+            .frame(width: 44, height: 28)
 
             Text(label)
-                .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                .font(.system(size: 9.5, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
+                .lineLimit(1)
         }
         .onChange(of: isSelected) { _, newVal in
             if newVal && !prevSelected {
@@ -98,8 +98,8 @@ struct AnimatedTabBar: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 24)
+        .padding(.top, 6)
+        .padding(.bottom, 22)
         .background(
             ZStack {
                 if store.liquidGlass {
@@ -159,7 +159,7 @@ struct AnimatedMainTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 82) // room for tab bar
+            .padding(.bottom, 74) // room for tab bar
 
             AnimatedTabBar(selected: $selectedTab)
         }
