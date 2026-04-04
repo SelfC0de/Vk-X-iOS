@@ -165,6 +165,7 @@ final class SettingsStore: ObservableObject {
     @Published var clockStyle:      String { didSet { ud.set(clockStyle,      forKey: "clock_style")      } }
     @Published var clockAmPm:       Bool   { didSet { ud.set(clockAmPm,       forKey: "clock_ampm")       } }
     @Published var clockSeconds:    Bool   { didSet { ud.set(clockSeconds,    forKey: "clock_seconds")    } }
+    @Published var clockColorHex:   String { didSet { ud.set(clockColorHex,   forKey: "clock_color_hex")  } }
     @Published var appTheme:        String { didSet { ud.set(appTheme,        forKey: "app_theme")         } }
     @Published var myBubbleHex:     String { didSet { ud.set(myBubbleHex,     forKey: "my_bubble_hex")     } }
     @Published var theirBubbleHex:  String { didSet { ud.set(theirBubbleHex,  forKey: "their_bubble_hex")  } }
@@ -205,6 +206,7 @@ final class SettingsStore: ObservableObject {
         clockStyle       = ud.string(forKey: "clock_style")      ?? "digital"
         clockAmPm        = ud.bool(forKey: "clock_ampm")
         clockSeconds     = ud.bool(forKey: "clock_seconds")
+        clockColorHex    = ud.string(forKey: "clock_color_hex") ?? "auto"
         appTheme         = ud.string(forKey: "app_theme")         ?? "dark"
         myBubbleHex      = ud.string(forKey: "my_bubble_hex")     ?? "#122846"
         theirBubbleHex   = ud.string(forKey: "their_bubble_hex")  ?? "#1A1E2E"

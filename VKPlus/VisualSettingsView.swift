@@ -72,6 +72,11 @@ struct VisualTab: View {
                         SettingsToggle("Отображать секунды", icon: "stopwatch",
                                        subtitle: s.clockSeconds ? "Формат чч:мм:сс" : "Формат чч:мм",
                                        val: $s.clockSeconds)
+
+                        Divider().background(Color.divider).padding(.leading, 14)
+
+                        // Color picker
+                        ClockColorRow()
                     }
                 }
             }
@@ -340,5 +345,73 @@ extension Color {
         guard let c = UIColor(self).cgColor.components, c.count >= 3 else { return nil }
         let r = Int(c[0]*255), g = Int(c[1]*255), b = Int(c[2]*255)
         return String(format: "#%02X%02X%02X", r, g, b)
+    }
+}
+
+// MARK: - Clock Color Row
+private struct ClockColorRow: View {
+    @ObservedObject private var s = SettingsStore.shared
+
+    // preset palette: "auto" + 8 fixed colors
+    private let presets: [(String, String)] = [
+        ("auto",     "Авто"),
+        ("FFFFFF",   "Белый"),
+        ("000000",   "Чёрный"),
+        ("4DA6FF",   "Синий"),
+        ("52C41A",   "Зелёный"),
+        ("FF6B35",   "Оранжевый"),
+        ("FF4545",   "Красный"),
+        ("FFD700",   "Золотой"),
+        ("C875FF",   "Фиолетовый"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.cyberBlue)
+                    .frame(width: 22)
+                Text("Цвет часов")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.onSurface)
+            }
+            .padding(.horizontal, 14).padding(.top, 12)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(presets, id: \.0) { hex, label in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) { s.clockColorHex = hex }
+                        } label: {
+                            VStack(spacing: 5) {
+                                ZStack {
+                                    Circle()
+                                        .fill(hex == "auto"
+                                              ? AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center)
+                                              : AnyShapeStyle(Color(hex: hex) ?? .white))
+                                        .frame(width: 34, height: 34)
+                                    if s.clockColorHex == hex {
+                                        Circle()
+                                            .stroke(Color.cyberBlue, lineWidth: 2.5)
+                                            .frame(width: 40, height: 40)
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(hex == "000000" ? .white : .black)
+                                    }
+                                }
+                                Text(label)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(s.clockColorHex == hex ? Color.cyberBlue : Color.onSurfaceMut)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: 50)
+                    }
+                }
+                .padding(.horizontal, 14)
+            }
+            .padding(.bottom, 12)
+        }
     }
 }
