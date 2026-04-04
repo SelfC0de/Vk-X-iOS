@@ -467,21 +467,38 @@ struct ChatView: View {
 
     // MARK: - Voice recording
     private func startRecording() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default)
-        try? session.setActive(true)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_rec.m4a")
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44100,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
-        guard let recorder = try? AVAudioRecorder(url: url, settings: settings) else { return }
-        recorder.record()
-        audioRecorder = recorder
-        recordedURL = url
-        isRecording = true
+        AVAudioApplication.requestRecordPermission { granted in
+            DispatchQueue.main.async {
+                guard granted else {
+                    ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
+                    return
+                }
+                self.beginRecording()
+            }
+        }
+    }
+
+    private func beginRecording() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setActive(true)
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("vkplus_voice_\(Int(Date().timeIntervalSince1970)).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 12000,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
+            ]
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.record()
+            audioRecorder = recorder
+            recordedURL = url
+            isRecording = true
+        } catch {
+            ToastManager.shared.show("Ошибка микрофона", icon: "mic.slash.fill", style: .warning)
+        }
     }
 
     private func stopRecording() {
