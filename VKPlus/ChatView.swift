@@ -291,9 +291,9 @@ struct ChatView: View {
                         isRecording: $isRecording,
                         isCancelling: $isCancelling,
                         dragOffsetX: $dragOffsetX,
-                        onStart: { startRecording() },
-                        onStop: { stopRecording() },
-                        onCancel: { cancelRecording() }
+                        onStart: { [self] in startRecording() },
+                        onStop: { [self] in stopRecording() },
+                        onCancel: { [self] in cancelRecording() }
                     )
                 } else {
                     Button { Task { await send() } } label: {

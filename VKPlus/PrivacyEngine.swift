@@ -157,7 +157,7 @@ final class PrivacyURLProtocol: URLProtocol {
 
     private func scrubForm(_ data: Data, s: SettingsStore) -> Data {
         guard let str = String(data: data, encoding: .utf8) else { return data }
-        var pairs = str.components(separatedBy: "&").compactMap { pair -> String? in
+        let pairs = str.components(separatedBy: "&").compactMap { pair -> String? in
             let kv = pair.components(separatedBy: "=")
             guard let key = kv.first?.removingPercentEncoding?.lowercased() else { return pair }
             if s.blockWifi,    WIFI_FIELDS.contains(key)    { return nil }

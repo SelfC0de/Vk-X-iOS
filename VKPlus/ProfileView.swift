@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var mirror     = MirrorProfile()
     @State private var showMirrorSheet = false
     @State private var headerAppeared = false
+    @State private var fetchedVerifInfo: VKVerificationInfo? = nil
 
     private var displayName:  String   { mirror.isActive && !mirror.name.isEmpty  ? mirror.name  : (user?.fullName ?? "") }
     private var displayPhoto: String?  { mirror.isActive && !mirror.photo.isEmpty ? mirror.photo : user?.avatar }
@@ -47,7 +48,9 @@ struct ProfileView: View {
         .task { await load() }
         .onChange(of: settings.verifyChecker) { _, on in
             if on, let uid = user?.id {
-                Task { fetchedVerifInfo = try? await VKAPIClient.shared.getUserVerification(userId: uid) }
+                Task { @MainActor in
+                    fetchedVerifInfo = try? await VKAPIClient.shared.getUserVerification(userId: uid)
+                }
             }
         }
     }

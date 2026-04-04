@@ -162,6 +162,8 @@ struct FriendProfileView: View {
     let user: VKUser
     @State private var fullUser: VKUser?
     @State private var isLoading = false
+    @State private var verificationInfo: VKVerificationInfo? = nil
+    @ObservedObject private var settings = SettingsStore.shared
 
     var display: VKUser { fullUser ?? user }
 
