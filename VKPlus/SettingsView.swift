@@ -394,10 +394,6 @@ struct SettingsSectionCard<Content: View>: View {
     let iconColor: Color
     @ViewBuilder let content: Content
     @State private var expanded = false
-    // Optional reactive subtitle override
-    var subtitleProvider: (() -> String)? = nil
-
-    private var displaySubtitle: String { subtitleProvider?() ?? subtitle }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -409,7 +405,7 @@ struct SettingsSectionCard<Content: View>: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                        Text(displaySubtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                     }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
@@ -442,7 +438,7 @@ struct SettingsToggle: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                     if !subtitle.isEmpty {
-                        Text(displaySubtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        Text(subtitle).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                     }
                 }
                 Spacer()
