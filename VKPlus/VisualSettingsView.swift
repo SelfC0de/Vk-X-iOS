@@ -20,9 +20,19 @@ struct VisualTab: View {
 
     var body: some View {
         VStack(spacing: 14) {
+            petCard
+            weatherCard
+            clockCard
+            liquidGlassCard
+            themeCard
+            bubbleCard
+            bgCard
+        }
+    }
 
-            // Pet
-            SettingsSectionCard(title: "🐾 Питомец",
+    // MARK: - Pet card
+    @ViewBuilder private var petCard: some View {
+        SettingsSectionCard(title: "🐾 Питомец",
                                 subtitle: s.showPet ? (allPets.first { $0.id == s.petType }?.label ?? "Кот") : "Выключен",
                                 icon: "pawprint.fill",
                                 iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
@@ -64,9 +74,11 @@ struct VisualTab: View {
                     }
                 }
             }
+    }
 
-            // Weather
-            SettingsSectionCard(title: "🌧 Погода",
+    // MARK: - Weather card
+    @ViewBuilder private var weatherCard: some View {
+        SettingsSectionCard(title: "🌧 Погода",
                                 subtitle: weatherSubtitle,
                                 icon: "cloud.rain.fill",
                                 iconColor: Color(r:0x4D,g:0xA6,b:0xFF)) {
@@ -88,9 +100,11 @@ struct VisualTab: View {
                                    val: $s.weatherFog)
                 }
             }
+    }
 
-            // Clock
-            SettingsSectionCard(title: "🕐 Часы",
+    // MARK: - Clock card
+    @ViewBuilder private var clockCard: some View {
+        SettingsSectionCard(title: "🕐 Часы",
                                 subtitle: s.showClock ? (s.clockSeconds ? "С секундами" : "Без секунд") : "Выключены",
                                 icon: "clock.fill",
                                 iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
@@ -157,9 +171,11 @@ struct VisualTab: View {
                     }
                 }
             }
+    }
 
-            // Liquid Glass
-            SettingsSectionCard(title: "Liquid Glass",
+    // MARK: - Liquid Glass card
+    @ViewBuilder private var liquidGlassCard: some View {
+        SettingsSectionCard(title: "Liquid Glass",
                                 subtitle: "Эффект стекла в нижнем меню",
                                 icon: "bubbles.and.sparkles.fill",
                                 iconColor: Color(r:0x64,g:0xD2,b:0xFF)) {
@@ -174,9 +190,11 @@ struct VisualTab: View {
                                                                 style: v ? .cyber : .info)
                                    }))
             }
+    }
 
-            // Theme
-            SettingsSectionCard(title: "Тема",
+    // MARK: - Theme card
+    @ViewBuilder private var themeCard: some View {
+        SettingsSectionCard(title: "Тема",
                                 subtitle: "Цветовая схема приложения",
                                 icon: "circle.lefthalf.filled",
                                 iconColor: Color(r:0xAA,g:0x88,b:0xFF)) {
@@ -222,9 +240,11 @@ struct VisualTab: View {
                 }
                 .buttonStyle(.plain)
             }
+    }
 
-            // Bubble colors
-            SettingsSectionCard(title: "Цвета пузырей",
+    // MARK: - Bubble card
+    @ViewBuilder private var bubbleCard: some View {
+        SettingsSectionCard(title: "Цвета пузырей",
                                 subtitle: "Цвет сообщений в чате",
                                 icon: "bubble.left.and.bubble.right.fill",
                                 iconColor: Color(r:0x00,g:0xB4,b:0xFF)) {
@@ -291,9 +311,11 @@ struct VisualTab: View {
                     .buttonStyle(.plain)
                 }
             }
+    }
 
-            // Chat background
-            SettingsSectionCard(title: "Фон диалогов",
+    // MARK: - Background card
+    @ViewBuilder private var bgCard: some View {
+        SettingsSectionCard(title: "Фон диалогов",
                                 subtitle: "Картинка для фона чата",
                                 icon: "photo.fill",
                                 iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
