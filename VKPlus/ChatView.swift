@@ -75,14 +75,19 @@ struct ChatView: View {
                                     )
                                     .id(msg.id)
                                 }
+                                // Anchor at bottom — always scroll here
+                                Color.clear.frame(height: 1).id("bottom_anchor")
                             }
                             .padding(.horizontal, 6)
                             .padding(.vertical, 8)
                         }
+                        // Scroll to bottom after load
                         .onChange(of: messages.count) { _, _ in
-                            if let last = messages.first {
-                                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                            }
+                            proxy.scrollTo("bottom_anchor", anchor: .bottom)
+                        }
+                        .onAppear {
+                            // Immediate scroll without animation on first appear
+                            proxy.scrollTo("bottom_anchor", anchor: .bottom)
                         }
                     }
                 }
@@ -285,6 +290,10 @@ private struct BubbleView: View {
 
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
+    @State private var profileUserId: Int? = nil
+    @State private var profileUserName: String = ""
+    @State private var profileUserAvatar: String? = nil
+    @State private var showProfile = false
     @State private var photoViewerIndex = 0
     @State private var showVideoPlayer = false
     @State private var videoItem: VKVideoAttachment? = nil
@@ -321,11 +330,16 @@ private struct BubbleView: View {
                 // Text
                 if !msg.text.isEmpty {
                     HStack(alignment: .bottom, spacing: 5) {
-                        Text(msg.text)
-                            .font(.system(size: 15))
-                            .foregroundStyle(fg)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
+                        MessageTextView(
+                            text: msg.text,
+                            textColor: fg,
+                            onVKLink: { name in
+                                profileUserName = name
+                                showProfile = true
+                            },
+                            onURL: { url in UIApplication.shared.open(url) }
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
                         Text(timeStr(msg.date))
                             .font(.system(size: 10))
                             .foregroundStyle(tc)
@@ -512,6 +526,9 @@ private struct BubbleView: View {
                 VideoPlayerSheet(videoId: vid.id, ownerId: vid.ownerId, thumb: vid.thumbUrl)
             }
         }
+        .sheet(isPresented: $showProfile) {
+            VKProfileResolverSheet(screenName: profileUserName)
+        }
     }
 
     private func durationStr(_ s: Int) -> String { String(format: "%d:%02d", s/60, s%60) }
@@ -553,5 +570,171 @@ private struct AttachmentPhoto: View {
                   let img = UIImage(data: data) else { return }
             ImageCache.shared.set(url, image: img); image = img
         }
+    }
+}
+
+// MARK: - Link-aware message text
+private struct MessageTextView: View {
+    let text: String
+    let textColor: Color
+    let onVKLink: (String) -> Void
+    let onURL: (URL) -> Void
+
+    // Regex patterns
+    private static let vkPattern = try? NSRegularExpression(
+        pattern: #"https?://(?:www\.)?vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#,
+        options: .caseInsensitive)
+    private static let urlPattern = try? NSRegularExpression(
+        pattern: #"https?://[^\s]+"#,
+        options: .caseInsensitive)
+
+    var body: some View {
+        let segments = parseSegments(text)
+        segments.reduce(Text("")) { result, seg in
+            switch seg.kind {
+            case .plain:
+                return result + Text(seg.value)
+                    .font(.system(size: 15))
+                    .foregroundStyle(textColor)
+            case .vkLink:
+                return result + Text(seg.value)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.cyberBlue)
+                    .underline()
+            case .url:
+                return result + Text(seg.value)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.cyberBlue)
+                    .underline()
+            }
+        }
+        .multilineTextAlignment(.leading)
+        .environment(\.openURL, OpenURLAction { url in
+            if let name = vkScreenName(from: url.absoluteString) {
+                onVKLink(name); return .handled
+            }
+            onURL(url); return .handled
+        })
+        .onTapGesture {
+            // Tap anywhere on text — check for links
+            checkAndOpenLinks(in: text)
+        }
+    }
+
+    private func checkAndOpenLinks(in text: String) {
+        let ns = text as NSString
+        let range = NSRange(location: 0, length: ns.length)
+        // Check VK links first
+        if let matches = Self.vkPattern?.matches(in: text, range: range), !matches.isEmpty {
+            let m = matches[0]
+            if m.numberOfRanges >= 2 {
+                let nameRange = m.range(at: 1)
+                let name = ns.substring(with: nameRange)
+                onVKLink(name); return
+            }
+        }
+        // Then generic URLs
+        if let matches = Self.urlPattern?.matches(in: text, range: range), !matches.isEmpty {
+            let urlStr = ns.substring(with: matches[0].range)
+            if let url = URL(string: urlStr) { onURL(url) }
+        }
+    }
+
+    private func vkScreenName(from urlStr: String) -> String? {
+        guard let range = urlStr.range(of: #"vk\.(com|ru)/([A-Za-z0-9_\.]+)"#,
+                                       options: .regularExpression) else { return nil }
+        let match = String(urlStr[range])
+        guard let slashIdx = match.lastIndex(of: "/") else { return nil }
+        return String(match[match.index(after: slashIdx)...])
+    }
+
+    private enum SegKind { case plain, vkLink, url }
+    private struct Segment { let kind: SegKind; let value: String }
+
+    private func parseSegments(_ text: String) -> [Segment] {
+        var segments: [Segment] = []
+        let ns = text as NSString
+        let fullRange = NSRange(location: 0, length: ns.length)
+
+        // Collect all link ranges
+        var linkRanges: [(NSRange, SegKind)] = []
+        if let matches = Self.vkPattern?.matches(in: text, range: fullRange) {
+            for m in matches { linkRanges.append((m.range, .vkLink)) }
+        }
+        // Add non-VK URLs
+        if let matches = Self.urlPattern?.matches(in: text, range: fullRange) {
+            for m in matches {
+                let isAlreadyVK = linkRanges.contains { NSIntersectionRange($0.0, m.range).length > 0 }
+                if !isAlreadyVK { linkRanges.append((m.range, .url)) }
+            }
+        }
+        linkRanges.sort { $0.0.location < $1.0.location }
+
+        var cursor = 0
+        for (range, kind) in linkRanges {
+            if range.location > cursor {
+                let plain = ns.substring(with: NSRange(location: cursor, length: range.location - cursor))
+                segments.append(Segment(kind: .plain, value: plain))
+            }
+            segments.append(Segment(kind: kind, value: ns.substring(with: range)))
+            cursor = range.location + range.length
+        }
+        if cursor < ns.length {
+            segments.append(Segment(kind: .plain, value: ns.substring(from: cursor)))
+        }
+        return segments.isEmpty ? [Segment(kind: .plain, value: text)] : segments
+    }
+}
+
+// MARK: - VK Profile resolver sheet
+private struct VKProfileResolverSheet: View {
+    let screenName: String
+    @Environment(\.dismiss) var dismiss
+    @State private var user: VKUser? = nil
+    @State private var isLoading = true
+    @State private var failed = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.background.ignoresSafeArea()
+                if isLoading {
+                    ProgressView().tint(.cyberBlue)
+                } else if let user {
+                    FriendProfileView(user: user)
+                } else {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.slash").font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
+                        Text("Профиль не найден").foregroundStyle(Color.onSurfaceMut)
+                    }
+                }
+            }
+            .navigationTitle(screenName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Закрыть") { dismiss() }
+                }
+            }
+            .toolbarBackground(Color.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .task { await resolve() }
+    }
+
+    private func resolve() async {
+        isLoading = true
+        // Try numeric id first
+        if let numId = Int(screenName.replacingOccurrences(of: "id", with: "")),
+           let users = try? await VKAPIClient.shared.getUsers(ids: "\(numId)"),
+           let first = users.first {
+            user = first
+        } else if let userId = try? await VKAPIClient.shared.resolveScreenName(screenName),
+                  let users = try? await VKAPIClient.shared.getUsers(ids: "\(userId)"),
+                  let first = users.first {
+            user = first
+        }
+        isLoading = false
     }
 }
