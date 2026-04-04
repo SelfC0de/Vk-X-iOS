@@ -114,6 +114,8 @@ struct VKWallPost: Decodable, Identifiable {
     }
     var likesCount: Int { likes?.count ?? 0 }
     var authorId:   Int { fromId ?? sourceId ?? 0 }
+    // Unique across pages: post id + owner id
+    var uniqueKey: String { "\(ownerId ?? authorId)_\(id)" }
     var postOwnerId: Int { ownerId ?? authorId }
 }
 

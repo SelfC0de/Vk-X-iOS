@@ -49,7 +49,9 @@ final class FeedViewModel: ObservableObject {
         isLoadingMore = true
         do {
             let page = try await VKAPIClient.shared.getNewsfeed(startFrom: nf)
-            posts += page.items
+            let existing = Set(posts.map { $0.uniqueKey })
+            let fresh = page.items.filter { !existing.contains($0.uniqueKey) }
+            posts += fresh
             profiles.merge(page.profiles) { _, n in n }
             groups.merge(page.groups)     { _, n in n }
             nextFrom = page.nextFrom
@@ -126,7 +128,7 @@ struct FeedView: View {
 
     private var feedList: some View {
         List {
-            ForEach(vm.posts) { post in
+            ForEach(vm.posts, id: \.uniqueKey) { post in
                 PostCard(
                     post:        post,
                     authorName:  vm.authorName(for: post),
@@ -199,7 +201,10 @@ private struct PostCard: View {
 
             // Text
             if !post.text.isEmpty {
-                ExpandableText(text: post.text).padding(.horizontal, 14).padding(.top, 8)
+                ExpandableText(text: post.text)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // Attachments
@@ -263,8 +268,13 @@ private struct ExpandableText: View {
         VStack(alignment: .leading, spacing: 4) {
             let long  = text.count > limit
             let shown = !expanded && long ? String(text.prefix(limit)) + "…" : text
-            Text(shown).font(.system(size: 14)).foregroundStyle(Color.onSurface)
-                .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+            Text(shown)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.onSurface)
+                .lineSpacing(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             if long {
                 Button { withAnimation { expanded.toggle() } } label: {
                     Text(expanded ? "Скрыть" : "Показать полностью")
@@ -272,6 +282,7 @@ private struct ExpandableText: View {
                 }.buttonStyle(.plain)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
