@@ -43,8 +43,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};CC11223344556677={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";};AABBCC001122DDEF={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";}; 
-		309AE0DA42554419BB1A2AC6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedComponents.swift;sourceTree="<group>";};
+		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};CC11223344556677={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";}309AE0DA42554419BB1A2AC6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedComponents.swift;sourceTree="<group>";};
 		49D1AEB157CA44E2A19BD4E7={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedTabBar.swift;sourceTree="<group>";};
 		DB7DE331F4BF458DBC24CBE0={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthView.swift;sourceTree="<group>";};
 		BAE3163F06BA4DBF91FD0A21={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthViewModel.swift;sourceTree="<group>";};
@@ -86,7 +85,7 @@
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
 				CC11223344556677,
-		3EEACAC82B7249DA8FEE5DE8,
+				3EEACAC82B7249DA8FEE5DE8,
 			309AE0DA42554419BB1A2AC6,
 			49D1AEB157CA44E2A19BD4E7,
 			DB7DE331F4BF458DBC24CBE0,
