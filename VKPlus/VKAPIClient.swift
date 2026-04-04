@@ -26,7 +26,7 @@ final class VKAPIClient {
     private let base    = "https://api.vk.com/method"
     private let version = "5.199"
     private let decoder = JSONDecoder()
-    private lazy var session: URLSession = {
+    var session: URLSession = {
         let cfg = URLSessionConfiguration.default
         cfg.timeoutIntervalForRequest = 15
         return URLSession(configuration: cfg)
@@ -145,6 +145,39 @@ final class VKAPIClient {
             return VKVerificationInfo(verifications: [])
         }
         return nil
+    }
+
+    // MARK: - Proxy support
+    func setProxy(_ entry: ProxyEntry?) {
+        var config: URLSessionConfiguration
+        if let e = entry {
+            config = URLSessionConfiguration.default
+            if e.type == "SOCKS5" {
+                config.connectionProxyDictionary = [
+                    "SOCKSEnable":   1,
+                    "SOCKSProxy":    e.host,
+                    "SOCKSPort":     e.port,
+                    kCFStreamPropertySOCKSProxyHost as String: e.host,
+                    kCFStreamPropertySOCKSProxyPort as String: e.port
+                ]
+            } else {
+                // MTProto / HTTP fallback — route through HTTP CONNECT
+                config.connectionProxyDictionary = [
+                    kCFNetworkProxiesHTTPEnable  as String: 1,
+                    kCFNetworkProxiesHTTPProxy   as String: e.host,
+                    kCFNetworkProxiesHTTPPort    as String: e.port,
+                    kCFNetworkProxiesHTTPSEnable as String: 1,
+                    kCFNetworkProxiesHTTPSProxy  as String: e.host,
+                    kCFNetworkProxiesHTTPSPort   as String: e.port
+                ]
+            }
+        } else {
+            config = URLSessionConfiguration.default
+            config.connectionProxyDictionary = [:]
+        }
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        session = URLSession(configuration: config)
     }
 
     // MARK: - Auth

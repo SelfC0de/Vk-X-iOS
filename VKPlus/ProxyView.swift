@@ -12,9 +12,32 @@ struct ProxyEntry: Identifiable, Codable, Equatable {
 
 final class ProxyStore: ObservableObject {
     @Published var list: [ProxyEntry] = []
+    @Published var proxyEnabled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(proxyEnabled, forKey: "vkplus_proxy_enabled")
+            applyToSession()
+        }
+    }
+    @Published var activeProxyId: UUID? = nil {
+        didSet {
+            if let id = activeProxyId {
+                UserDefaults.standard.set(id.uuidString, forKey: "vkplus_proxy_active")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "vkplus_proxy_active")
+            }
+            applyToSession()
+        }
+    }
     private let key = "vkplus_proxy_v3"
 
-    init() { load() }
+    init() {
+        load()
+        proxyEnabled = UserDefaults.standard.bool(forKey: "vkplus_proxy_enabled")
+        if let str = UserDefaults.standard.string(forKey: "vkplus_proxy_active"),
+           let id = UUID(uuidString: str) {
+            activeProxyId = id
+        }
+    }
 
     func load() {
         guard let data = UserDefaults.standard.data(forKey: key),
@@ -29,7 +52,14 @@ final class ProxyStore: ObservableObject {
     }
 
     func add(_ e: ProxyEntry) { list.append(e); save() }
-    func remove(at idx: IndexSet) { list.remove(atOffsets: idx); save() }
+    func remove(at idx: IndexSet) {
+        let removing = idx.map { list[$0].id }
+        list.remove(atOffsets: idx)
+        if let active = activeProxyId, removing.contains(active) {
+            activeProxyId = nil
+        }
+        save()
+    }
 
     func ping(id: UUID) {
         guard let i = list.firstIndex(where: { $0.id == id }) else { return }
@@ -76,6 +106,15 @@ final class ProxyStore: ObservableObject {
     }
 
     func pingAll() { list.forEach { ping(id: $0.id) } }
+
+    func applyToSession() {
+        guard proxyEnabled, let id = activeProxyId,
+              let entry = list.first(where: { $0.id == id }) else {
+            VKAPIClient.shared.setProxy(nil)
+            return
+        }
+        VKAPIClient.shared.setProxy(entry)
+    }
 }
 
 private func parseProxy(_ raw: String) -> ProxyEntry? {
@@ -125,7 +164,7 @@ struct ProxyView: View {
                 } else {
                     List {
                         ForEach(store.list) { entry in
-                            ProxyRowView(entry: entry) { store.ping(id: entry.id) }
+                            ProxyRowView(entry: entry, onPing: { store.ping(id: entry.id) }, store: store)
                                 .listRowBackground(Color.surface)
                                 .listRowSeparatorTint(Color.divider)
                                 .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -134,6 +173,44 @@ struct ProxyView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                }
+
+                // Proxy enable toggle + active selector
+                if !store.list.isEmpty {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(store.proxyEnabled ? Color.cyberBlue.opacity(0.15) : Color.surfaceVar)
+                                    .frame(width: 34, height: 34)
+                                Image(systemName: "network")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(store.proxyEnabled ? Color.cyberBlue : Color.onSurfaceMut)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Прокси активен")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.onSurface)
+                                if store.proxyEnabled, let id = store.activeProxyId,
+                                   let e = store.list.first(where: { $0.id == id }) {
+                                    Text("\(e.host):\(e.port)")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundStyle(Color.cyberBlue)
+                                } else {
+                                    Text(store.proxyEnabled ? "Выберите прокси" : "Выключен")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.onSurfaceMut)
+                                }
+                            }
+                            Spacer()
+                            Toggle("", isOn: $store.proxyEnabled)
+                                .labelsHidden()
+                                .tint(Color.cyberBlue)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(Color.surface)
+                    }
+                    .overlay(Rectangle().frame(height: 0.5).foregroundStyle(Color.divider), alignment: .bottom)
                 }
 
                 Divider().background(Color.divider)
@@ -183,6 +260,7 @@ struct ProxyView: View {
 private struct ProxyRowView: View {
     let entry:  ProxyEntry
     let onPing: () -> Void
+    @ObservedObject var store: ProxyStore
 
     private var dotColor: Color {
         guard let ms = entry.pingMs else { return Color.onSurfaceMut }
@@ -218,6 +296,19 @@ private struct ProxyRowView: View {
                     .foregroundStyle(dotColor)
                     .frame(minWidth: 52, alignment: .trailing)
             }
+            // Set as active button
+            let isActive = store.activeProxyId == entry.id
+            Button {
+                store.activeProxyId = entry.id
+                if !store.proxyEnabled { store.proxyEnabled = true }
+            } label: {
+                Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(isActive ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.4))
+                    .padding(.trailing, 2)
+            }
+            .buttonStyle(.plain)
+
             Button(action: onPing) {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 13))
@@ -227,5 +318,7 @@ private struct ProxyRowView: View {
             .buttonStyle(.plain)
         }
         .padding(.vertical, 8)
+        .background(store.activeProxyId == entry.id && store.proxyEnabled
+                    ? Color.cyberBlue.opacity(0.05) : Color.clear)
     }
 }
