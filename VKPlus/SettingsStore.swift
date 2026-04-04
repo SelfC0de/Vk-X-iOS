@@ -146,6 +146,7 @@ final class SettingsStore: ObservableObject {
 
     // Device
     @Published var hardwareSpoof:   Bool { didSet { ud.set(hardwareSpoof,   forKey: "hardware_spoof")   } }
+    @Published var liquidGlass:     Bool { didSet { ud.set(liquidGlass,     forKey: "liquid_glass")     } }
     @Published var deviceUa:        String { didSet { ud.set(deviceUa,      forKey: "device_ua")        } }
 
     // Verification / Exploits
@@ -177,6 +178,7 @@ final class SettingsStore: ObservableObject {
         bypassCopy       = ud.object(forKey: "bypass_copy")    == nil ? true  : ud.bool(forKey: "bypass_copy")
         typePush         = ud.bool(forKey: "type_push")
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
+        liquidGlass      = ud.bool(forKey: "liquid_glass")
         deviceUa         = ud.string(forKey: "device_ua")      ?? DeviceProfile.kate.ua
         verifyChecker    = ud.object(forKey: "verify_checker") == nil ? true  : ud.bool(forKey: "verify_checker")
         fakeVerification = ud.bool(forKey: "fake_verif")

@@ -252,6 +252,25 @@ private struct DeviceTab: View {
                                val: $s.hardwareSpoof)
             }
 
+            // Liquid Glass card
+            SettingsSectionCard(title: "✨ Liquid Glass",
+                                subtitle: "Эффект стекла iOS 26+",
+                                icon: "bubbles.and.sparkles.fill", iconColor: Color(r:0x64,g:0xD2,b:0xFF)) {
+                SettingsToggle("Liquid Glass Tab Bar", icon: "rectangle.bottomthird.inset.filled",
+                               subtitle: "Размытое стекло нижнего меню как в Telegram и iOS 26",
+                               val: Binding(
+                                   get: { SettingsStore.shared.liquidGlass },
+                                   set: { v in
+                                       SettingsStore.shared.liquidGlass = v
+                                       ToastManager.shared.show(
+                                           v ? "Liquid Glass включён" : "Liquid Glass выключен",
+                                           icon: v ? "bubbles.and.sparkles.fill" : "rectangle.bottomthird.inset.filled",
+                                           style: v ? .cyber : .info
+                                       )
+                                   }
+                               ))
+            }
+
             // Device Profile selector
             deviceProfileSection
 

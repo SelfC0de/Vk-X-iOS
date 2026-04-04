@@ -70,6 +70,7 @@ struct AnimatedTabItem: View {
 struct AnimatedTabBar: View {
     @Binding var selected: Int
     @ObservedObject var toastMgr = ToastManager.shared
+    @ObservedObject private var store = SettingsStore.shared
 
     private let tabs: [(icon: String, selectedIcon: String, label: String)] = [
         ("house",                    "house.fill",                      "Лента"),
@@ -101,13 +102,32 @@ struct AnimatedTabBar: View {
         .padding(.bottom, 24)
         .background(
             ZStack {
-                Color.surface
-                // Top separator with cyber glow
+                if store.liquidGlass {
+                    // Liquid Glass: blur + translucent overlay
+                    if #available(iOS 26.0, *) {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                LinearGradient(
+                                    colors: [Color.cyberBlue.opacity(0.08), Color.clear],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                    } else {
+                        // iOS 17-25 fallback
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(Color.cyberBlue.opacity(0.04))
+                    }
+                } else {
+                    Color.surface
+                }
+                // Top separator
                 VStack {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.cyberBlue.opacity(0.3), Color.divider.opacity(0.3)],
+                                colors: [Color.cyberBlue.opacity(store.liquidGlass ? 0.5 : 0.3), Color.divider.opacity(0.3)],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )

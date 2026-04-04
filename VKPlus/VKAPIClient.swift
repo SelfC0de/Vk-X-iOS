@@ -164,14 +164,35 @@ final class VKAPIClient {
         return r.items
     }
 
-    func sendMessage(peerId: Int, text: String) async throws -> Int {
-        struct SR: Decodable { let response: Int? }
-        let r: SR = try await call("messages.send", params: [
+    func sendMessage(peerId: Int, text: String, replyTo: Int? = nil) async throws -> Int {
+        var params: [String: String] = [
             "peer_id":   "\(peerId)",
             "message":   text,
-            "random_id": "\(Int.random(in: 1...999999))"
+            "random_id": "\(Int.random(in: 1...Int.max))",
+            "v":         version
+        ]
+        if let r = replyTo { params["reply_to"] = "\(r)" }
+        let json = try await rawCall("messages.send", params: params)
+        if let msgId = json["response"] as? Int { return msgId }
+        if let err = (json["error"] as? [String: Any])?["error_msg"] as? String {
+            throw VKError.api(0, err)
+        }
+        return 0
+    }
+
+    func editMessage(peerId: Int, messageId: Int, text: String) async throws {
+        struct ER: Decodable { let response: Int? }
+        let _: ER = try await call("messages.edit", params: [
+            "peer_id": "\(peerId)", "message_id": "\(messageId)", "message": text
         ])
-        return r.response ?? 0
+    }
+
+    func deleteMessage(messageIds: [Int], forAll: Bool = true) async throws {
+        struct DR: Decodable { }
+        let ids = messageIds.map(String.init).joined(separator: ",")
+        let _: DR = try await call("messages.delete", params: [
+            "message_ids": ids, "delete_for_all": forAll ? "1" : "0"
+        ])
     }
 
     // MARK: - Newsfeed

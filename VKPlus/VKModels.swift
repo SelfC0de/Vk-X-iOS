@@ -35,9 +35,12 @@ struct VKCity: Decodable { let id: Int; let title: String }
 
 struct VKMessage: Decodable, Identifiable {
     let id: Int; let fromId: Int; let text: String; let date: Int
-    let attachments: [VKAttachment]?
+    let replyMessageId: Int?
+    let attachments:    [VKAttachment]?
     enum CodingKeys: String, CodingKey {
-        case id, text, date, attachments; case fromId = "from_id"
+        case id, text, date, attachments
+        case fromId         = "from_id"
+        case replyMessageId = "reply_message"
     }
 }
 
