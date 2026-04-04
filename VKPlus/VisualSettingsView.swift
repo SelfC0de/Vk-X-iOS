@@ -4,6 +4,15 @@ import PhotosUI
 // MARK: - Visual Tab
 struct VisualTab: View {
     @ObservedObject private var s = SettingsStore.shared
+
+    private var weatherSubtitle: String {
+        let parts = [s.weatherGarland ? "Гирлянда" : nil,
+                     s.weatherRain    ? "Дождь"    : nil,
+                     s.weatherSnow    ? "Снег"     : nil,
+                     s.weatherFog     ? "Туман"    : nil].compactMap { $0 }
+        return parts.isEmpty ? "Выключено" : parts.joined(separator: ", ")
+    }
+
     @State private var showMyColorPicker    = false
     @State private var showTheirColorPicker = false
     @State private var bgPickerItem: PhotosPickerItem? = nil
@@ -58,15 +67,7 @@ struct VisualTab: View {
 
             // Weather
             SettingsSectionCard(title: "🌧 Погода",
-                                subtitle: [s.weatherRain ? "Дождь" : nil,
-                                           s.weatherSnow ? "Снег"  : nil,
-                                           s.weatherFog  ? "Туман" : nil]
-                                           .compactMap { $0 }.joined(separator: ", ")
-                                           .isEmpty ? "Выключено" :
-                                           [s.weatherRain ? "Дождь" : nil,
-                                            s.weatherSnow ? "Снег"  : nil,
-                                            s.weatherFog  ? "Туман" : nil]
-                                           .compactMap { $0 }.joined(separator: ", "),
+                                subtitle: weatherSubtitle,
                                 icon: "cloud.rain.fill",
                                 iconColor: Color(r:0x4D,g:0xA6,b:0xFF)) {
                 VStack(spacing: 0) {
