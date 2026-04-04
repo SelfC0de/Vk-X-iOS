@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CC11223344556688={isa=PBXBuildFile;fileRef=CC11223344556677 /* RegDateCheckerView.swift */;settings={};};
+		AA00BB11CC22DD3344556677={isa=PBXBuildFile;fileRef=3EEACAC82B7249DA8FEE5DE8 /* AboutView.swift */;settings={};};
+		CC1122334455668800112233={isa=PBXBuildFile;fileRef=CC1122334455667700112233 /* RegDateCheckerView.swift */;settings={};};
 		32874D2F845044A3={isa=PBXBuildFile;fileRef=3EEACAC82B7249DA8FEE5DE8;};
 		DA7DD5BCBF7944EA92DCBF61={isa=PBXBuildFile;fileRef=309AE0DA42554419BB1A2AC6;};
 		6C255109BFA34E9FA5416754={isa=PBXBuildFile;fileRef=49D1AEB157CA44E2A19BD4E7;};
@@ -44,7 +45,7 @@
 
 /* Begin PBXFileReference section */
 		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
-		CC11223344556677={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";};
+		CC1122334455667700112233={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=RegDateCheckerView.swift;sourceTree="<group>";};
 		309AE0DA42554419BB1A2AC6={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedComponents.swift;sourceTree="<group>";};
 		49D1AEB157CA44E2A19BD4E7={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AnimatedTabBar.swift;sourceTree="<group>";};
 		DB7DE331F4BF458DBC24CBE0={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AuthView.swift;sourceTree="<group>";};
@@ -86,7 +87,7 @@
 /* Begin PBXGroup section */
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
-				CC11223344556677,
+				CC1122334455667700112233,
 				3EEACAC82B7249DA8FEE5DE8,
 			309AE0DA42554419BB1A2AC6,
 			49D1AEB157CA44E2A19BD4E7,
@@ -136,7 +137,8 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		1EF9FD6FDCE44A6EA87FDBBA={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
-			CC11223344556688,
+			AA00BB11CC22DD3344556677,
+			CC1122334455668800112233,
 			F7CF856432874D2F845044A3,
 			DA7DD5BCBF7944EA92DCBF61,
 			6C255109BFA34E9FA5416754,
