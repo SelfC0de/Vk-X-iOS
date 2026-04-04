@@ -388,7 +388,7 @@ private struct ClockColorRow: View {
                                 ZStack {
                                     Circle()
                                         .fill(hex == "auto"
-                                              ? AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center)
+                                              ? AnyShapeStyle(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
                                               : AnyShapeStyle(Color(hex: hex) ?? .white))
                                         .frame(width: 34, height: 34)
                                     if s.clockColorHex == hex {

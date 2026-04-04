@@ -26,7 +26,8 @@ struct ClockView: View {
                 ? Color.white.opacity(0.85)
                 : Color.black.opacity(0.75)
         }
-        return Color(hex: s.clockColorHex) ?? (colorScheme == .dark ? .white : .black)
+        if let c = Color(hex: s.clockColorHex) { return c }
+        return colorScheme == .dark ? .white.opacity(0.85) : .black.opacity(0.75)
     }
 
     // MARK: - Time string
@@ -59,15 +60,3 @@ struct ClockView: View {
     }
 }
 
-// MARK: - Color hex init
-extension Color {
-    init?(hex: String) {
-        let h = hex.trimmingCharacters(in: .init(charactersIn: "#"))
-        guard h.count == 6, let val = UInt64(h, radix: 16) else { return nil }
-        self.init(
-            red:   Double((val >> 16) & 0xFF) / 255,
-            green: Double((val >>  8) & 0xFF) / 255,
-            blue:  Double( val        & 0xFF) / 255
-        )
-    }
-}
