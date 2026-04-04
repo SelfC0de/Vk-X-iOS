@@ -113,9 +113,16 @@ final class VKAPIClient {
     }
 
     func searchUsers(query: String, count: Int = 20) async throws -> [VKUser] {
-        return try await call("users.search", params: [
-            "q": query, "count": "\(count)", "fields": "photo_100,online,verified"
+        let json = try await rawCall("users.search", params: [
+            "q": query, "count": "\(count)", "fields": "photo_100,online,verified,city"
         ])
+        guard let response = json["response"] as? [String: Any],
+              let items = response["items"] as? [[String: Any]] else { return [] }
+        let decoder = JSONDecoder()
+        return items.compactMap { dict -> VKUser? in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(VKUser.self, from: data)
+        }
     }
 
     func resolveScreenName(_ name: String) async throws -> Int? {

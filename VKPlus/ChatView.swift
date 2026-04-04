@@ -580,7 +580,19 @@ private struct MessageTextView: View {
     let onVKLink: (String) -> Void
     let onURL: (URL) -> Void
 
-    // Regex patterns
+    var body: some View {
+        // Use AttributedString with link attributes — UITextView handles tap natively
+        LinkableText(text: text, textColor: textColor, onVKLink: onVKLink, onURL: onURL)
+    }
+}
+
+// UIViewRepresentable for proper tappable links
+private struct LinkableText: UIViewRepresentable {
+    let text: String
+    let textColor: Color
+    let onVKLink: (String) -> Void
+    let onURL: (URL) -> Void
+
     private static let vkPattern = try? NSRegularExpression(
         pattern: #"https?://(?:www\.)?vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#,
         options: .caseInsensitive)
@@ -588,101 +600,103 @@ private struct MessageTextView: View {
         pattern: #"https?://[^\s]+"#,
         options: .caseInsensitive)
 
-    var body: some View {
-        let segments = parseSegments(text)
-        segments.reduce(Text("")) { result, seg in
-            switch seg.kind {
-            case .plain:
-                return result + Text(seg.value)
-                    .font(.system(size: 15))
-                    .foregroundStyle(textColor)
-            case .vkLink:
-                return result + Text(seg.value)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.cyberBlue)
-                    .underline()
-            case .url:
-                return result + Text(seg.value)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.cyberBlue)
-                    .underline()
-            }
-        }
-        .multilineTextAlignment(.leading)
-        .environment(\.openURL, OpenURLAction { url in
-            if let name = vkScreenName(from: url.absoluteString) {
-                onVKLink(name); return .handled
-            }
-            onURL(url); return .handled
-        })
-        .onTapGesture {
-            // Tap anywhere on text — check for links
-            checkAndOpenLinks(in: text)
-        }
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isEditable = false
+        tv.isScrollEnabled = false
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.delegate = context.coordinator
+        return tv
     }
 
-    private func checkAndOpenLinks(in text: String) {
+    func updateUIView(_ tv: UITextView, context: Context) {
+        context.coordinator.onVKLink = onVKLink
+        context.coordinator.onURL = onURL
+        tv.attributedText = buildAttributedString()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onVKLink: onVKLink, onURL: onURL)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let w = proposal.width ?? UIScreen.main.bounds.width
+        let size = uiView.sizeThatFits(CGSize(width: w, height: .greatestFiniteMagnitude))
+        return size
+    }
+
+    private func buildAttributedString() -> NSAttributedString {
+        let uiColor = UIColor(textColor)
+        let base: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 15),
+            .foregroundColor: uiColor
+        ]
+        let result = NSMutableAttributedString(string: text, attributes: base)
         let ns = text as NSString
-        let range = NSRange(location: 0, length: ns.length)
-        // Check VK links first
-        if let matches = Self.vkPattern?.matches(in: text, range: range), !matches.isEmpty {
-            let m = matches[0]
-            if m.numberOfRanges >= 2 {
-                let nameRange = m.range(at: 1)
-                let name = ns.substring(with: nameRange)
-                onVKLink(name); return
-            }
-        }
-        // Then generic URLs
-        if let matches = Self.urlPattern?.matches(in: text, range: range), !matches.isEmpty {
-            let urlStr = ns.substring(with: matches[0].range)
-            if let url = URL(string: urlStr) { onURL(url) }
-        }
-    }
+        let full = NSRange(location: 0, length: ns.length)
+        let linkColor = UIColor(Color.cyberBlue)
 
-    private func vkScreenName(from urlStr: String) -> String? {
-        guard let range = urlStr.range(of: #"vk\.(com|ru)/([A-Za-z0-9_\.]+)"#,
-                                       options: .regularExpression) else { return nil }
-        let match = String(urlStr[range])
-        guard let slashIdx = match.lastIndex(of: "/") else { return nil }
-        return String(match[match.index(after: slashIdx)...])
-    }
-
-    private enum SegKind { case plain, vkLink, url }
-    private struct Segment { let kind: SegKind; let value: String }
-
-    private func parseSegments(_ text: String) -> [Segment] {
-        var segments: [Segment] = []
-        let ns = text as NSString
-        let fullRange = NSRange(location: 0, length: ns.length)
-
-        // Collect all link ranges
-        var linkRanges: [(NSRange, SegKind)] = []
-        if let matches = Self.vkPattern?.matches(in: text, range: fullRange) {
-            for m in matches { linkRanges.append((m.range, .vkLink)) }
-        }
-        // Add non-VK URLs
-        if let matches = Self.urlPattern?.matches(in: text, range: fullRange) {
+        // Apply VK links
+        if let matches = Self.vkPattern?.matches(in: text, range: full) {
             for m in matches {
-                let isAlreadyVK = linkRanges.contains { NSIntersectionRange($0.0, m.range).length > 0 }
-                if !isAlreadyVK { linkRanges.append((m.range, .url)) }
+                let urlStr = ns.substring(with: m.range)
+                if let url = URL(string: urlStr) {
+                    result.addAttributes([
+                        .link: url,
+                        .foregroundColor: linkColor,
+                        .underlineStyle: NSUnderlineStyle.single.rawValue
+                    ], range: m.range)
+                }
             }
         }
-        linkRanges.sort { $0.0.location < $1.0.location }
+        // Apply other URLs (skip VK already handled)
+        if let matches = Self.urlPattern?.matches(in: text, range: full) {
+            for m in matches {
+                let urlStr = ns.substring(with: m.range)
+                // Skip if already has link attribute
+                var alreadyLinked = false
+                result.enumerateAttribute(.link, in: m.range) { val, _, _ in
+                    if val != nil { alreadyLinked = true }
+                }
+                if !alreadyLinked, let url = URL(string: urlStr) {
+                    result.addAttributes([
+                        .link: url,
+                        .foregroundColor: linkColor,
+                        .underlineStyle: NSUnderlineStyle.single.rawValue
+                    ], range: m.range)
+                }
+            }
+        }
+        return result
+    }
 
-        var cursor = 0
-        for (range, kind) in linkRanges {
-            if range.location > cursor {
-                let plain = ns.substring(with: NSRange(location: cursor, length: range.location - cursor))
-                segments.append(Segment(kind: .plain, value: plain))
+    class Coordinator: NSObject, UITextViewDelegate {
+        var onVKLink: (String) -> Void
+        var onURL: (URL) -> Void
+
+        init(onVKLink: @escaping (String) -> Void, onURL: @escaping (URL) -> Void) {
+            self.onVKLink = onVKLink
+            self.onURL = onURL
+        }
+
+        func textView(_ textView: UITextView, shouldInteractWith url: URL,
+                      in range: NSRange, interaction: UITextItemInteraction) -> Bool {
+            let str = url.absoluteString
+            // Check VK pattern
+            let pattern = try? NSRegularExpression(
+                pattern: #"vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#, options: .caseInsensitive)
+            let ns = str as NSString
+            if let m = pattern?.firstMatch(in: str, range: NSRange(location: 0, length: ns.length)),
+               m.numberOfRanges >= 2 {
+                let name = ns.substring(with: m.range(at: 1))
+                DispatchQueue.main.async { self.onVKLink(name) }
+                return false
             }
-            segments.append(Segment(kind: kind, value: ns.substring(with: range)))
-            cursor = range.location + range.length
+            DispatchQueue.main.async { self.onURL(url) }
+            return false
         }
-        if cursor < ns.length {
-            segments.append(Segment(kind: .plain, value: ns.substring(from: cursor)))
-        }
-        return segments.isEmpty ? [Segment(kind: .plain, value: text)] : segments
     }
 }
 

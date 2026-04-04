@@ -136,10 +136,15 @@ struct FriendsView: View {
         // Global people search with debounce
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else { isSearching = false; return }
             isSearching = true
-            if let results = try? await VKAPIClient.shared.searchUsers(query: q) {
-                if !Task.isCancelled { searchResults = results }
+            do {
+                let results = try await VKAPIClient.shared.searchUsers(query: q)
+                if !Task.isCancelled {
+                    searchResults = results
+                }
+            } catch {
+                // search failed silently
             }
             isSearching = false
         }
