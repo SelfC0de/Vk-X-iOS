@@ -16,7 +16,7 @@ struct MainTabView: View {
             NavigationStack { SettingsView() }
                 .tabItem { Label("Ещё",        systemImage: "ellipsis.circle.fill") }
             NavigationStack { AboutView() }
-                .tabItem { Label("Девелопер",  systemImage: "person.crop.circle.badge.checkmark") }
+                .tabItem { Label("About Dev",  systemImage: "person.crop.circle.badge.checkmark") }
         }
         .tint(.cyberBlue)
         .toolbarBackground(Color.surface, for: .tabBar)

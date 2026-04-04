@@ -143,12 +143,18 @@ struct AboutView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
-            visible = true
-            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                glowPhase = true
-            }
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                pulsePhase = true
+            // Reset and replay animation every time tab is opened
+            visible = false
+            glowPhase = false
+            pulsePhase = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                visible = true
+                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                    glowPhase = true
+                }
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                    pulsePhase = true
+                }
             }
         }
     }

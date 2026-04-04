@@ -164,6 +164,16 @@ final class VKAPIClient {
         return r.items
     }
 
+    func sendMessage(peerId: Int, text: String) async throws -> Int {
+        struct SR: Decodable { let response: Int? }
+        let r: SR = try await call("messages.send", params: [
+            "peer_id":   "\(peerId)",
+            "message":   text,
+            "random_id": "\(Int.random(in: 1...999999))"
+        ])
+        return r.response ?? 0
+    }
+
     // MARK: - Newsfeed
     struct NewsfeedPage {
         let items:    [VKWallPost]
