@@ -8,56 +8,76 @@ struct ChatView: View {
     var peerAvatar: String? = nil
 
     @ObservedObject private var store = SettingsStore.shared
-    @State private var messages:    [VKMessage] = []
-    @State private var draft        = ""
-    @State private var isLoading    = false
-    @State private var isSending    = false
-    @State private var myId         = 0
-    @State private var myAvatar:    String? = nil
-    @State private var avatarMap:   [Int: String] = [:]
-    @State private var showAttach   = false
-    @State private var photoItem:   PhotosPickerItem? = nil
-    @State private var editingMsg:  VKMessage? = nil
-    @State private var replyMsg:    VKMessage? = nil
-    @State private var peerOnline   = false
-    @State private var peerTyping   = false
+    @State private var messages:   [VKMessage] = []
+    @State private var draft       = ""
+    @State private var isLoading   = false
+    @State private var isSending   = false
+    @State private var myId        = 0
+    @State private var myAvatar:   String? = nil
+    @State private var avatarMap:  [Int: String] = [:]
+    @State private var showAttach  = false
+    @State private var photoItem:  PhotosPickerItem? = nil
+    @State private var editingMsg: VKMessage? = nil
+    @State private var replyMsg:   VKMessage? = nil
+    @State private var peerOnline  = false
+    @State private var peerTyping  = false
     @State private var typingTimer: Timer? = nil
 
-    var body: some View {
-        ZStack {
-            // Background
-            if let data = store.chatBgImageData, let img = UIImage(data: data) {
-                Image(uiImage: img)
-                    .resizable().scaledToFill()
-                    .ignoresSafeArea()
-                    .overlay(Color.black.opacity(0.5))
-            } else {
-                Color(red:0.04,green:0.05,blue:0.09).ignoresSafeArea()
-            }
+    // Screen width for bubble sizing
+    private var W: CGFloat { UIScreen.main.bounds.width }
+    // Avatar slot width
+    private let AV: CGFloat = 28
+    // Max bubble width: ~72% of screen minus avatar slots
+    private var maxW: CGFloat { (W - (AV+6)*2 - 20) * 0.72 }
 
+    var body: some View {
+        // Use GeometryReader ONLY for safe area bottom, not for sizing
+        ZStack(alignment: .bottom) {
+            // Background layer — absolutely positioned, not affecting layout
+            Group {
+                if let data = store.chatBgImageData, let img = UIImage(data: data) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: W, height: UIScreen.main.bounds.height)
+                        .clipped()
+                        .overlay(Color.black.opacity(0.5))
+                        .ignoresSafeArea()
+                } else {
+                    Color(red:0.04,green:0.05,blue:0.09)
+                        .ignoresSafeArea()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+
+            // Content — normal flow, not affected by bg
             VStack(spacing: 0) {
                 if isLoading {
-                    Spacer(); ProgressView().tint(.cyberBlue); Spacer()
+                    Spacer()
+                    ProgressView().tint(.cyberBlue)
+                    Spacer()
                 } else {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 2) {
                                 ForEach(messages.reversed()) { msg in
                                     BubbleView(
-                                        msg:       msg,
-                                        myId:      myId,
-                                        allMsgs:   messages,
+                                        msg:      msg,
+                                        myId:     myId,
+                                        allMsgs:  messages,
                                         avatarMap: avatarMap,
                                         myAvatar:  myAvatar,
-                                        onReply:   { replyMsg = msg },
-                                        onEdit:    { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
-                                        onDelete:  { Task { await deleteMsg(msg) } }
+                                        maxW:      maxW,
+                                        onReply:  { replyMsg = msg },
+                                        onEdit:   { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
+                                        onDelete: { Task { await deleteMsg(msg) } }
                                     )
                                     .id(msg.id)
                                 }
                             }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 8)
                         }
                         .onChange(of: messages.count) { _, _ in
                             if let last = messages.first {
@@ -79,10 +99,8 @@ struct ChatView: View {
                         Text(peerName)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.onSurface)
-                        // Status line
-                        if peerTyping {
-                            TypingStatusView()
-                        } else {
+                        if peerTyping { TypingStatusView() }
+                        else {
                             Text(peerOnline ? "в сети" : "не в сети")
                                 .font(.system(size: 11))
                                 .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
@@ -96,12 +114,10 @@ struct ChatView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task { await load() }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
-            PhotosPicker(selection: $photoItem, matching: .images) {
-                Label("Фото из галереи", systemImage: "photo")
-            }
+            PhotosPicker(selection: $photoItem, matching: .images) { Label("Фото из галереи", systemImage: "photo") }
             Button("Отмена", role: .cancel) {}
         }
-        .onChange(of: photoItem) { _, item in guard item != nil else { return }; photoItem = nil }
+        .onChange(of: photoItem) { _, _ in photoItem = nil }
     }
 
     // MARK: - Input bar
@@ -112,32 +128,26 @@ struct ChatView: View {
 
             HStack(spacing: 8) {
                 Button { showAttach = true } label: {
-                    Image(systemName: "paperclip")
-                        .font(.system(size: 20))
+                    Image(systemName: "paperclip").font(.system(size: 20))
                         .foregroundStyle(Color(red:0.4,green:0.5,blue:0.65))
                         .frame(width: 36, height: 36)
                 }
-
                 TextField(editingMsg != nil ? "Редактировать..." : "Сообщение...",
                           text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(Color(red:0.08,green:0.09,blue:0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 22))
-                    .foregroundStyle(.white)
-                    .font(.system(size: 15))
-                    .overlay(RoundedRectangle(cornerRadius: 22)
-                        .stroke(editingMsg != nil ? Color.cyberBlue.opacity(0.5) :
-                                replyMsg  != nil ? Color(red:0.5,green:0.4,blue:0.9).opacity(0.5) : Color.clear,
-                                lineWidth: 0.8))
-                    .onChange(of: draft) { _, v in
-                        if !v.isEmpty { simulateTyping() }
-                    }
+                    .foregroundStyle(.white).font(.system(size: 15))
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(
+                        editingMsg != nil ? Color.cyberBlue.opacity(0.5) :
+                        replyMsg   != nil ? Color(red:0.5,green:0.4,blue:0.9).opacity(0.5) : Color.clear,
+                        lineWidth: 0.8))
+                    .onChange(of: draft) { _, v in if !v.isEmpty { simulateTyping() } }
 
                 Button { Task { await send() } } label: {
-                    if isSending {
-                        ProgressView().tint(.cyberBlue).frame(width: 34, height: 34)
-                    } else {
+                    if isSending { ProgressView().tint(.cyberBlue).frame(width: 34, height: 34) }
+                    else {
                         Image(systemName: editingMsg != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill")
                             .font(.system(size: 34))
                             .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty
@@ -158,8 +168,7 @@ struct ChatView: View {
         }
     }
 
-    @ViewBuilder
-    private func replyBanner(_ msg: VKMessage) -> some View {
+    @ViewBuilder private func replyBanner(_ msg: VKMessage) -> some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color(red:0.5,green:0.4,blue:0.9)).frame(width: 3).clipShape(Capsule())
             VStack(alignment: .leading, spacing: 1) {
@@ -170,12 +179,10 @@ struct ChatView: View {
             Spacer()
             Button { replyMsg = nil } label: { Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color(red:0.4,green:0.5,blue:0.65)) }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(Color(red:0.07,green:0.08,blue:0.13))
+        .padding(.horizontal, 14).padding(.vertical, 8).background(Color(red:0.07,green:0.08,blue:0.13))
     }
 
-    @ViewBuilder
-    private func editBanner(_ msg: VKMessage) -> some View {
+    @ViewBuilder private func editBanner(_ msg: VKMessage) -> some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color.cyberBlue).frame(width: 3).clipShape(Capsule())
             VStack(alignment: .leading, spacing: 1) {
@@ -186,19 +193,15 @@ struct ChatView: View {
             Spacer()
             Button { editingMsg = nil; draft = "" } label: { Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color(red:0.4,green:0.5,blue:0.65)) }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(Color(red:0.07,green:0.08,blue:0.13))
+        .padding(.horizontal, 14).padding(.vertical, 8).background(Color(red:0.07,green:0.08,blue:0.13))
     }
 
-    // MARK: - Actions
+    // MARK: - Load
     private func load() async {
         isLoading = true
         if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id; myAvatar = me.photo100 }
         messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? []
-        // Load peer online status
-        if peerId > 0, let user = try? await VKAPIClient.shared.getUserById("\(peerId)") {
-            peerOnline = user.isOnline
-        }
+        if peerId > 0, let user = try? await VKAPIClient.shared.getUserById("\(peerId)") { peerOnline = user.isOnline }
         let ids = Array(Set(messages.map { $0.fromId }.filter { $0 != myId && $0 > 0 }))
         if !ids.isEmpty, let users = try? await VKAPIClient.shared.getUsers(ids: ids.map(String.init).joined(separator: ",")) {
             for u in users { avatarMap[u.id] = u.photo100 }
@@ -207,11 +210,8 @@ struct ChatView: View {
     }
 
     private func simulateTyping() {
-        peerTyping = true
-        typingTimer?.invalidate()
-        typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
-            peerTyping = false
-        }
+        peerTyping = true; typingTimer?.invalidate()
+        typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in peerTyping = false }
     }
 
     private func send() async {
@@ -233,7 +233,7 @@ struct ChatView: View {
                 _ = try await VKAPIClient.shared.sendMessage(peerId: peerId, text: text, replyTo: replyId)
                 messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? messages
                 ToastManager.shared.show("Отправлено", icon: "paperplane.fill", style: .success)
-            } catch { draft = text; ToastManager.shared.show("Ошибка отправки", icon: "exclamationmark.triangle.fill", style: .warning) }
+            } catch { draft = text; ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
         }
         isSending = false; draft = ""
     }
@@ -247,30 +247,25 @@ struct ChatView: View {
     }
 }
 
-// MARK: - Typing status view
+// MARK: - Typing indicator
 private struct TypingStatusView: View {
     @State private var phases: [CGFloat] = [0, 0, 0]
-    private let timer = Timer.publish(every: 0.35, on: .main, in: .common).autoconnect()
     @State private var step = 0
+    private let timer = Timer.publish(every: 0.35, on: .main, in: .common).autoconnect()
 
     var body: some View {
         HStack(spacing: 3) {
-            Text("Печатает")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.cyberBlue)
+            Text("Печатает").font(.system(size: 11)).foregroundStyle(Color.cyberBlue)
             HStack(spacing: 2) {
                 ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(Color.cyberBlue)
-                        .frame(width: 4, height: 4)
+                    Circle().fill(Color.cyberBlue).frame(width: 4, height: 4)
                         .offset(y: phases[i])
                         .animation(.easeInOut(duration: 0.3), value: phases[i])
                 }
             }
         }
         .onReceive(timer) { _ in
-            let prev = step
-            step = (step + 1) % 3
+            let prev = step; step = (step+1)%3
             withAnimation { phases[prev] = 0; phases[step] = -4 }
         }
     }
@@ -283,79 +278,75 @@ private struct BubbleView: View {
     let allMsgs:   [VKMessage]
     let avatarMap: [Int: String]
     let myAvatar:  String?
+    let maxW:      CGFloat
     let onReply:   () -> Void
     let onEdit:    () -> Void
     let onDelete:  () -> Void
 
     @ObservedObject private var store = SettingsStore.shared
-    @State private var pressed = false
 
     private var isMe: Bool { msg.fromId == myId }
-    private var myBubbleBg:    Color { Color(hex: store.myBubbleHex)    }
-    private var theirBubbleBg: Color { Color(hex: store.theirBubbleHex) }
-    private var myTextColor:   Color { Color(red:0.92,green:0.96,blue:1.00) }
-    private var theirTextColor:Color { Color(red:0.88,green:0.90,blue:0.95) }
-    private var myTimeColor:   Color { Color(red:0.55,green:0.75,blue:0.95) }
-    private var theirTimeColor:Color { Color(red:0.40,green:0.45,blue:0.58) }
-
-    // Avatar size — fixed, ensures bubble doesn't overflow screen
-    private let avatarSize: CGFloat = 26
-    private var maxBubbleW: CGFloat { UIScreen.main.bounds.width - 2*(avatarSize + 6 + 8) - 16 }
+    private var bg:   Color { Color(hex: isMe ? store.myBubbleHex : store.theirBubbleHex) }
+    private var fg:   Color { Color(red:0.92,green:0.96,blue:1.00) }
+    private var tc:   Color { isMe ? Color(red:0.55,green:0.75,blue:0.95) : Color(red:0.40,green:0.45,blue:0.58) }
+    private let AV:   CGFloat = 28
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
+        HStack(alignment: .bottom, spacing: 4) {
+            // Left: other's avatar or spacer
             if isMe {
-                Spacer(minLength: 0)
+                Spacer(minLength: AV + 4)
             } else {
-                AvatarView(url: avatarMap[msg.fromId], size: avatarSize)
+                AvatarView(url: avatarMap[msg.fromId], size: AV)
                     .overlay(Circle().stroke(Color.white.opacity(0.06), lineWidth: 0.5))
+                    .frame(width: AV)
                     .alignmentGuide(.bottom) { d in d[.bottom] }
-                    .flexibleWidth(avatarSize)
             }
 
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
+            // Bubble content — naturally sized, capped at maxW
+            VStack(alignment: isMe ? .trailing : .leading, spacing: 3) {
+                // Reply quote
                 if let rid = msg.replyMessageId,
-                   let quoted = allMsgs.first(where: { $0.id == rid }) {
-                    quotedView(quoted)
+                   let q = allMsgs.first(where: { $0.id == rid }) {
+                    quotedView(q)
                 }
+                // Attachments
                 if let atts = msg.attachments, !atts.isEmpty {
                     attachmentsView(atts)
                 }
+                // Text
                 if !msg.text.isEmpty {
-                    HStack(alignment: .bottom, spacing: 6) {
+                    HStack(alignment: .bottom, spacing: 5) {
                         Text(msg.text)
                             .font(.system(size: 15))
-                            .foregroundStyle(isMe ? myTextColor : theirTextColor)
+                            .foregroundStyle(fg)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                         Text(timeStr(msg.date))
                             .font(.system(size: 10))
-                            .foregroundStyle(isMe ? myTimeColor : theirTimeColor)
+                            .foregroundStyle(tc)
+                            .layoutPriority(-1)
                             .alignmentGuide(.bottom) { d in d[.bottom] }
                     }
-                    .padding(.horizontal, 13).padding(.vertical, 8)
-                    .frame(maxWidth: maxBubbleW, alignment: isMe ? .trailing : .leading)
-                    .background(isMe ? myBubbleBg : theirBubbleBg)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(bg)
                     .clipShape(UnevenRoundedRectangle(
-                        topLeadingRadius:     isMe ? 18 : 4,
-                        bottomLeadingRadius:  isMe ? 18 : 4,
-                        bottomTrailingRadius: isMe ?  4 : 18,
-                        topTrailingRadius:    18))
+                        topLeadingRadius:     isMe ? 16 : 4,
+                        bottomLeadingRadius:  isMe ? 16 : 4,
+                        bottomTrailingRadius: isMe ?  4 : 16,
+                        topTrailingRadius:    16))
                     .overlay(UnevenRoundedRectangle(
-                        topLeadingRadius:     isMe ? 18 : 4,
-                        bottomLeadingRadius:  isMe ? 18 : 4,
-                        bottomTrailingRadius: isMe ?  4 : 18,
-                        topTrailingRadius:    18)
-                        .stroke(isMe ? Color(red:0.15,green:0.45,blue:0.75).opacity(0.4)
-                                     : Color(red:0.25,green:0.28,blue:0.38).opacity(0.4), lineWidth: 0.5))
+                        topLeadingRadius:     isMe ? 16 : 4,
+                        bottomLeadingRadius:  isMe ? 16 : 4,
+                        bottomTrailingRadius: isMe ?  4 : 16,
+                        topTrailingRadius:    16)
+                        .stroke(Color.white.opacity(0.07), lineWidth: 0.5))
                 }
                 if msg.text.isEmpty {
-                    Text(timeStr(msg.date)).font(.system(size: 10))
-                        .foregroundStyle(isMe ? myTimeColor : theirTimeColor).padding(.horizontal, 4)
+                    Text(timeStr(msg.date)).font(.system(size: 10)).foregroundStyle(tc).padding(.horizontal, 4)
                 }
             }
-            .scaleEffect(pressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: pressed)
+            .frame(maxWidth: maxW, alignment: isMe ? .trailing : .leading)
             .contextMenu {
                 Button { onReply() } label: { Label("Ответить", systemImage: "arrowshape.turn.up.left") }
                 if isMe { Button { onEdit() } label: { Label("Редактировать", systemImage: "pencil") } }
@@ -366,65 +357,57 @@ private struct BubbleView: View {
                 } label: { Label("Копировать", systemImage: "doc.on.doc") }
             }
 
+            // Right: my avatar or spacer
             if isMe {
-                AvatarView(url: myAvatar, size: avatarSize)
+                AvatarView(url: myAvatar, size: AV)
                     .overlay(Circle().stroke(Color.cyberBlue.opacity(0.2), lineWidth: 0.5))
+                    .frame(width: AV)
                     .alignmentGuide(.bottom) { d in d[.bottom] }
-                    .flexibleWidth(avatarSize)
             } else {
-                Spacer(minLength: 0)
+                Spacer(minLength: AV + 4)
             }
         }
-        .padding(.horizontal, 4)
         .padding(.vertical, 1)
     }
 
-    @ViewBuilder
-    private func quotedView(_ quoted: VKMessage) -> some View {
-        HStack(spacing: 6) {
-            Rectangle().fill(isMe ? Color(red:0.3,green:0.6,blue:1.0) : Color(red:0.5,green:0.4,blue:0.9))
-                .frame(width: 2.5).clipShape(Capsule())
-            Text(quoted.text.isEmpty ? "Вложение" : String(quoted.text.prefix(50)))
+    @ViewBuilder private func quotedView(_ q: VKMessage) -> some View {
+        HStack(spacing: 5) {
+            Rectangle().fill(isMe ? Color.cyberBlue : Color(red:0.5,green:0.4,blue:0.9))
+                .frame(width: 2).clipShape(Capsule())
+            Text(q.text.isEmpty ? "Вложение" : String(q.text.prefix(50)))
                 .font(.system(size: 12))
                 .foregroundStyle(isMe ? Color(red:0.6,green:0.8,blue:1.0) : Color(red:0.65,green:0.60,blue:0.90))
                 .lineLimit(2)
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .frame(maxWidth: maxBubbleW, alignment: .leading)
+        .padding(.horizontal, 8).padding(.vertical, 5)
         .background(isMe ? Color(red:0.05,green:0.18,blue:0.35) : Color(red:0.07,green:0.08,blue:0.14))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    @ViewBuilder
-    private func attachmentsView(_ atts: [VKAttachment]) -> some View {
+    @ViewBuilder private func attachmentsView(_ atts: [VKAttachment]) -> some View {
         ForEach(atts.indices, id: \.self) { i in
             let a = atts[i]
             if a.type == "photo", let url = a.photo?.maxUrl.flatMap(URL.init) {
                 AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().scaledToFill()
-                    default: Color(red:0.08,green:0.10,blue:0.16).overlay(ProgressView().scaleEffect(0.6))
-                    }
+                    if case .success(let img) = phase { img.resizable().scaledToFill() }
+                    else { Color(red:0.08,green:0.10,blue:0.16) }
                 }
-                .frame(maxWidth: min(maxBubbleW, 200), maxHeight: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .frame(maxWidth: min(maxW, 220), maxHeight: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             } else if a.type == "doc", let doc = a.doc {
-                HStack(spacing: 8) {
-                    Image(systemName: "doc.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
-                    Text(doc.title).font(.system(size: 13)).foregroundStyle(isMe ? myTextColor : theirTextColor).lineLimit(1)
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 13))
+                    Text(doc.title).font(.system(size: 13)).foregroundStyle(fg).lineLimit(1)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .frame(maxWidth: maxBubbleW, alignment: .leading)
-                .background(isMe ? myBubbleBg : theirBubbleBg)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(bg).clipShape(RoundedRectangle(cornerRadius: 9))
             } else if a.type == "audio_message", let vm = a.audioMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "waveform").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
-                    Text("\(vm.duration)с").font(.system(size: 13)).foregroundStyle(isMe ? myTextColor : theirTextColor)
+                HStack(spacing: 6) {
+                    Image(systemName: "waveform").foregroundStyle(Color.cyberBlue).font(.system(size: 13))
+                    Text("\(vm.duration)с").font(.system(size: 13)).foregroundStyle(fg)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(isMe ? myBubbleBg : theirBubbleBg)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(bg).clipShape(RoundedRectangle(cornerRadius: 9))
             }
         }
     }
@@ -433,9 +416,4 @@ private struct BubbleView: View {
         let df = DateFormatter(); df.dateFormat = "HH:mm"
         return df.string(from: Date(timeIntervalSince1970: TimeInterval(ts)))
     }
-}
-
-// Helper: fixed width spacer
-private extension View {
-    func flexibleWidth(_ w: CGFloat) -> some View { self.frame(width: w) }
 }

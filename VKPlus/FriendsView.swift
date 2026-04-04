@@ -1,11 +1,37 @@
 import SwiftUI
 
-struct FriendsView: View {
-    @State private var friends: [VKUser] = []
-    @State private var isLoading = false
-    @State private var search = ""
+// MARK: - VK link detector
+struct VKLinkDetector {
+    // Returns VK user id/screenname from any vk.com/vk.ru link or plain text
+    static func extractScreenName(_ text: String) -> String? {
+        let patterns = [
+            #"https?://(?:www\.)?vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#,
+            #"(?:^|[\s])vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#
+        ]
+        for pattern in patterns {
+            if let r = text.range(of: pattern, options: .regularExpression) {
+                let match = String(text[r])
+                if let slashR = match.lastIndex(of: "/") {
+                    let name = String(match[match.index(after: slashR)...])
+                    if !name.isEmpty { return name }
+                }
+            }
+        }
+        return nil
+    }
+}
 
-    private var filtered: [VKUser] {
+// MARK: - FriendsView
+struct FriendsView: View {
+    @State private var friends:       [VKUser] = []
+    @State private var searchResults: [VKUser] = []
+    @State private var isLoading      = false
+    @State private var isSearching    = false
+    @State private var search         = ""
+    @State private var searchMode     = false
+    @State private var searchTask:    Task<Void, Never>? = nil
+
+    private var localFiltered: [VKUser] {
         guard !search.isEmpty else { return friends }
         return friends.filter { $0.fullName.localizedCaseInsensitiveContains(search) }
     }
@@ -13,19 +39,35 @@ struct FriendsView: View {
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
-            if isLoading {
-                ProgressView().tint(.cyberBlue)
-            } else {
-                List(filtered) { friend in
-                    NavigationLink(destination: FriendProfileView(user: friend)) {
-                        FriendRow(user: friend)
+            VStack(spacing: 0) {
+                // Search bar
+                HStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut).font(.system(size: 15))
+                        TextField("Поиск людей...", text: $search)
+                            .foregroundStyle(Color.onSurface).font(.system(size: 15))
+                            .autocorrectionDisabled()
+                            .onChange(of: search) { _, v in onSearchChange(v) }
+                        if !search.isEmpty {
+                            Button { search = ""; searchMode = false; searchResults = [] } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)
+                            }
+                        }
                     }
-                    .listRowBackground(Color.surface)
-                    .listRowSeparatorTint(Color.divider)
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Color.surfaceVar)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .searchable(text: $search, prompt: "Поиск")
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Color.surface)
+
+                if isLoading {
+                    Spacer(); ProgressView().tint(.cyberBlue); Spacer()
+                } else if searchMode {
+                    globalSearchList
+                } else {
+                    localList
+                }
             }
         }
         .navigationTitle("Друзья (\(friends.count))")
@@ -36,6 +78,73 @@ struct FriendsView: View {
         .task { await load() }
     }
 
+    private var localList: some View {
+        List(localFiltered) { friend in
+            NavigationLink(destination: FriendProfileView(user: friend)) {
+                FriendRow(user: friend)
+            }
+            .listRowBackground(Color.surface)
+            .listRowSeparatorTint(Color.divider)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var globalSearchList: some View {
+        Group {
+            if isSearching {
+                VStack { Spacer(); ProgressView().tint(.cyberBlue); Spacer() }
+            } else if searchResults.isEmpty && !search.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "person.slash").font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
+                    Text("Никого не найдено").foregroundStyle(Color.onSurfaceMut)
+                    Spacer()
+                }
+            } else {
+                List(searchResults) { user in
+                    NavigationLink(destination: FriendProfileView(user: user)) {
+                        FriendRow(user: user)
+                    }
+                    .listRowBackground(Color.surface)
+                    .listRowSeparatorTint(Color.divider)
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+    }
+
+    private func onSearchChange(_ q: String) {
+        searchTask?.cancel()
+        guard !q.isEmpty else { searchMode = false; searchResults = []; return }
+        searchMode = true
+
+        // Check if it's a VK link
+        if let name = VKLinkDetector.extractScreenName(q) {
+            searchTask = Task {
+                isSearching = true
+                if let userId = try? await VKAPIClient.shared.resolveScreenName(name),
+                   let users = try? await VKAPIClient.shared.getUsers(ids: "\(userId)") {
+                    if !Task.isCancelled { searchResults = users }
+                }
+                isSearching = false
+            }
+            return
+        }
+
+        // Global people search with debounce
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled else { return }
+            isSearching = true
+            if let results = try? await VKAPIClient.shared.searchUsers(query: q) {
+                if !Task.isCancelled { searchResults = results }
+            }
+            isSearching = false
+        }
+    }
+
     private func load() async {
         isLoading = true
         friends = (try? await VKAPIClient.shared.getFriends()) ?? []
@@ -43,6 +152,7 @@ struct FriendsView: View {
     }
 }
 
+// MARK: - FriendProfileView
 struct FriendProfileView: View {
     let user: VKUser
     @State private var fullUser: VKUser?
@@ -53,43 +163,28 @@ struct FriendProfileView: View {
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
-            if isLoading {
-                ProgressView().tint(.cyberBlue)
-            } else {
+            if isLoading { ProgressView().tint(.cyberBlue) }
+            else {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Hero
                         ZStack(alignment: .bottom) {
-                            LinearGradient(
-                                colors: [Color.cyberBlue.opacity(0.20), Color.background],
-                                startPoint: .top, endPoint: .bottom
-                            ).frame(height: 180)
-
+                            LinearGradient(colors: [Color.cyberBlue.opacity(0.20), Color.background],
+                                           startPoint: .top, endPoint: .bottom).frame(height: 180)
                             VStack(spacing: 12) {
                                 AvatarView(url: display.photo200 ?? display.photo100, size: 88)
                                     .overlay(Circle().stroke(LinearGradient.cyberGrad, lineWidth: 2))
                                     .shadow(color: Color.cyberBlue.opacity(0.4), radius: 10)
-
                                 HStack(spacing: 6) {
-                                    Text(display.fullName)
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundStyle(Color.onSurface)
+                                    Text(display.fullName).font(.system(size: 20, weight: .bold)).foregroundStyle(Color.onSurface)
                                     if display.verified == 1 {
-                                        Image(systemName: "checkmark.seal.fill")
-                                            .foregroundStyle(Color.cyberBlue)
-                                            .font(.system(size: 15))
+                                        Image(systemName: "checkmark.seal.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 15))
                                     }
                                 }
-
                                 if let s = display.status, !s.isEmpty {
-                                    Text(s).font(.system(size: 13))
-                                        .foregroundStyle(Color.onSurfaceMut)
+                                    Text(s).font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
                                 }
-
                                 HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(display.isOnline ? Color.cyberAccent : Color.onSurfaceMut)
-                                        .frame(width: 8, height: 8)
+                                    Circle().fill(display.isOnline ? Color.cyberAccent : Color.onSurfaceMut).frame(width: 8, height: 8)
                                     Text(display.isOnline ? "онлайн" : "не в сети")
                                         .font(.system(size: 12))
                                         .foregroundStyle(display.isOnline ? Color.cyberAccent : Color.onSurfaceMut)
@@ -98,11 +193,10 @@ struct FriendProfileView: View {
                             }
                         }
 
-                        // Info card
                         VStack(spacing: 0) {
-                            infoRow(icon: "number",      label: "ID",       value: "\(display.id)")
+                            infoRow(icon: "number", label: "ID", value: "\(display.id)")
                             Divider().background(Color.divider).padding(.leading, 44)
-                            infoRow(icon: "link",        label: "Страница", value: "vk.com/id\(display.id)")
+                            infoRow(icon: "link", label: "Страница", value: "vk.com/id\(display.id)")
                             if let city = display.city?.title {
                                 Divider().background(Color.divider).padding(.leading, 44)
                                 infoRow(icon: "mappin.and.ellipse", label: "Город", value: city)
@@ -110,17 +204,14 @@ struct FriendProfileView: View {
                         }
                         .cyberCard().padding(.horizontal, 16).padding(.top, 16)
 
-                        // Message button
                         NavigationLink(destination: ChatView(peerId: display.id, peerName: display.fullName, peerAvatar: display.photo100)) {
                             Label("Написать сообщение", systemImage: "message.fill")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.background)
+                                .font(.system(size: 15, weight: .medium)).foregroundStyle(Color.background)
                                 .frame(maxWidth: .infinity).frame(height: 50)
                                 .background(Color.cyberBlue)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .padding(.horizontal, 16).padding(.top, 12)
-
                         Spacer().frame(height: 32)
                     }
                 }
@@ -150,7 +241,8 @@ struct FriendProfileView: View {
     }
 }
 
-private struct FriendRow: View {
+// MARK: - FriendRow
+struct FriendRow: View {
     let user: VKUser
     var body: some View {
         HStack(spacing: 12) {
@@ -163,12 +255,10 @@ private struct FriendRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(user.fullName)
-                        .foregroundStyle(Color.onSurface)
+                    Text(user.fullName).foregroundStyle(Color.onSurface)
                         .font(.system(size: 15, weight: .medium))
                     if user.verified == 1 {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(Color.cyberBlue).font(.system(size: 12))
+                        Image(systemName: "checkmark.seal.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 12))
                     }
                 }
                 Text(user.isOnline ? "онлайн" : "не в сети")

@@ -84,18 +84,27 @@ struct AnimatedTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(tabs.indices, id: \.self) { i in
-                Button {
-                    if selected != i { selected = i }
-                } label: {
-                    AnimatedTabItem(
-                        icon: selected == i ? tabs[i].selectedIcon : tabs[i].icon,
-                        label: tabs[i].label,
-                        isSelected: selected == i,
-                        badgeCount: 0
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
+                AnimatedTabItem(
+                    icon: selected == i ? tabs[i].selectedIcon : tabs[i].icon,
+                    label: tabs[i].label,
+                    isSelected: selected == i,
+                    badgeCount: 0
+                )
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture { if selected != i { selected = i } }
+                // Drag gesture: slide finger to switch tabs
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { v in
+                            // Find which tab the finger is currently over
+                            let tabW = UIScreen.main.bounds.width / CGFloat(tabs.count)
+                            let baseX = tabW * CGFloat(i) - tabW * CGFloat(i) + v.location.x + tabW * CGFloat(i)
+                            let newIdx = Int((v.location.x + tabW * CGFloat(i)) / tabW)
+                            let clamped = max(0, min(tabs.count-1, newIdx))
+                            if clamped != selected { selected = clamped }
+                        }
+                )
             }
         }
         .padding(.top, 6)
@@ -138,10 +147,10 @@ struct AnimatedTabBar: View {
 struct AnimatedMainTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var selectedTab = 0
+    @ObservedObject private var store = SettingsStore.shared
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content
             Group {
                 switch selectedTab {
                 case 0: NavigationStack { FeedView() }
@@ -154,7 +163,7 @@ struct AnimatedMainTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 74) // room for tab bar
+            .padding(.bottom, store.liquidGlass ? 72 : 74)
 
             AnimatedTabBar(selected: $selectedTab)
         }

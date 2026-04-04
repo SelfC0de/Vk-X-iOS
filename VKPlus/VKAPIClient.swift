@@ -112,6 +112,20 @@ final class VKAPIClient {
         return u
     }
 
+    func searchUsers(query: String, count: Int = 20) async throws -> [VKUser] {
+        return try await call("users.search", params: [
+            "q": query, "count": "\(count)", "fields": "photo_100,online,verified"
+        ])
+    }
+
+    func resolveScreenName(_ name: String) async throws -> Int? {
+        let json = try await rawCall("utils.resolveScreenName", params: ["screen_name": name])
+        guard let r = json["response"] as? [String: Any],
+              let type = r["type"] as? String, type == "user",
+              let id = r["object_id"] as? Int else { return nil }
+        return id
+    }
+
     func getUsers(ids: String) async throws -> [VKUser] {
         return try await call("users.get", params: [
             "user_ids": ids, "fields": "photo_100,photo_200,online"
