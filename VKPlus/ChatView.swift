@@ -293,7 +293,13 @@ struct ChatView: View {
                         dragOffsetX: $dragOffsetX,
                         onStart: startRecording,
                         onStop: stopRecording,
-                        onCancel: cancelRecording
+                        onCancel: {
+                            recordTimer?.invalidate(); recordTimer = nil
+                            audioRecorder?.stop(); audioRecorder = nil
+                            isRecording = false; isCancelling = false
+                            dragOffsetX = 0; recordSeconds = 0; recordedURL = nil
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                        }
                     )
                 } else {
                     Button { Task { await send() } } label: {
