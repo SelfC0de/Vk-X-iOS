@@ -231,6 +231,7 @@ struct FriendProfileView: View {
             isLoading = true
             fullUser = try? await VKAPIClient.shared.getUserById("\(user.id)")
             isLoading = false
+            SettingsStore.shared.addProfileHistory(user.id)
         }
     }
 

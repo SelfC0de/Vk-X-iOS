@@ -91,6 +91,10 @@ private struct PrivacyTab: View {
                                icon: "person.fill.xmark",
                                subtitle: "Аватар и имя заменяются на «Пользователь скрыт»",
                                val: $s.hideSender)
+                SettingsToggle("Blur Screen",
+                               icon: "eye.trianglebadge.exclamationmark",
+                               subtitle: "Размывает контент при скриншоте",
+                               val: $s.blurScreen)
             }
             SettingsSectionCard(title: "📡 Антислежка",
                                 subtitle: "Блокировка телеметрии и трекеров",

@@ -66,6 +66,9 @@ struct ProfileView: View {
 
                     // Actions
                     actionsRow(u)
+
+                    // Profile history
+                    ProfileHistorySection()
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -608,5 +611,73 @@ struct ServiceFaviconView: View {
         case "vtb":       return (Color(r:0x00,g:0x2A,b:0x6E), .white,  "В")
         default:          return (Color(r:0x75,g:0x75,b:0x75), .white,  "?")
         }
+    }
+}
+
+// MARK: - Profile History Section
+private struct ProfileHistorySection: View {
+    @ObservedObject private var store = SettingsStore.shared
+    @State private var users: [VKUser] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        if !store.profileHistory.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath").foregroundStyle(Color.cyberBlue)
+                    Text("История просмотров").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onSurface)
+                    Spacer()
+                    Button {
+                        store.profileHistory = []
+                        users = []
+                    } label: {
+                        Text("Очистить").font(.system(size: 12)).foregroundStyle(Color.onSurfaceMut)
+                    }
+                }
+                .padding(.horizontal, 4)
+
+                if isLoading {
+                    ProgressView().tint(.cyberBlue).frame(maxWidth: .infinity)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(users.enumerated()), id: \.element.id) { idx, u in
+                            NavigationLink(destination: FriendProfileView(user: u)) {
+                                HStack(spacing: 10) {
+                                    AvatarView(url: u.photo100, size: 36)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(u.fullName).font(.system(size: 14, weight: .medium)).foregroundStyle(Color.onSurface).lineLimit(1)
+                                        Text("vk.com/id\(u.id)").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                                    }
+                                    Spacer()
+                                    if u.verified == 1 {
+                                        Image(systemName: "checkmark.seal.fill").font(.system(size: 12)).foregroundStyle(Color.cyberBlue)
+                                    }
+                                }
+                                .padding(.horizontal, 14).padding(.vertical, 10)
+                            }
+                            if idx < users.count - 1 {
+                                Divider().background(Color.divider).padding(.leading, 60)
+                            }
+                        }
+                    }
+                    .background(Color.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.divider, lineWidth: 0.5))
+                }
+            }
+            .task(id: store.profileHistory.first) { await loadUsers() }
+        }
+    }
+
+    private func loadUsers() async {
+        guard !store.profileHistory.isEmpty else { return }
+        isLoading = true
+        let ids = store.profileHistory.prefix(20).map(String.init).joined(separator: ",")
+        if let fetched = try? await VKAPIClient.shared.getUsers(ids: ids) {
+            // preserve history order
+            let map = Dictionary(uniqueKeysWithValues: fetched.map { ($0.id, $0) })
+            users = store.profileHistory.prefix(20).compactMap { map[$0] }
+        }
+        isLoading = false
     }
 }

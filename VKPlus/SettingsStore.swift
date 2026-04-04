@@ -143,6 +143,12 @@ final class SettingsStore: ObservableObject {
 
     // Local Privacy
     @Published var hideSender:      Bool { didSet { ud.set(hideSender,      forKey: "hide_sender")      } }
+    @Published var blurScreen:      Bool { didSet { ud.set(blurScreen,      forKey: "blur_screen")      } }
+
+    // Profile history (stored as JSON array of ids)
+    @Published var profileHistory:  [Int] { didSet {
+        ud.set(try? JSONEncoder().encode(profileHistory), forKey: "profile_history")
+    }}
 
     // Notifications
     @Published var typePush:        Bool { didSet { ud.set(typePush,       forKey: "type_push")        } }
@@ -196,5 +202,16 @@ final class SettingsStore: ObservableObject {
         verifyChecker    = ud.object(forKey: "verify_checker") == nil ? true  : ud.bool(forKey: "verify_checker")
         fakeVerification = ud.bool(forKey: "fake_verif")
         hideSender       = ud.bool(forKey: "hide_sender")
+        blurScreen       = ud.bool(forKey: "blur_screen")
+        if let d = ud.data(forKey: "profile_history"),
+           let arr = try? JSONDecoder().decode([Int].self, from: d) {
+            profileHistory = arr
+        } else { profileHistory = [] }
+    }
+
+    func addProfileHistory(_ id: Int) {
+        var h = profileHistory.filter { $0 != id }
+        h.insert(id, at: 0)
+        profileHistory = Array(h.prefix(50))
     }
 }

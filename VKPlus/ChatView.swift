@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 import PhotosUI
 
 // MARK: - ChatView
@@ -6,8 +7,6 @@ struct ChatView: View {
     let peerId:    Int
     let peerName:  String
     var peerAvatar: String? = nil
-    @ObservedObject private var settings = SettingsStore.shared
-
     @ObservedObject private var store = SettingsStore.shared
     @State private var messages:   [VKMessage] = []
     @State private var draft       = ""
@@ -18,6 +17,21 @@ struct ChatView: View {
     @State private var avatarMap:  [Int: String] = [:]
     @State private var showAttach  = false
     @State private var photoItem:   PhotosPickerItem? = nil
+    // Forward
+    @State private var forwardMsg:  VKMessage? = nil
+    @State private var showForward  = false
+    // Reactions
+    @State private var reactMsg:    VKMessage? = nil
+    @State private var showReact    = false
+    // Search
+    @State private var showSearch   = false
+    @State private var searchQuery  = ""
+    // Emoji
+    @State private var showEmoji    = false
+    // Voice record
+    @State private var isRecording  = false
+    @State private var audioRecorder: AVAudioRecorder? = nil
+    @State private var recordedURL:   URL? = nil
     @State private var videoItem2:  PhotosPickerItem? = nil
     @State private var audioItem:   PhotosPickerItem? = nil
     @State private var showFilePicker = false
@@ -67,7 +81,7 @@ struct ChatView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 2) {
-                                ForEach(messages.reversed()) { msg in
+                                ForEach((searchQuery.isEmpty ? messages : filteredMessages).reversed()) { msg in
                                     BubbleView(
                                         msg:      msg,
                                         myId:     myId,
@@ -75,9 +89,11 @@ struct ChatView: View {
                                         avatarMap: avatarMap,
                                         myAvatar:  myAvatar,
                                         maxW:      maxW,
-                                        onReply:  { replyMsg = msg },
-                                        onEdit:   { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
-                                        onDelete: { Task { await deleteMsg(msg) } }
+                                        onReply:   { replyMsg = msg },
+                                        onEdit:    { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
+                                        onDelete:  { Task { await deleteMsg(msg) } },
+                                        onForward: { forwardMsg = msg; showForward = true },
+                                        onReact:   { reactMsg = msg; showReact = true }
                                     )
                                     .id(msg.id)
                                 }
@@ -133,6 +149,23 @@ struct ChatView: View {
         .toolbarBackground(Color(red:0.05,green:0.06,blue:0.10), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showSearch.toggle() } label: {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
+                }
+            }
+        }
+        .sheet(isPresented: $showForward) {
+            if let msg = forwardMsg {
+                ForwardSheet(message: msg, myId: myId)
+            }
+        }
+        .sheet(isPresented: $showReact) {
+            if let msg = reactMsg {
+                ReactionsSheet(message: msg, peerId: peerId)
+            }
+        }
         .task { await load() }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
             PhotosPicker(selection: $photoItem, matching: .images) {
@@ -178,15 +211,41 @@ struct ChatView: View {
     // MARK: - Input bar
     private var inputBar: some View {
         VStack(spacing: 0) {
+            // Search bar (slides in)
+            if showSearch {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
+                    TextField("Поиск в переписке...", text: $searchQuery)
+                        .foregroundStyle(Color.onSurface).font(.system(size: 14))
+                    if !searchQuery.isEmpty {
+                        Button { searchQuery = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)
+                        }
+                    }
+                    Button { showSearch = false; searchQuery = "" } label: {
+                        Text("Отмена").font(.system(size: 13)).foregroundStyle(Color.cyberBlue)
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color(red:0.07,green:0.08,blue:0.13))
+                Divider().background(Color.divider)
+            }
+            if isRecording { recordingBanner }
             if let r = replyMsg   { replyBanner(r)  }
             if let e = editingMsg { editBanner(e)   }
             if let a = pendingAttach { attachBanner(a) }
+            if showEmoji { emojiPanel }
 
             HStack(spacing: 8) {
                 Button { showAttach = true } label: {
                     Image(systemName: "paperclip").font(.system(size: 20))
                         .foregroundStyle(Color(red:0.4,green:0.5,blue:0.65))
                         .frame(width: 36, height: 36)
+                }
+                Button { showEmoji.toggle() } label: {
+                    Image(systemName: "face.smiling").font(.system(size: 20))
+                        .foregroundStyle(showEmoji ? Color.cyberBlue : Color(red:0.4,green:0.5,blue:0.65))
+                        .frame(width: 32, height: 32)
                 }
                 TextField(editingMsg != nil ? "Редактировать..." : "Сообщение...",
                           text: $draft, axis: .vertical)
@@ -201,16 +260,26 @@ struct ChatView: View {
                         lineWidth: 0.8))
                     .onChange(of: draft) { _, v in if !v.isEmpty { simulateTyping() } }
 
-                Button { Task { await send() } } label: {
-                    if isSending { ProgressView().tint(.cyberBlue).frame(width: 34, height: 34) }
-                    else {
-                        Image(systemName: editingMsg != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill")
+                if draft.trimmingCharacters(in: .whitespaces).isEmpty && pendingAttach == nil && !isSending {
+                    Button {
+                        if isRecording { stopRecording() }
+                        else { startRecording() }
+                    } label: {
+                        Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
                             .font(.system(size: 34))
-                            .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty
-                                ? Color(red:0.25,green:0.30,blue:0.40) : Color.cyberBlue)
+                            .foregroundStyle(isRecording ? Color.red : Color(red:0.4,green:0.5,blue:0.65))
                     }
+                } else {
+                    Button { Task { await send() } } label: {
+                        if isSending { ProgressView().tint(.cyberBlue).frame(width: 34, height: 34) }
+                        else {
+                            Image(systemName: editingMsg != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill")
+                                .font(.system(size: 34))
+                                .foregroundStyle(Color.cyberBlue)
+                        }
+                    }
+                    .disabled(isSending)
                 }
-                .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty || isSending)
 
                 if editingMsg != nil || replyMsg != nil {
                     Button { editingMsg = nil; replyMsg = nil; draft = "" } label: {
@@ -362,6 +431,108 @@ struct ChatView: View {
         }
     }
 
+    // MARK: - Save photo
+    private func saveImageToGallery(urlStr: String) async {
+        guard let url = URL(string: urlStr),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let img = UIImage(data: data) else {
+            ToastManager.shared.show("Ошибка сохранения", icon: "exclamationmark.triangle.fill", style: .warning); return
+        }
+        UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
+        ToastManager.shared.show("Фото сохранено", icon: "photo.badge.checkmark", style: .success)
+    }
+
+    // MARK: - Download voice
+    private func downloadVoice(urlStr: String) async {
+        guard let url = URL(string: urlStr),
+              let (data, _) = try? await URLSession.shared.data(from: url) else {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning); return
+        }
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).mp3")
+        try? data.write(to: tmp)
+        await MainActor.run {
+            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
+        }
+    }
+
+    // MARK: - Voice recording
+    private func startRecording() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .default)
+        try? session.setActive(true)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_rec.m4a")
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+        guard let recorder = try? AVAudioRecorder(url: url, settings: settings) else { return }
+        recorder.record()
+        audioRecorder = recorder
+        recordedURL = url
+        isRecording = true
+    }
+
+    private func stopRecording() {
+        audioRecorder?.stop()
+        audioRecorder = nil
+        isRecording = false
+        guard let url = recordedURL else { return }
+        Task {
+            isUploading = true
+            do {
+                let data = try Data(contentsOf: url)
+                let att = try await VKAPIClient.shared.uploadDocForMessage(
+                    peerId: peerId, data: data, filename: "voice.m4a", mimeType: "audio/m4a")
+                pendingAttach = att
+                ToastManager.shared.show("Голосовое прикреплено", icon: "mic.fill", style: .success)
+            } catch {
+                ToastManager.shared.show("Ошибка записи", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+            isUploading = false
+        }
+    }
+
+    // MARK: - Emoji panel
+    private var emojiPanel: some View {
+        let emojis = ["😀","😂","😍","🥰","😎","🤔","😢","😡","👍","👎",
+                      "❤️","🔥","✅","🎉","🙏","💪","😴","🤣","😱","🥺",
+                      "👏","💯","🤝","😏","🤭","😅","🙈","💀","👀","🫡"]
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(emojis, id: \.self) { e in
+                    Button(e) { draft += e }
+                        .font(.system(size: 26))
+                        .frame(width: 40, height: 40)
+                }
+            }
+            .padding(.horizontal, 10)
+        }
+        .frame(height: 50)
+        .background(Color(red:0.07,green:0.08,blue:0.13))
+    }
+
+    // MARK: - Recording banner
+    private var recordingBanner: some View {
+        HStack(spacing: 10) {
+            Circle().fill(Color.red).frame(width: 10, height: 10)
+                .opacity(isRecording ? 1 : 0)
+                .animation(.easeInOut(duration: 0.6).repeatForever(), value: isRecording)
+            Text("Запись...").font(.system(size: 13)).foregroundStyle(Color.onSurface)
+            Spacer()
+            Button { audioRecorder?.stop(); audioRecorder = nil; isRecording = false; recordedURL = nil } label: {
+                Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(Color(red:0.12,green:0.06,blue:0.06))
+    }
+
     private func deleteMsg(_ msg: VKMessage) async {
         do {
             try await VKAPIClient.shared.deleteMessage(messageIds: [msg.id])
@@ -406,6 +577,8 @@ private struct BubbleView: View {
     let onReply:   () -> Void
     let onEdit:    () -> Void
     let onDelete:  () -> Void
+    let onForward: () -> Void
+    let onReact:   () -> Void
 
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
@@ -490,12 +663,34 @@ private struct BubbleView: View {
             .frame(maxWidth: maxW, alignment: isMe ? .trailing : .leading)
             .contextMenu {
                 Button { onReply() } label: { Label("Ответить", systemImage: "arrowshape.turn.up.left") }
+                Button { onForward() } label: { Label("Переслать", systemImage: "arrowshape.turn.up.right") }
+                Button { onReact() } label: { Label("Реакция", systemImage: "face.smiling") }
                 if isMe { Button { onEdit() } label: { Label("Редактировать", systemImage: "pencil") } }
                 Button(role: .destructive) { onDelete() } label: { Label("Удалить", systemImage: "trash") }
-                Button {
-                    UIPasteboard.general.string = msg.text
-                    ToastManager.shared.show("Скопировано", icon: "doc.on.clipboard", style: .info)
-                } label: { Label("Копировать", systemImage: "doc.on.doc") }
+                if !msg.text.isEmpty {
+                    Button {
+                        UIPasteboard.general.string = msg.text
+                        ToastManager.shared.show("Скопировано", icon: "doc.on.clipboard", style: .info)
+                    } label: { Label("Копировать", systemImage: "doc.on.doc") }
+                }
+                // Save media
+                if let att = msg.attachments?.first {
+                    if att.type == "photo", let url = att.photo?.photo800 ?? att.photo?.photo320 {
+                        Button {
+                            Task { await saveImageToGallery(urlStr: url) }
+                        } label: { Label("Сохранить фото", systemImage: "photo.badge.arrow.down") }
+                    }
+                    if att.type == "audio_message", let url = att.audioMessage?.linkMp3 ?? att.audioMessage?.linkOgg {
+                        Button {
+                            Task { await downloadVoice(urlStr: url) }
+                        } label: { Label("Скачать голосовое", systemImage: "arrow.down.circle") }
+                    }
+                }
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button { onReply() } label: {
+                    Label("Ответить", systemImage: "arrowshape.turn.up.left")
+                }.tint(Color(red:0.31,green:0.40,blue:0.55))
             }
 
             // Right: my avatar or spacer
@@ -893,5 +1088,147 @@ private struct VKProfileResolverSheet: View {
         // getUserById accepts: numeric id, "id123", screen_name — all in one call
         user = try? await VKAPIClient.shared.getUserById(screenName)
         isLoading = false
+    }
+}
+
+// MARK: - Forward Sheet
+struct ForwardSheet: View {
+    let message: VKMessage
+    let myId: Int
+    @Environment(\.dismiss) var dismiss
+    @State private var dialogs: [DialogItem] = []
+    @State private var isLoading = true
+    @State private var sending   = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.background.ignoresSafeArea()
+                if isLoading { ProgressView().tint(.cyberBlue) }
+                else {
+                    List(dialogs) { d in
+                        Button {
+                            Task { await forward(to: d.id) }
+                        } label: {
+                            HStack(spacing: 10) {
+                                AvatarView(url: d.avatar, size: 40)
+                                Text(d.name).foregroundStyle(Color.onSurface).font(.system(size: 15))
+                                Spacer()
+                                if sending { ProgressView().scaleEffect(0.7) }
+                            }
+                        }
+                        .listRowBackground(Color.surface)
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle("Переслать в...")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } } }
+            .toolbarBackground(Color.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .task { await loadDialogs() }
+    }
+
+    private func loadDialogs() async {
+        isLoading = true
+        let json = try? await VKAPIClient.shared.rawCall("messages.getConversations", params: ["count": "40", "extended": "1"])
+        if let resp = json?["response"] as? [String: Any],
+           let items = resp["items"] as? [[String: Any]] {
+            let profiles = (resp["profiles"] as? [[String: Any]]) ?? []
+            let groups   = (resp["groups"]  as? [[String: Any]]) ?? []
+            let pMap = Dictionary(uniqueKeysWithValues: profiles.compactMap { p -> (Int,[String:Any])? in
+                guard let id = p["id"] as? Int else { return nil }; return (id, p) })
+            let gMap = Dictionary(uniqueKeysWithValues: groups.compactMap { g -> (Int,[String:Any])? in
+                guard let id = g["id"] as? Int else { return nil }; return (-id, g) })
+            dialogs = items.compactMap { item -> DialogItem? in
+                guard let conv = item["conversation"] as? [String: Any],
+                      let peer = conv["peer"] as? [String: Any],
+                      let pid  = peer["id"] as? Int else { return nil }
+                let lm = (item["last_message"] as? [String: Any])?["text"] as? String ?? ""
+                if let p = pMap[pid] {
+                    let fn = (p["first_name"] as? String ?? "") + " " + (p["last_name"] as? String ?? "")
+                    let av = p["photo_100"] as? String
+                    return DialogItem(id: pid, name: fn.trimmingCharacters(in: .whitespaces), avatar: av, lastMessage: lm, unreadCount: 0, isOnline: false)
+                } else if let g = gMap[pid] {
+                    let name = g["name"] as? String ?? "Группа"
+                    let av   = g["photo_100"] as? String
+                    return DialogItem(id: pid, name: name, avatar: av, lastMessage: lm, unreadCount: 0, isOnline: false)
+                }
+                return nil
+            }
+        }
+        isLoading = false
+    }
+
+    private func forward(to peerId: Int) async {
+        sending = true
+        let fwd = "\(message.id)"
+        _ = try? await VKAPIClient.shared.rawCall("messages.send", params: [
+            "peer_id": "\(peerId)",
+            "random_id": "\(Int.random(in: 1...Int.max))",
+            "forward_messages": fwd
+        ])
+        sending = false
+        ToastManager.shared.show("Переслано", icon: "arrowshape.turn.up.right.fill", style: .success)
+        dismiss()
+    }
+}
+
+// MARK: - Reactions Sheet
+struct ReactionsSheet: View {
+    let message: VKMessage
+    let peerId: Int
+    @Environment(\.dismiss) var dismiss
+
+    private let reactions = [
+        ("❤️","heart"),("👍","like"),("👎","dislike"),("😂","lol"),
+        ("😢","cry"),("😱","scared"),("😡","angry"),("🔥","fire"),
+        ("🎉","party"),("💩","poop"),("🤔","thinking"),("🥰","love_face")
+    ]
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Capsule().fill(Color.divider).frame(width: 40, height: 4).padding(.top, 10)
+            Text("Добавить реакцию").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onSurface)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
+                ForEach(reactions, id: \.0) { (emoji, id) in
+                    Button {
+                        Task { await sendReaction(id) }
+                    } label: {
+                        Text(emoji).font(.system(size: 32))
+                            .frame(width: 50, height: 50)
+                            .background(Color.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            Spacer()
+        }
+        .presentationDetents([.height(220)])
+        .presentationBackground(Color.background)
+    }
+
+    private func sendReaction(_ reactionId: String) async {
+        _ = try? await VKAPIClient.shared.rawCall("messages.sendReaction", params: [
+            "peer_id":    "\(peerId)",
+            "cmid":       "\(message.id)",
+            "reaction_id": reactionId == "heart" ? "1" :
+                           reactionId == "like"  ? "2" :
+                           reactionId == "dislike" ? "3" :
+                           reactionId == "lol"   ? "4" :
+                           reactionId == "cry"   ? "5" :
+                           reactionId == "scared" ? "6" :
+                           reactionId == "angry" ? "7" :
+                           reactionId == "fire"  ? "8" :
+                           reactionId == "party" ? "9" :
+                           reactionId == "poop"  ? "10" :
+                           reactionId == "thinking" ? "11" : "12"
+        ])
+        ToastManager.shared.show("Реакция добавлена", icon: "face.smiling.fill", style: .success)
+        dismiss()
     }
 }
