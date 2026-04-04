@@ -15,9 +15,11 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
@@ -68,7 +70,7 @@ jobs:
           rm -rf Payload build
 
       - name: Publish Pre-Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.3.2
         with:
           tag_name: v${{ github.event.inputs.version_name }}
           name: "VK+ iOS v${{ github.event.inputs.version_name }}"
