@@ -278,7 +278,7 @@ private struct DeviceTab: View {
             }
 
             // Device Profile selector
-            deviceProfileSection
+            deviceProfileSectionCard
 
             // Bypass copy
             SettingsSectionCard(title: "📋 Bypass Copy",
@@ -304,20 +304,13 @@ private struct DeviceTab: View {
         }
     }
 
-    private var deviceProfileSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8).fill(Color.cyberBlue.opacity(0.15)).frame(width: 34, height: 34)
-                    Image(systemName: "iphone").font(.system(size: 16)).foregroundStyle(Color.cyberBlue)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("📱 Device Spoofer").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                    Text("Подмена User-Agent во всех запросах к API").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
-                }
-            }
-            .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)
-
+    private var deviceProfileSectionCard: some View {
+        SettingsSectionCard(
+            title: "📱 Device Spoofer",
+            subtitle: s.deviceUa.isEmpty ? "Подмена User-Agent" : s.currentDeviceProfile.label,
+            icon: "iphone",
+            iconColor: Color.cyberBlue
+        ) {
             VStack(spacing: 0) {
                 ForEach(DeviceProfile.allCases, id: \.self) { profile in
                     Button {
@@ -326,7 +319,7 @@ private struct DeviceTab: View {
                         }
                     } label: {
                         HStack(spacing: 12) {
-                            let selected = SettingsStore.shared.currentDeviceProfile == profile
+                            let selected = s.currentDeviceProfile == profile
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(profile.label)
                                     .font(.system(size: 14, weight: selected ? .semibold : .regular))
@@ -349,18 +342,14 @@ private struct DeviceTab: View {
                         Divider().background(Color.divider).padding(.leading, 14)
                     }
                 }
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
+                    Text("Применяется ко всем запросам. Влияет на подпись постов и статус устройства в профиле.")
+                        .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
             }
-
-            HStack(spacing: 6) {
-                Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
-                Text("Применяется ко всем запросам. Влияет на подпись постов и статус устройства в профиле.")
-                    .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
-            }
-            .padding(.horizontal, 14).padding(.bottom, 14)
         }
-        .background(Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.divider, lineWidth: 0.5))
     }
 
     private var spoofPreview: some View {
