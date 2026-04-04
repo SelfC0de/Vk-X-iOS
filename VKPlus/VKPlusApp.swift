@@ -101,28 +101,4 @@ final class ScreenProtector {
     }
 }
 
-// MARK: - Force Offline timer
-final class ForceOfflineManager {
-    static let shared = ForceOfflineManager()
-    private var timer: Timer?
-    private init() {}
 
-    func start() {
-        guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            self?.sendOffline()
-        }
-        sendOffline()
-    }
-
-    func stop() {
-        timer?.invalidate()
-        timer = nil
-    }
-
-    private func sendOffline() {
-        Task {
-            _ = try? await VKAPIClient.shared.setOffline()
-        }
-    }
-}

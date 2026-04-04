@@ -78,11 +78,11 @@ private struct PrivacyTab: View {
             SettingsSectionCard(title: "🛡 Режим невидимки",
                                 subtitle: "Управление видимостью активности",
                                 icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
-                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.slash",  subtitle: "messages.markAsRead не отправляется",        val: $s.ghostMode)
-                SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "messages.setActivity не отправляется",       val: $s.antiTyping)
-                SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "account.setOffline вместо setOnline",        val: $s.forceOffline)
-                SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "account.setOnline перехватывается",          val: $s.ghostOnline)
-                SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "stories.markAsViewed не отправляется",       val: $s.ghostStory)
+                SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.slash",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
+                SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "Собеседник не видит что ты печатаешь",       val: $s.antiTyping)
+                SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "Всегда показываться офлайн",        val: $s.forceOffline)
+                SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
+                SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "Смотреть истории анонимно",       val: $s.ghostStory)
             }
             SettingsSectionCard(title: "🕶 Локальная Приватность",
                                 subtitle: "Скрытие данных на устройстве",
@@ -101,11 +101,11 @@ private struct PrivacyTab: View {
                                 icon: "antenna.radiowaves.left.and.right.slash", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
                 SettingsToggle("Spoof Ads ID",
                                icon: "qrcode",
-                               subtitle: "Случайный UUID вместо рекламного идентификатора",
+                               subtitle: "Скрыть рекламный идентификатор устройства",
                                val: $s.spoofAdId)
                 SettingsToggle("Block Wi-Fi Scan",
                                icon: "wifi.slash",
-                               subtitle: "Убирает список Wi-Fi сетей из запросов",
+                               subtitle: "Запретить отправку данных о Wi-Fi окружении",
                                val: $s.blockWifi)
                 SettingsToggle("Spoof Carrier",
                                icon: "simcard.slash",
@@ -115,10 +115,10 @@ private struct PrivacyTab: View {
             SettingsSectionCard(title: "📡 Антислежка",
                                 subtitle: "Блокировка телеметрии и трекеров",
                                 icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
-                SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", subtitle: "stats.vk-portal.net, tns-counter.ru и др.", val: $s.antiTelemetry)
-                SettingsToggle("Anti-Screen",      icon: "camera.viewfinder",                 subtitle: "Защита от скриншотов чужих экранов",       val: $s.antiScreen)
-                SettingsToggle("Bypass Links",     icon: "link.badge.plus",                   subtitle: "Открывать ссылки напрямую без vk.com/away", val: $s.bypassLinks)
-                SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          subtitle: "HEAD-запрос к vk.cc — показывает реальный URL", val: $s.bypassShortUrl)
+                SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", subtitle: "Блокировка аналитических трекеров", val: $s.antiTelemetry)
+                SettingsToggle("Anti-Screen",      icon: "camera.viewfinder",                 subtitle: "Защита экрана от захвата",       val: $s.antiScreen)
+                SettingsToggle("Bypass Links",     icon: "link.badge.plus",                   subtitle: "Переходить по ссылкам напрямую", val: $s.bypassLinks)
+                SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          subtitle: "Разворачивать укороченные ссылки", val: $s.bypassShortUrl)
             }
             SettingsSectionCard(title: "🔔 Уведомления",
                                 subtitle: "Push-уведомления VK+",
@@ -159,17 +159,17 @@ private struct EngineTab: View {
                                 subtitle: "Голосовые сообщения без отметки",
                                 icon: "mic.slash.fill", iconColor: Color(r:0xE9,g:0x3E,b:0xFF)) {
                 SettingsToggle("Silent VM Listener", icon: "mic.slash.fill",
-                               subtitle: "Слушать ГС без отправки markAsListened — метка не улетает",
+                               subtitle: "Прослушивать голосовые анонимно",
                                val: $s.silentVm)
             }
             SettingsSectionCard(title: "🔄 Anti-Ban Engine",
                                 subtitle: "Защита аккаунта от блокировок",
                                 icon: "shield.lefthalf.filled", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Anti-Ban Engine", icon: "shield.fill",
-                               subtitle: "Авторотация client_id при капче/rate limit",
+                               subtitle: "Защита аккаунта от блокировок",
                                val: $s.antiBan)
                 SettingsToggle("Offline Post", icon: "tray.and.arrow.up.fill",
-                               subtitle: "Публиковать/отправлять без account.setOnline",
+                               subtitle: "Отправлять контент без обновления онлайна",
                                val: $s.offlinePost)
             }
             SettingsSectionCard(title: "✅ Верификация",
@@ -186,10 +186,10 @@ private struct EngineTab: View {
                                 subtitle: "Обход отслеживания активности",
                                 icon: "figure.walk", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
                 SettingsToggle("Bypass Activity Status", icon: "eye.slash",
-                               subtitle: "Загружать сообщения через execute — не триггерит Online",
+                               subtitle: "Читать сообщения без обновления статуса",
                                val: $s.bypassActivity)
                 SettingsToggle("LongPoll Only Mode", icon: "wifi.router",
-                               subtitle: "Получать сообщения без setOnline — вечный оффлайн при чтении",
+                               subtitle: "Оставаться офлайн при получении сообщений",
                                val: $s.longPollOnly)
             }
             typeStatusSection
@@ -273,7 +273,7 @@ private struct DeviceTab: View {
                                 subtitle: "Рандомизация отпечатка устройства",
                                 icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 SettingsToggle("Hardware Spoof", icon: "dice.fill",
-                               subtitle: "Рандомизация модели, DPI, заряда",
+                               subtitle: "Случайная модель устройства при каждом сеансе",
                                val: $s.hardwareSpoof)
             }
 
