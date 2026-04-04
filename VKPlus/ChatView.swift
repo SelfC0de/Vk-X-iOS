@@ -17,6 +17,9 @@ struct ChatView: View {
     @State private var avatarMap:  [Int: String] = [:]
     @State private var showAttach  = false
     @State private var photoItem:   PhotosPickerItem? = nil
+    // Profile navigation from link
+    @State private var profileUser:  VKUser? = nil
+    @State private var showProfile  = false
     // Forward
     @State private var forwardMsg:  VKMessage? = nil
     @State private var showForward  = false
@@ -99,7 +102,17 @@ struct ChatView: View {
                                         onForward:       { forwardMsg = msg; showForward = true },
                                         onReact:         { reactMsg = msg; showReact = true },
                                         onSavePhoto:     { url in Task { await saveImageToGallery(urlStr: url) } },
-                                        onDownloadVoice: { url in Task { await downloadVoice(urlStr: url) } }
+                                        onDownloadVoice: { url in Task { await downloadVoice(urlStr: url) } },
+                                        onVKLink: { name in
+                                            Task {
+                                                if let u = try? await VKAPIClient.shared.getUserById(name) {
+                                                    await MainActor.run {
+                                                        profileUser = u
+                                                        showProfile = true
+                                                    }
+                                                }
+                                            }
+                                        }
                                     )
                                     .id(msg.id)
                                 }
@@ -171,6 +184,9 @@ struct ChatView: View {
             if let msg = reactMsg {
                 ReactionsSheet(message: msg, peerId: peerId)
             }
+        }
+        .navigationDestination(isPresented: $showProfile) {
+            if let u = profileUser { FriendProfileView(user: u) }
         }
         .task { await load() }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
@@ -604,6 +620,7 @@ private struct BubbleView: View {
     let onReact:         () -> Void
     let onSavePhoto:     ((String) -> Void)?
     let onDownloadVoice: ((String) -> Void)?
+    let onVKLink:        ((String) -> Void)?
 
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
@@ -658,7 +675,8 @@ private struct BubbleView: View {
                     HStack(alignment: .bottom, spacing: 5) {
                         MessageTextView(
                             text: msg.text,
-                            textColor: fg
+                            textColor: fg,
+                            onVKLink: onVKLink
                         )
                         .fixedSize(horizontal: false, vertical: true)
                         Text(timeStr(msg.date))
@@ -921,22 +939,13 @@ private struct MessageTextView: View {
     var onVKLink: ((String) -> Void)? = nil
     var onURL: ((URL) -> Void)? = nil
 
-    @State private var vkProfileName: String = ""
-    @State private var showVKProfile = false
-
     var body: some View {
         LinkableText(
             text: text,
             textColor: textColor,
-            onVKLink: { name in
-                vkProfileName = name
-                showVKProfile = true
-            },
+            onVKLink: { name in onVKLink?(name) },
             onURL: { url in UIApplication.shared.open(url) }
         )
-        .sheet(isPresented: $showVKProfile) {
-            VKProfileResolverSheet(screenName: vkProfileName)
-        }
     }
 }
 
@@ -1074,47 +1083,7 @@ private struct LinkableText: UIViewRepresentable {
     }
 }
 
-// MARK: - VK Profile resolver sheet
-private struct VKProfileResolverSheet: View {
-    let screenName: String
-    @Environment(\.dismiss) var dismiss
-    @State private var user: VKUser? = nil
-    @State private var isLoading = true
 
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.background.ignoresSafeArea()
-                if isLoading {
-                    ProgressView().tint(.cyberBlue)
-                } else if let user {
-                    FriendProfileView(user: user)
-                } else {
-                    VStack(spacing: 12) {
-                        Image(systemName: "person.slash").font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
-                        Text("Профиль не найден").foregroundStyle(Color.onSurfaceMut)
-                    }
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") { dismiss() }
-                }
-            }
-            .toolbarBackground(Color.surface, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-        }
-        .task { await load() }
-    }
-
-    private func load() async {
-        isLoading = true
-        // getUserById accepts: numeric id, "id123", screen_name — all in one call
-        user = try? await VKAPIClient.shared.getUserById(screenName)
-        isLoading = false
-    }
-}
 
 // MARK: - Forward Sheet
 struct ForwardSheet: View {
