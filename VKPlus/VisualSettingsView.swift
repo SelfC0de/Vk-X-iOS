@@ -296,61 +296,7 @@ struct VisualTab: View {
     }
 
     // MARK: - Background card
-    @ViewBuilder private var bgCard: some View {
-        SettingsSectionCard(title: "Фон диалогов",
-                                subtitle: "Картинка для фона чата",
-                                icon: "photo.fill",
-                                iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
-                VStack(spacing: 0) {
-                    // Preview
-                    if let data = s.chatBgImageData, let img = UIImage(data: data) {
-                        Image(uiImage: img)
-                            .resizable().scaledToFill()
-                            .frame(maxWidth: .infinity).frame(height: 100)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .padding(.horizontal, 14).padding(.top, 12)
-                    }
-
-                    PhotosPicker(selection: $bgPickerItem, matching: .images) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "photo.badge.plus").foregroundStyle(Color.cyberBlue)
-                            Text(s.chatBgImageData == nil ? "Выбрать фото" : "Сменить фото")
-                                .font(.system(size: 14)).foregroundStyle(Color.onSurface)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 12)
-                    }
-
-                    if s.chatBgImageData != nil {
-                        Divider().background(Color.divider).padding(.leading, 14)
-                        Button {
-                            s.chatBgImageData = nil
-                            ToastManager.shared.show("Фон удалён", icon: "trash", style: .info)
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "trash").foregroundStyle(Color.errorRed)
-                                Text("Удалить фон").font(.system(size: 14)).foregroundStyle(Color.errorRed)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 14).padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-        .onChange(of: bgPickerItem) { _, item in
-            guard let item else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self) {
-                    SettingsStore.shared.chatBgImageData = data
-                    ToastManager.shared.show("Фон установлен", icon: "photo.fill", style: .success)
-                }
-                bgPickerItem = nil
-            }
-        }
-    }
+    @ViewBuilder private var bgCard: some View { BgCardView(bgPickerItem: $bgPickerItem) }
 
     private func applyTheme(_ t: String) {
         // preferredColorScheme is driven by SettingsStore.appTheme via VKPlusApp
@@ -358,6 +304,65 @@ struct VisualTab: View {
     }
 }
 
+
+
+// MARK: - Background card view
+private struct BgCardView: View {
+    @ObservedObject private var s = SettingsStore.shared
+    @Binding var bgPickerItem: PhotosPickerItem?
+
+    var body: some View {
+        SettingsSectionCard(title: "Фон диалогов",
+                            subtitle: "Картинка для фона чата",
+                            icon: "photo.fill",
+                            iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
+            VStack(spacing: 0) {
+                if let data = s.chatBgImageData, let img = UIImage(data: data) {
+                    Image(uiImage: img)
+                        .resizable().scaledToFill()
+                        .frame(maxWidth: .infinity).frame(height: 100)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 14).padding(.top, 12)
+                }
+                PhotosPicker(selection: $bgPickerItem, matching: .images) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "photo.badge.plus").foregroundStyle(Color.cyberBlue)
+                        Text(s.chatBgImageData == nil ? "Выбрать фото" : "Сменить фото")
+                            .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+                }
+                if s.chatBgImageData != nil {
+                    Divider().background(Color.divider).padding(.leading, 14)
+                    Button {
+                        s.chatBgImageData = nil
+                        ToastManager.shared.show("Фон удалён", icon: "trash", style: .info)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "trash").foregroundStyle(Color.errorRed)
+                            Text("Удалить фон").font(.system(size: 14)).foregroundStyle(Color.errorRed)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .onChange(of: bgPickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    s.chatBgImageData = data
+                    ToastManager.shared.show("Фон установлен", icon: "photo.fill", style: .success)
+                }
+                bgPickerItem = nil
+            }
+        }
+    }
+}
 
 // MARK: - Pet Grid
 private struct PetGridView: View {
