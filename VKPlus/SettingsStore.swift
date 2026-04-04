@@ -144,6 +144,9 @@ final class SettingsStore: ObservableObject {
     // Local Privacy
     @Published var hideSender:      Bool { didSet { ud.set(hideSender,      forKey: "hide_sender")      } }
     @Published var blurScreen:      Bool { didSet { ud.set(blurScreen,      forKey: "blur_screen")      } }
+    @Published var spoofAdId:        Bool { didSet { ud.set(spoofAdId,        forKey: "spoof_ad_id")      } }
+    @Published var blockWifi:        Bool { didSet { ud.set(blockWifi,        forKey: "block_wifi")       } }
+    @Published var spoofCarrier:     Bool { didSet { ud.set(spoofCarrier,     forKey: "spoof_carrier")    } }
 
     // Profile history (stored as JSON array of ids)
     @Published var profileHistory:  [Int] { didSet {
@@ -203,6 +206,9 @@ final class SettingsStore: ObservableObject {
         fakeVerification = ud.bool(forKey: "fake_verif")
         hideSender       = ud.bool(forKey: "hide_sender")
         blurScreen       = ud.bool(forKey: "blur_screen")
+        spoofAdId        = ud.object(forKey: "spoof_ad_id")   == nil ? true : ud.bool(forKey: "spoof_ad_id")
+        blockWifi        = ud.object(forKey: "block_wifi")    == nil ? true : ud.bool(forKey: "block_wifi")
+        spoofCarrier     = ud.bool(forKey: "spoof_carrier")
         if let d = ud.data(forKey: "profile_history"),
            let arr = try? JSONDecoder().decode([Int].self, from: d) {
             profileHistory = arr

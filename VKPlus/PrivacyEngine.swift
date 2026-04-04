@@ -12,6 +12,29 @@ private let CLIENT_IDS = [3140623, 2274003, 2685278]  // VK iPhone, VK Android, 
 private var clientIdIndex = 0
 private var requestCount  = 0
 
+// Deep Privacy — fake advertising ID, rotated weekly
+private var _fakeAdId: String = ""
+private var _fakeAdIdDate: Date = .distantPast
+private func getFakeAdId() -> String {
+    let week: TimeInterval = 7 * 24 * 3600
+    if _fakeAdId.isEmpty || Date().timeIntervalSince(_fakeAdIdDate) > week {
+        _fakeAdId = UUID().uuidString
+        _fakeAdIdDate = Date()
+    }
+    return _fakeAdId
+}
+
+// Carrier spoofing pool — plausible international carriers
+private let FAKE_CARRIERS = ["T-Mobile", "Vodafone", "Orange", "O2", "Three", "Verizon", "AT&T"]
+private func getFakeCarrier() -> String {
+    FAKE_CARRIERS[abs(getFakeAdId().hashValue) % FAKE_CARRIERS.count]
+}
+
+// Wi-Fi / location fields to strip from query and body
+private let WIFI_FIELDS  = ["wifi_list", "wifi_stealth", "bssid_list", "wifi_scan", "nearby_wifi"]
+private let ADID_FIELDS  = ["ads_device_id", "advertising_id", "ad_id", "idfa", "device_id"]
+private let CARRIER_FIELDS = ["carrier", "operator", "network_operator", "sim_operator"]
+
 final class PrivacyURLProtocol: URLProtocol {
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -33,6 +56,12 @@ final class PrivacyURLProtocol: URLProtocol {
 
         let method = url.components(separatedBy: "/method/").last?.components(separatedBy: "?").first ?? ""
         let path   = URL(string: url)?.query ?? ""
+
+        // ── Deep Privacy interception ─────────────────────────────────────
+        var newRequest2 = request
+        if s.blockWifi || s.spoofAdId || s.spoofCarrier {
+            newRequest2 = scrubRequest(newRequest2, s: s)
+        }
 
         // Ghost Mode — block markAsRead
         if s.ghostMode && method == "messages.markAsRead" {
@@ -60,8 +89,8 @@ final class PrivacyURLProtocol: URLProtocol {
         }
 
         // Build modified request
-        var newRequest = request
-        newRequest.url = buildModifiedURL(original: request.url!, method: method, antiBan: s.antiBan)
+        var newRequest = newRequest2
+        newRequest.url = buildModifiedURL(original: newRequest2.url ?? request.url!, method: method, antiBan: s.antiBan)
 
         let session = URLSession(configuration: .default)
         let task = session.dataTask(with: newRequest) { [weak self] data, response, error in
@@ -82,6 +111,61 @@ final class PrivacyURLProtocol: URLProtocol {
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)
+    }
+
+    // MARK: - Deep Privacy scrubber
+    private func scrubRequest(_ req: URLRequest, s: SettingsStore) -> URLRequest {
+        var r = req
+        // 1. Scrub URL query parameters
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            var items = comps.queryItems ?? []
+            items = items.compactMap { item -> URLQueryItem? in
+                if s.blockWifi,   WIFI_FIELDS.contains(item.name)    { return nil }
+                if s.spoofAdId,   ADID_FIELDS.contains(item.name)    { return URLQueryItem(name: item.name, value: getFakeAdId()) }
+                if s.spoofCarrier, CARRIER_FIELDS.contains(item.name) { return URLQueryItem(name: item.name, value: getFakeCarrier()) }
+                return item
+            }
+            comps.queryItems = items
+            r.url = comps.url
+        }
+        // 2. Scrub HTTP body (JSON or form-encoded)
+        if let bodyData = r.httpBody {
+            if let ct = r.value(forHTTPHeaderField: "Content-Type") {
+                if ct.contains("application/json") {
+                    r.httpBody = scrubJSON(bodyData, s: s)
+                } else if ct.contains("application/x-www-form-urlencoded") {
+                    r.httpBody = scrubForm(bodyData, s: s)
+                }
+            } else {
+                // Try form-encoded as default for VK API
+                r.httpBody = scrubForm(bodyData, s: s)
+            }
+        }
+        return r
+    }
+
+    private func scrubJSON(_ data: Data, s: SettingsStore) -> Data {
+        guard var json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return data }
+        for key in json.keys {
+            let lo = key.lowercased()
+            if s.blockWifi,    WIFI_FIELDS.contains(lo)    { json[key] = [] }
+            if s.spoofAdId,    ADID_FIELDS.contains(lo)    { json[key] = getFakeAdId() }
+            if s.spoofCarrier, CARRIER_FIELDS.contains(lo) { json[key] = getFakeCarrier() }
+        }
+        return (try? JSONSerialization.data(withJSONObject: json)) ?? data
+    }
+
+    private func scrubForm(_ data: Data, s: SettingsStore) -> Data {
+        guard let str = String(data: data, encoding: .utf8) else { return data }
+        var pairs = str.components(separatedBy: "&").compactMap { pair -> String? in
+            let kv = pair.components(separatedBy: "=")
+            guard let key = kv.first?.removingPercentEncoding?.lowercased() else { return pair }
+            if s.blockWifi,    WIFI_FIELDS.contains(key)    { return nil }
+            if s.spoofAdId,    ADID_FIELDS.contains(key)    { return "\(kv[0])=\(getFakeAdId())" }
+            if s.spoofCarrier, CARRIER_FIELDS.contains(key) { return "\(kv[0])=\(getFakeCarrier().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")" }
+            return pair
+        }
+        return pairs.joined(separator: "&").data(using: .utf8) ?? data
     }
 
     private func buildModifiedURL(original: URL, method: String, antiBan: Bool) -> URL {

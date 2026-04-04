@@ -96,6 +96,22 @@ private struct PrivacyTab: View {
                                subtitle: "Размывает контент при скриншоте",
                                val: $s.blurScreen)
             }
+            SettingsSectionCard(title: "🕵️ Deep Privacy",
+                                subtitle: "Блокировка сбора данных устройства",
+                                icon: "antenna.radiowaves.left.and.right.slash", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
+                SettingsToggle("Spoof Ads ID",
+                               icon: "qrcode",
+                               subtitle: "Случайный UUID вместо рекламного идентификатора",
+                               val: $s.spoofAdId)
+                SettingsToggle("Block Wi-Fi Scan",
+                               icon: "wifi.slash",
+                               subtitle: "Убирает список Wi-Fi сетей из запросов",
+                               val: $s.blockWifi)
+                SettingsToggle("Spoof Carrier",
+                               icon: "simcard.slash",
+                               subtitle: "Скрывает название оператора связи",
+                               val: $s.spoofCarrier)
+            }
             SettingsSectionCard(title: "📡 Антислежка",
                                 subtitle: "Блокировка телеметрии и трекеров",
                                 icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {

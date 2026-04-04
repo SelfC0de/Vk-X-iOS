@@ -49,6 +49,10 @@ struct ChatView: View {
     private let AV: CGFloat = 28
     // Max bubble width: ~72% of screen minus avatar slots
     private var maxW: CGFloat { (W - (AV+6)*2 - 20) * 0.72 }
+    private var filteredMessages: [VKMessage] {
+        guard !searchQuery.isEmpty else { return messages }
+        return messages.filter { $0.text.localizedCaseInsensitiveContains(searchQuery) }
+    }
 
     var body: some View {
         // Use GeometryReader ONLY for safe area bottom, not for sizing
@@ -92,8 +96,10 @@ struct ChatView: View {
                                         onReply:   { replyMsg = msg },
                                         onEdit:    { if msg.fromId == myId { editingMsg = msg; draft = msg.text } },
                                         onDelete:  { Task { await deleteMsg(msg) } },
-                                        onForward: { forwardMsg = msg; showForward = true },
-                                        onReact:   { reactMsg = msg; showReact = true }
+                                        onForward:       { forwardMsg = msg; showForward = true },
+                                        onReact:         { reactMsg = msg; showReact = true },
+                                        onSavePhoto:     { url in Task { await saveImageToGallery(urlStr: url) } },
+                                        onDownloadVoice: { url in Task { await downloadVoice(urlStr: url) } }
                                     )
                                     .id(msg.id)
                                 }
@@ -120,7 +126,7 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
-                    if settings.hideSender {
+                    if store.hideSender {
                         ZStack {
                             Circle().fill(Color.surfaceVar).frame(width: 32, height: 32)
                             Image(systemName: "person.fill.xmark")
@@ -131,10 +137,10 @@ struct ChatView: View {
                             .overlay(Circle().stroke(Color.cyberBlue.opacity(0.3), lineWidth: 0.8))
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(settings.hideSender ? "Пользователь скрыт" : peerName)
+                        Text(store.hideSender ? "Пользователь скрыт" : peerName)
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(settings.hideSender ? Color.onSurfaceMut : Color.onSurface)
-                        if !settings.hideSender {
+                            .foregroundStyle(store.hideSender ? Color.onSurfaceMut : Color.onSurface)
+                        if !store.hideSender {
                             if peerTyping { TypingStatusView() }
                             else {
                                 Text(peerOnline ? "в сети" : "не в сети")
@@ -577,8 +583,10 @@ private struct BubbleView: View {
     let onReply:   () -> Void
     let onEdit:    () -> Void
     let onDelete:  () -> Void
-    let onForward: () -> Void
-    let onReact:   () -> Void
+    let onForward:       () -> Void
+    let onReact:         () -> Void
+    let onSavePhoto:     ((String) -> Void)?
+    let onDownloadVoice: ((String) -> Void)?
 
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
@@ -675,14 +683,14 @@ private struct BubbleView: View {
                 }
                 // Save media
                 if let att = msg.attachments?.first {
-                    if att.type == "photo", let url = att.photo?.photo800 ?? att.photo?.photo320 {
+                    if att.type == "photo", let url = att.photo?.maxUrl {
                         Button {
-                            Task { await saveImageToGallery(urlStr: url) }
+                            onSavePhoto?(url)
                         } label: { Label("Сохранить фото", systemImage: "photo.badge.arrow.down") }
                     }
                     if att.type == "audio_message", let url = att.audioMessage?.linkMp3 ?? att.audioMessage?.linkOgg {
                         Button {
-                            Task { await downloadVoice(urlStr: url) }
+                            onDownloadVoice?(url)
                         } label: { Label("Скачать голосовое", systemImage: "arrow.down.circle") }
                     }
                 }
@@ -1151,11 +1159,11 @@ struct ForwardSheet: View {
                 if let p = pMap[pid] {
                     let fn = (p["first_name"] as? String ?? "") + " " + (p["last_name"] as? String ?? "")
                     let av = p["photo_100"] as? String
-                    return DialogItem(id: pid, name: fn.trimmingCharacters(in: .whitespaces), avatar: av, lastMessage: lm, unreadCount: 0, isOnline: false)
+                    return DialogItem(id: pid, name: fn.trimmingCharacters(in: .whitespaces), avatar: av, lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
                 } else if let g = gMap[pid] {
                     let name = g["name"] as? String ?? "Группа"
                     let av   = g["photo_100"] as? String
-                    return DialogItem(id: pid, name: name, avatar: av, lastMessage: lm, unreadCount: 0, isOnline: false)
+                    return DialogItem(id: pid, name: name, avatar: av, lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
                 }
                 return nil
             }
