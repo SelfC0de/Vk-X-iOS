@@ -50,9 +50,31 @@ struct VKAttachment: Decodable {
     let doc:   VKDoc?
     let link:  VKLinkAttach?
     let audioMessage: VKAudioMessage?
+    let video: VKVideoAttachment?
+    let audio: VKAudioAttachment?
     enum CodingKeys: String, CodingKey {
-        case type, photo, doc, link
+        case type, photo, doc, link, video, audio
         case audioMessage = "audio_message"
+    }
+}
+
+struct VKVideoAttachment: Decodable {
+    let id: Int; let ownerId: Int; let title: String?
+    let photo320: String?; let photo800: String?
+    let duration: Int?
+    enum CodingKeys: String, CodingKey {
+        case id; case ownerId = "owner_id"; case title
+        case photo320 = "photo_320"; case photo800 = "photo_800"; case duration
+    }
+    var thumbUrl: String? { photo800 ?? photo320 }
+}
+
+struct VKAudioAttachment: Decodable {
+    let id: Int; let ownerId: Int
+    let title: String?; let artist: String?; let duration: Int?
+    let url: String?
+    enum CodingKeys: String, CodingKey {
+        case id; case ownerId = "owner_id"; case title; case artist; case duration; case url
     }
 }
 

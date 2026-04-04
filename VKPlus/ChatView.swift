@@ -284,6 +284,10 @@ private struct BubbleView: View {
     let onDelete:  () -> Void
 
     @ObservedObject private var store = SettingsStore.shared
+    @State private var showPhotoViewer = false
+    @State private var photoViewerIndex = 0
+    @State private var showVideoPlayer = false
+    @State private var videoItem: VKVideoAttachment? = nil
 
     private var isMe: Bool { msg.fromId == myId }
     private var bg:   Color { Color(hex: isMe ? store.myBubbleHex : store.theirBubbleHex) }
@@ -385,35 +389,169 @@ private struct BubbleView: View {
     }
 
     @ViewBuilder private func attachmentsView(_ atts: [VKAttachment]) -> some View {
+        // Collect all photos for gallery view
+        let photoUrls = atts.filter { $0.type == "photo" }.compactMap { $0.photo?.maxUrl }
         ForEach(atts.indices, id: \.self) { i in
             let a = atts[i]
-            if a.type == "photo", let url = a.photo?.maxUrl.flatMap(URL.init) {
-                AsyncImage(url: url) { phase in
-                    if case .success(let img) = phase { img.resizable().scaledToFill() }
-                    else { Color(red:0.08,green:0.10,blue:0.16) }
+            switch a.type {
+            case "photo":
+                if let url = a.photo?.maxUrl {
+                    let photoIdx = atts[0..<i].filter { $0.type == "photo" }.count
+                    Button {
+                        photoViewerIndex = photoIdx
+                        showPhotoViewer = true
+                    } label: {
+                        AttachmentPhoto(url: url)
+                            .frame(maxWidth: min(maxW, 220), maxHeight: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .frame(maxWidth: min(maxW, 220), maxHeight: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else if a.type == "doc", let doc = a.doc {
-                HStack(spacing: 6) {
-                    Image(systemName: "doc.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 13))
-                    Text(doc.title).font(.system(size: 13)).foregroundStyle(fg).lineLimit(1)
+
+            case "audio_message":
+                if let vm = a.audioMessage, let url = vm.linkMp3 ?? vm.linkOgg {
+                    AudioPlayerView(url: url, duration: vm.duration, isVoice: true)
+                        .frame(maxWidth: min(maxW, 240))
+                        .background(bg)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
-                .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(bg).clipShape(RoundedRectangle(cornerRadius: 9))
-            } else if a.type == "audio_message", let vm = a.audioMessage {
-                HStack(spacing: 6) {
-                    Image(systemName: "waveform").foregroundStyle(Color.cyberBlue).font(.system(size: 13))
-                    Text("\(vm.duration)с").font(.system(size: 13)).foregroundStyle(fg)
+
+            case "audio":
+                if let au = a.audio, let url = au.url {
+                    AudioPlayerView(url: url, duration: au.duration ?? 0, isVoice: false)
+                        .frame(maxWidth: min(maxW, 240))
+                        .background(bg)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    if let artist = au.artist, let title = au.title {
+                        Text("\(artist) — \(title)")
+                            .font(.system(size: 12)).foregroundStyle(fg.opacity(0.8))
+                            .lineLimit(1).frame(maxWidth: min(maxW, 240), alignment: .leading)
+                    }
                 }
-                .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(bg).clipShape(RoundedRectangle(cornerRadius: 9))
+
+            case "video":
+                if let vid = a.video {
+                    Button {
+                        videoItem = vid
+                        showVideoPlayer = true
+                    } label: {
+                        ZStack {
+                            if let thumb = vid.thumbUrl {
+                                AttachmentPhoto(url: thumb)
+                                    .frame(maxWidth: min(maxW, 220), maxHeight: 140)
+                                    .clipped()
+                            } else {
+                                Color(red:0.08,green:0.10,blue:0.16)
+                                    .frame(maxWidth: min(maxW, 220), maxHeight: 140)
+                            }
+                            // Play button overlay
+                            Circle().fill(Color.black.opacity(0.5)).frame(width: 48, height: 48)
+                            Image(systemName: "play.fill").foregroundStyle(.white).font(.system(size: 20))
+                            // Duration badge
+                            if let dur = vid.duration {
+                                VStack {
+                                    Spacer()
+                                    HStack {
+                                        Spacer()
+                                        Text(durationStr(dur))
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 6).padding(.vertical, 3)
+                                            .background(Color.black.opacity(0.6))
+                                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                                            .padding(6)
+                                    }
+                                }
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                    if let title = vid.title, !title.isEmpty {
+                        Text(title).font(.system(size: 12)).foregroundStyle(fg.opacity(0.8))
+                            .lineLimit(1).frame(maxWidth: min(maxW, 220), alignment: .leading)
+                    }
+                }
+
+            case "doc":
+                if let doc = a.doc {
+                    let docUrl = doc.url.flatMap(URL.init)
+                    Button {
+                        if let u = docUrl { UIApplication.shared.open(u) }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: docIcon(doc.ext)).foregroundStyle(Color.cyberBlue).font(.system(size: 16))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(doc.title).font(.system(size: 13)).foregroundStyle(fg).lineLimit(1)
+                                if let ext = doc.ext {
+                                    Text(ext.uppercased()).font(.system(size: 10)).foregroundStyle(Color.cyberBlue.opacity(0.8))
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.down.circle").foregroundStyle(Color.cyberBlue.opacity(0.7)).font(.system(size: 14))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                        .frame(maxWidth: min(maxW, 240))
+                        .background(bg)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+            default:
+                EmptyView()
             }
+        }
+        .sheet(isPresented: $showPhotoViewer) {
+            MediaViewerSheet(photos: photoUrls, startIndex: photoViewerIndex)
+        }
+        .sheet(isPresented: $showVideoPlayer) {
+            if let vid = videoItem {
+                VideoPlayerSheet(videoId: vid.id, ownerId: vid.ownerId, thumb: vid.thumbUrl)
+            }
+        }
+    }
+
+    private func durationStr(_ s: Int) -> String { String(format: "%d:%02d", s/60, s%60) }
+    private func docIcon(_ ext: String?) -> String {
+        switch ext?.lowercased() {
+        case "pdf": return "doc.richtext.fill"
+        case "mp3","ogg","aac","flac","wav": return "music.note"
+        case "mp4","mov","avi","mkv": return "film.fill"
+        case "jpg","jpeg","png","gif","webp": return "photo.fill"
+        case "zip","rar","7z": return "archivebox.fill"
+        default: return "doc.fill"
         }
     }
 
     private func timeStr(_ ts: Int) -> String {
         let df = DateFormatter(); df.dateFormat = "HH:mm"
         return df.string(from: Date(timeIntervalSince1970: TimeInterval(ts)))
+    }
+}
+
+// MARK: - Attachment photo helper (fill mode with cache)
+private struct AttachmentPhoto: View {
+    let url: String
+    @State private var image: UIImage? = nil
+
+    var body: some View {
+        Group {
+            if let img = image {
+                Image(uiImage: img).resizable().scaledToFill()
+            } else {
+                Color(red:0.08,green:0.10,blue:0.16)
+                    .overlay(ProgressView().tint(.white).scaleEffect(0.6))
+            }
+        }
+        .task(id: url) {
+            if let c = ImageCache.shared.get(url) { image = c; return }
+            guard let u = URL(string: url),
+                  let (data,_) = try? await URLSession.shared.data(from: u),
+                  let img = UIImage(data: data) else { return }
+            ImageCache.shared.set(url, image: img); image = img
+        }
     }
 }
