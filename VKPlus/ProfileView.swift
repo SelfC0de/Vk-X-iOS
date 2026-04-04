@@ -241,6 +241,7 @@ struct ProfileView: View {
                     if settings.fakeVerification || u.verified == 1 {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(Color(r:0x1D,g:0xA1,b:0xF2))
+                            .help("Официально верифицирован ВКонтакте")
                     } else {
                         Text("Отсутствует").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
                     }
@@ -463,5 +464,149 @@ struct ProfileChangerSheet: View {
             mirror.status = u.status ?? ""; mirror.city = u.city?.title ?? ""; mirror.id = u.id
         } catch { mirror.error = error.localizedDescription }
         mirror.isLoading = false
+    }
+}
+
+// MARK: - Favicon URLs (same as Android version)
+private let verificationFavicons: [String: String] = [
+    "gosuslugi": "https://www.gosuslugi.ru/favicon.ico",
+    "alfa":      "https://alfabank.ru/favicon.ico",
+    "tinkoff":   "https://cdn.tbank.ru/params/common_front/resourses/icons/favicon-32x32.png",
+    "sber":      "https://www.sberbank.ru/common_static/favicon.ico",
+    "vtb":       "https://www.vtb.ru/favicon.ico"
+]
+
+private let verificationNames: [String: String] = [
+    "gosuslugi": "Госуслуги",
+    "alfa":      "Альфа-Банк",
+    "tinkoff":   "Т-Банк",
+    "sber":      "СберБанк",
+    "vtb":       "ВТБ"
+]
+
+// MARK: - Verification Row
+struct VerificationRow: View {
+    let user: VKUser
+    let fakeVerif: Bool
+
+    private var isVKVerified: Bool { fakeVerif || user.verified == 1 }
+    private var verifications: [VKVerification] {
+        (user.verificationInfo?.verifications ?? []).sorted { ($0.priority ?? 99) < ($1.priority ?? 99) }
+    }
+    private var hasAny: Bool { isVKVerified || !verifications.isEmpty }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header row
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(hasAny ? Color(r:0x1D,g:0xA1,b:0xF2).opacity(0.15) : Color.surfaceVar)
+                        .frame(width: 28, height: 28)
+                    Image(systemName: hasAny ? "checkmark.seal.fill" : "checkmark.seal")
+                        .font(.system(size: 14))
+                        .foregroundStyle(hasAny ? Color(r:0x1D,g:0xA1,b:0xF2) : Color.onSurfaceMut)
+                }
+                Text("Верификация")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.onSurface)
+                Spacer()
+                if !hasAny {
+                    Text("Отсутствует")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.onSurfaceMut)
+                } else {
+                    // Show badges inline
+                    HStack(spacing: 5) {
+                        // Blue VK badge
+                        if isVKVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(Color(r:0x1D,g:0xA1,b:0xF2))
+                        }
+                        // Service favicons
+                        ForEach(verifications, id: \.type) { v in
+                            ServiceFaviconView(type: v.type)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+
+            // Service details if any third-party verifications
+            if !verifications.isEmpty {
+                Divider().background(Color.divider).padding(.leading, 56)
+                VStack(spacing: 0) {
+                    ForEach(Array(verifications.enumerated()), id: \.element.type) { idx, v in
+                        HStack(spacing: 12) {
+                            ServiceFaviconView(type: v.type)
+                                .frame(width: 28)
+                            Text(verificationNames[v.type] ?? v.name ?? v.type)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.onSurface)
+                            Spacer()
+                            Text("Подтверждено")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color(r:0x52,g:0xC4,b:0x1A))
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color(r:0x52,g:0xC4,b:0x1A).opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        if idx < verifications.count - 1 {
+                            Divider().background(Color.divider).padding(.leading, 56)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Service favicon view
+private struct ServiceFaviconView: View {
+    let type: String
+    @State private var image: UIImage? = nil
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let img = image {
+                Image(uiImage: img).resizable().scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else if failed {
+                // Fallback: colored letter badge
+                let (bg, fg, letter) = fallbackStyle(type)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4).fill(bg).frame(width: 20, height: 20)
+                    Text(letter).font(.system(size: 10, weight: .black)).foregroundStyle(fg)
+                }
+            } else {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.surfaceVar)
+                    .frame(width: 20, height: 20)
+            }
+        }
+        .task(id: type) {
+            guard let urlStr = verificationFavicons[type],
+                  let url = URL(string: urlStr) else { failed = true; return }
+            if let cached = ImageCache.shared.get(urlStr) { image = cached; return }
+            guard let (data, _) = try? await URLSession.shared.data(from: url),
+                  let img = UIImage(data: data) else { failed = true; return }
+            ImageCache.shared.set(urlStr, image: img)
+            image = img
+        }
+    }
+
+    private func fallbackStyle(_ t: String) -> (Color, Color, String) {
+        switch t {
+        case "gosuslugi": return (Color(r:0x00,g:0x61,b:0xAA), .white, "ГУ")
+        case "alfa":      return (Color(r:0xEF,g:0x31,b:0x24), .white,  "А")
+        case "tinkoff":   return (Color(r:0xFF,g:0xDD,b:0x2D), Color(r:0x33,g:0x33,b:0x33), "Т")
+        case "sber":      return (Color(r:0x21,g:0xA0,b:0x38), .white,  "С")
+        case "vtb":       return (Color(r:0x00,g:0x2A,b:0x6E), .white,  "В")
+        default:          return (Color(r:0x75,g:0x75,b:0x75), .white,  "?")
+        }
     }
 }

@@ -17,10 +17,14 @@ struct VKUser: Decodable, Identifiable {
     let photo100: String?; let photo200: String?
     let online: Int?; let status: String?
     let verified: Int?; let deactivated: String?
+    let hasMobile: Int?
+    let verificationInfo: VKVerificationInfo?
     let city: VKCity?; let followersCount: Int?
     let bdate: String?
     enum CodingKeys: String, CodingKey {
         case id, status, verified, deactivated, online, city, bdate
+        case hasMobile = "has_mobile"
+        case verificationInfo = "verification_info"
         case firstName = "first_name"; case lastName = "last_name"
         case photo100 = "photo_100"; case photo200 = "photo_200"
         case followersCount = "followers_count"
@@ -171,6 +175,15 @@ struct DialogItem: Identifiable {
     let id: Int; let name: String; let avatar: String?
     let lastMessage: String; let isOnline: Bool; let unreadCount: Int
     let peerId: Int
+}
+
+struct VKVerificationInfo: Decodable {
+    let verifications: [VKVerification]
+}
+struct VKVerification: Decodable {
+    let type: String
+    let priority: Int?
+    let name: String?
 }
 
 struct VKFriendsResponse: Decodable { let count: Int; let items: [VKUser] }

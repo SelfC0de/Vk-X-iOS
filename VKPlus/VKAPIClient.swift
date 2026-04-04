@@ -114,7 +114,7 @@ final class VKAPIClient {
 
     func searchUsers(query: String, count: Int = 20) async throws -> [VKUser] {
         let json = try await rawCall("users.search", params: [
-            "q": query, "count": "\(count)", "fields": "photo_100,online,verified,city"
+            "q": query, "count": "\(count)", "fields": "photo_100,online,verified,has_mobile,city"
         ])
         guard let response = json["response"] as? [String: Any],
               let items = response["items"] as? [[String: Any]] else { return [] }

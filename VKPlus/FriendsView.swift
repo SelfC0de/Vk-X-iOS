@@ -262,9 +262,8 @@ struct FriendRow: View {
                 HStack(spacing: 4) {
                     Text(user.fullName).foregroundStyle(Color.onSurface)
                         .font(.system(size: 15, weight: .medium))
-                    if user.verified == 1 {
-                        Image(systemName: "checkmark.seal.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 12))
-                    }
+                        .lineLimit(1)
+                    VerificationBadgesInline(user: user)
                 }
                 Text(user.isOnline ? "онлайн" : "не в сети")
                     .foregroundStyle(user.isOnline ? Color.cyberAccent : Color.onSurfaceMut)
@@ -273,5 +272,31 @@ struct FriendRow: View {
             Spacer()
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Inline verification badges (for list rows and headers)
+struct VerificationBadgesInline: View {
+    let user: VKUser
+    private var isVKVerified: Bool { user.verified == 1 }
+    private var verifications: [VKVerification] {
+        (user.verificationInfo?.verifications ?? []).sorted { ($0.priority ?? 99) < ($1.priority ?? 99) }
+    }
+
+    var body: some View {
+        let hasAny = isVKVerified || !verifications.isEmpty
+        if hasAny {
+            HStack(spacing: 3) {
+                if isVKVerified {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(r:0x1D,g:0xA1,b:0xF2))
+                }
+                ForEach(verifications, id: \.type) { v in
+                    ServiceFaviconView(type: v.type)
+                        .frame(width: 14, height: 14)
+                }
+            }
+        }
     }
 }
