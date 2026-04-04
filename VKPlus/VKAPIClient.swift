@@ -161,14 +161,15 @@ final class VKAPIClient {
                     kCFStreamPropertySOCKSProxyPort as String: e.port
                 ]
             } else {
-                // MTProto / HTTP fallback — route through HTTP CONNECT
+                // MTProto / HTTP fallback — kCFNetworkProxiesHTTPS* unavailable on iOS
+                // Use string keys directly
                 config.connectionProxyDictionary = [
-                    kCFNetworkProxiesHTTPEnable  as String: 1,
-                    kCFNetworkProxiesHTTPProxy   as String: e.host,
-                    kCFNetworkProxiesHTTPPort    as String: e.port,
-                    kCFNetworkProxiesHTTPSEnable as String: 1,
-                    kCFNetworkProxiesHTTPSProxy  as String: e.host,
-                    kCFNetworkProxiesHTTPSPort   as String: e.port
+                    "HTTPEnable":  1,
+                    "HTTPProxy":   e.host,
+                    "HTTPPort":    e.port,
+                    "HTTPSEnable": 1,
+                    "HTTPSProxy":  e.host,
+                    "HTTPSPort":   e.port
                 ]
             }
         } else {
