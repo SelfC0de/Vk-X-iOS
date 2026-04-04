@@ -104,7 +104,7 @@ struct ShimmerView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
+            _ = geo.size.width
             Rectangle()
                 .fill(
                     LinearGradient(

@@ -222,7 +222,7 @@ struct ChatView: View {
                 if let idx = messages.firstIndex(where: { $0.id == editing.id }) {
                     messages[idx] = VKMessage(
                         id: editing.id, fromId: editing.fromId, text: text,
-                        date: editing.date, attachments: editing.attachments
+                        date: editing.date, replyMessageId: editing.replyMessageId, attachments: editing.attachments
                     )
                 }
                 ToastManager.shared.show("Сообщение изменено", icon: "pencil.circle.fill", style: .success)
