@@ -28,12 +28,15 @@ struct VisualTab: View {
             bubbleCard
             bgCard
         }
+        .onAppear { applyTheme(s.appTheme) }
     }
 
     // MARK: - Pet card
+    private var petSubtitle: String { s.showPet ? (allPets.first { $0.id == s.petType }?.label ?? "Кот") : "Выключен" }
+
     @ViewBuilder private var petCard: some View {
         SettingsSectionCard(title: "🐾 Питомец",
-                                subtitle: s.showPet ? (allPets.first { $0.id == s.petType }?.label ?? "Кот") : "Выключен",
+                                subtitle: petSubtitle,
                                 icon: "pawprint.fill",
                                 iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
                 VStack(spacing: 0) {
@@ -47,28 +50,7 @@ struct VisualTab: View {
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(Color.onSurfaceMut)
                                 .padding(.horizontal, 14).padding(.top, 12)
-                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                                ForEach(allPets, id: \.id) { pet in
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.15)) { s.petType = pet.id }
-                                    } label: {
-                                        VStack(spacing: 4) {
-                                            Text(pet.frames[0])
-                                                .font(.system(size: 28))
-                                            Text(String(pet.label.split(separator: " ").last ?? ""))
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(s.petType == pet.id ? Color.cyberBlue : Color.onSurfaceMut)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(s.petType == pet.id ? Color.cyberBlue.opacity(0.12) : Color(red:0.07,green:0.08,blue:0.13))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(
-                                            s.petType == pet.id ? Color.cyberBlue.opacity(0.5) : Color.divider, lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
+                            PetGridView()
                             .padding(.horizontal, 14).padding(.bottom, 12)
                         }
                     }
@@ -368,12 +350,39 @@ struct VisualTab: View {
                 bgPickerItem = nil
             }
         }
-        .onAppear { applyTheme(s.appTheme) }
     }
 
     private func applyTheme(_ t: String) {
         // preferredColorScheme is driven by SettingsStore.appTheme via VKPlusApp
         // Nothing extra needed — store.appTheme = t triggers the change
+    }
+}
+
+
+// MARK: - Pet Grid
+private struct PetGridView: View {
+    @ObservedObject private var s = SettingsStore.shared
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+            ForEach(allPets, id: \.id) { pet in
+                let selected = s.petType == pet.id
+                Button { withAnimation(.easeInOut(duration: 0.15)) { s.petType = pet.id } } label: {
+                    VStack(spacing: 4) {
+                        Text(pet.walkFrames[0]).font(.system(size: 28))
+                        Text(String(pet.label.split(separator: " ").last ?? ""))
+                            .font(.system(size: 10))
+                            .foregroundStyle(selected ? Color.cyberBlue : Color.onSurfaceMut)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(selected ? Color.cyberBlue.opacity(0.12) : Color(red:0.07,green:0.08,blue:0.13))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(
+                        selected ? Color.cyberBlue.opacity(0.5) : Color.divider, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 
