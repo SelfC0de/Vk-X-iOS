@@ -2,32 +2,30 @@ import SwiftUI
 
 // MARK: - Animated Tab Item
 struct AnimatedTabItem: View {
-    let icon: String     // kept for compat, unused
-    let label: String
+    let icon:       String
+    let label:      String
     let isSelected: Bool
     let badgeCount: Int
-    var tabIndex: Int = 0
+    var tabIndex:   Int = 0
 
     @State private var bouncing     = false
     @State private var glowing      = false
     @State private var prevSelected = false
 
     var body: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: 3) {
             ZStack(alignment: .topTrailing) {
-                // Glow capsule
+                // [ ] bracket selection indicator
                 if isSelected {
-                    Capsule()
-                        .fill(Color.cyberBlue.opacity(glowing ? 0.18 : 0.08))
-                        .frame(width: 40, height: 26)
-                        .scaleEffect(glowing ? 1.05 : 0.95)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowing)
+                    BracketHighlight(glowing: glowing)
+                        .frame(width: 44, height: 30)
                 }
 
                 // Custom animated icon
-                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 24)
-                    .scaleEffect(bouncing ? 1.15 : 1.0)
-                    .animation(.spring(response: 0.28, dampingFraction: 0.42), value: bouncing)
+                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 22)
+                    .frame(width: 44, height: 30)
+                    .scaleEffect(bouncing ? 1.14 : 1.0)
+                    .animation(.spring(response: 0.26, dampingFraction: 0.44), value: bouncing)
 
                 // Badge
                 if badgeCount > 0 {
@@ -37,26 +35,105 @@ struct AnimatedTabItem: View {
                         .padding(.horizontal, 3).padding(.vertical, 1)
                         .background(Color.errorRed)
                         .clipShape(Capsule())
-                        .offset(x: 10, y: -3)
+                        .offset(x: 14, y: -4)
                 }
             }
-            .frame(width: 40, height: 26)
 
             Text(label)
-                .font(.system(size: 9.0, weight: isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
+                .font(.system(size: 9.5, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.7))
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.78)
         }
         .onChange(of: isSelected) { _, newVal in
             if newVal && !prevSelected {
                 bouncing = true; glowing = true
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { bouncing = false }
-            } else if !newVal { glowing = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) { bouncing = false }
+            } else if !newVal {
+                withAnimation(.easeOut(duration: 0.25)) { glowing = false }
+            }
             prevSelected = newVal
         }
         .onAppear { prevSelected = isSelected; if isSelected { glowing = true } }
+    }
+}
+
+// MARK: - Bracket [ ] highlight with glow
+private struct BracketHighlight: View {
+    let glowing: Bool
+
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            let arm: CGFloat = 6      // bracket arm length (horizontal)
+            let thick: CGFloat = 1.8  // line thickness
+            let inset: CGFloat = 2    // padding from edges
+            let glow = glowing
+
+            // Glow fill background
+            if glow {
+                let bgRect = CGRect(x: inset+arm, y: 0, width: w - (inset+arm)*2, height: h)
+                ctx.fill(
+                    Path(roundedRect: bgRect, cornerRadius: 3),
+                    with: .color(Color(red: 0.18, green: 0.60, blue: 1.0).opacity(0.10))
+                )
+            }
+
+            let color = Color(red: 0.38, green: 0.72, blue: 1.0)
+            let alpha: Double = glow ? 1.0 : 0.55
+
+            // LEFT bracket [
+            // vertical bar
+            var lb = Path()
+            lb.move(to: CGPoint(x: inset + thick/2, y: inset))
+            lb.addLine(to: CGPoint(x: inset + thick/2, y: h - inset))
+            ctx.stroke(lb, with: .color(color.opacity(alpha)), lineWidth: thick)
+            // top arm
+            var lt = Path()
+            lt.move(to: CGPoint(x: inset, y: inset + thick/2))
+            lt.addLine(to: CGPoint(x: inset + arm, y: inset + thick/2))
+            ctx.stroke(lt, with: .color(color.opacity(alpha)), lineWidth: thick)
+            // bottom arm
+            var lb2 = Path()
+            lb2.move(to: CGPoint(x: inset, y: h - inset - thick/2))
+            lb2.addLine(to: CGPoint(x: inset + arm, y: h - inset - thick/2))
+            ctx.stroke(lb2, with: .color(color.opacity(alpha)), lineWidth: thick)
+
+            // RIGHT bracket ]
+            let rx = w - inset - thick/2
+            // vertical bar
+            var rb = Path()
+            rb.move(to: CGPoint(x: rx, y: inset))
+            rb.addLine(to: CGPoint(x: rx, y: h - inset))
+            ctx.stroke(rb, with: .color(color.opacity(alpha)), lineWidth: thick)
+            // top arm
+            var rt = Path()
+            rt.move(to: CGPoint(x: w - inset, y: inset + thick/2))
+            rt.addLine(to: CGPoint(x: w - inset - arm, y: inset + thick/2))
+            ctx.stroke(rt, with: .color(color.opacity(alpha)), lineWidth: thick)
+            // bottom arm
+            var rb2 = Path()
+            rb2.move(to: CGPoint(x: w - inset, y: h - inset - thick/2))
+            rb2.addLine(to: CGPoint(x: w - inset - arm, y: h - inset - thick/2))
+            ctx.stroke(rb2, with: .color(color.opacity(alpha)), lineWidth: thick)
+
+            // Glow effect — same paths with blur via opacity layers
+            if glow {
+                for blurAlpha in [0.12, 0.08] {
+                    let gc = Color(red: 0.30, green: 0.75, blue: 1.0)
+                    var glb = Path()
+                    glb.move(to: CGPoint(x: inset + thick/2, y: inset))
+                    glb.addLine(to: CGPoint(x: inset + thick/2, y: h - inset))
+                    ctx.stroke(glb, with: .color(gc.opacity(blurAlpha)), lineWidth: thick + 4)
+                    var grb = Path()
+                    grb.move(to: CGPoint(x: rx, y: inset))
+                    grb.addLine(to: CGPoint(x: rx, y: h - inset))
+                    ctx.stroke(grb, with: .color(gc.opacity(blurAlpha)), lineWidth: thick + 4)
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: glowing)
     }
 }
 
@@ -88,11 +165,9 @@ struct AnimatedTabBar: View {
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
                 .onTapGesture { if selected != i { selected = i } }
-                // Drag gesture: slide finger to switch tabs
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { v in
-                            // Find which tab the finger is currently over
                             let tabW = UIScreen.main.bounds.width / CGFloat(tabs.count)
                             let newIdx = Int((v.location.x + tabW * CGFloat(i)) / tabW)
                             let clamped = max(0, min(tabs.count-1, newIdx))
@@ -101,33 +176,30 @@ struct AnimatedTabBar: View {
                 )
             }
         }
-        .padding(.top, 6)
-        .padding(.bottom, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 26)
         .background(
             ZStack {
                 if store.liquidGlass {
-                    // iOS 26-style Liquid Glass: layered translucency
                     Rectangle().fill(.ultraThinMaterial)
-                    // Specular highlight — top edge shimmer
                     VStack(spacing: 0) {
                         Rectangle()
                             .fill(LinearGradient(
-                                colors: [Color.white.opacity(0.18), Color.white.opacity(0.04), Color.clear],
+                                colors: [Color.white.opacity(0.16), Color.white.opacity(0.03), Color.clear],
                                 startPoint: .top, endPoint: .bottom))
-                            .frame(height: 14)
+                            .frame(height: 12)
                         Spacer()
                     }
-                    // Tint
-                    Color.cyberBlue.opacity(0.04)
+                    Color.cyberBlue.opacity(0.03)
                 } else {
                     Color.surface
                 }
-                // Top separator
+                // Top border line with blue gradient
                 VStack {
                     Rectangle()
                         .fill(LinearGradient(
-                            colors: [Color.white.opacity(store.liquidGlass ? 0.25 : 0),
-                                     Color.cyberBlue.opacity(0.25), Color.clear],
+                            colors: [Color.white.opacity(store.liquidGlass ? 0.20 : 0),
+                                     Color.cyberBlue.opacity(0.30), Color.clear],
                             startPoint: .leading, endPoint: .trailing))
                         .frame(height: 0.5)
                     Spacer()
@@ -147,7 +219,6 @@ struct AnimatedMainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Tab content with swipe gesture
             ZStack {
                 tabView(for: 0).opacity(selectedTab == 0 ? 1 : 0).allowsHitTesting(selectedTab == 0)
                 tabView(for: 1).opacity(selectedTab == 1 ? 1 : 0).allowsHitTesting(selectedTab == 1)
@@ -157,11 +228,10 @@ struct AnimatedMainTabView: View {
                 tabView(for: 5).opacity(selectedTab == 5 ? 1 : 0).allowsHitTesting(selectedTab == 5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, store.liquidGlass ? 76 : 78)
+            .padding(.bottom, 80)
             .gesture(
                 DragGesture(minimumDistance: 40, coordinateSpace: .local)
                     .onEnded { val in
-                        // Only horizontal swipes (more horizontal than vertical)
                         guard abs(val.translation.width) > abs(val.translation.height) * 1.5 else { return }
                         withAnimation(.easeInOut(duration: 0.22)) {
                             if val.translation.width < 0 {
