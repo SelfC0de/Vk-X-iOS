@@ -13,8 +13,9 @@ struct VisualTab: View {
         return parts.isEmpty ? "Выключено" : parts.joined(separator: ", ")
     }
 
-    @State private var showMyColorPicker    = false
+    @State private var showMyColorPicker     = false
     @State private var showTheirColorPicker = false
+    @State private var showClockColorPicker  = false
     @State private var bgPickerItem: PhotosPickerItem? = nil
     @State private var bgImage: UIImage? = nil
 
@@ -146,10 +147,39 @@ struct VisualTab: View {
                                        subtitle: s.clockSeconds ? "Формат чч:мм:сс" : "Формат чч:мм",
                                        val: $s.clockSeconds)
 
-                        Divider().background(Color.divider).padding(.leading, 14)
+                        Divider().background(Color.divider).padding(.leading, 50)
 
-                        // Color picker
-                        ClockColorRow()
+                        // Color picker — same style as bubble colors
+                        let clockHex = s.clockColorHex == "auto" ? "Авто" : s.clockColorHex
+                        Button { showClockColorPicker = true } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    if s.clockColorHex == "auto" {
+                                        Circle()
+                                            .fill(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
+                                            .frame(width: 32, height: 32)
+                                    } else {
+                                        Circle()
+                                            .fill(Color(hex: s.clockColorHex))
+                                            .frame(width: 32, height: 32)
+                                    }
+                                    Circle().stroke(Color.white.opacity(0.15), lineWidth: 1)
+                                        .frame(width: 32, height: 32)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Цвет часов").font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                                    Text(clockHex).font(.system(size: 11, design: .monospaced)).foregroundStyle(Color.onSurfaceMut)
+                                }
+                                Spacer()
+                                Image(systemName: "eyedropper").foregroundStyle(Color.cyberBlue).font(.system(size: 16))
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showClockColorPicker) {
+                            ClockColorPickerSheet(hex: $s.clockColorHex)
+                                .onDisappear { ToastManager.shared.show("Цвет применён", icon: "checkmark.circle.fill", style: .success) }
+                        }
                     }
                 }
             }
@@ -442,6 +472,84 @@ struct ColorPickerSheet: View {
     }
 }
 
+
+// MARK: - Clock Color Picker Sheet
+struct ClockColorPickerSheet: View {
+    @Binding var hex: String
+    @Environment(\.dismiss) var dismiss
+    @State private var picked = Color.white
+    @State private var isAuto = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                // Auto toggle
+                Toggle(isOn: $isAuto) {
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
+                            .frame(width: 28, height: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Авто").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.onSurface)
+                            Text("Белый на тёмной / чёрный на светлой")
+                                .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        }
+                    }
+                }
+                .tint(Color.cyberBlue)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+                if !isAuto {
+                    Divider().padding(.horizontal)
+                    ColorPicker("Цвет часов", selection: $picked, supportsOpacity: false)
+                        .padding(.horizontal)
+
+                    // Preview
+                    HStack {
+                        Spacer()
+                        Text("12:34")
+                            .font(.system(size: 16, weight: .medium, design: .monospaced))
+                            .foregroundStyle(picked)
+                            .padding(.horizontal, 18).padding(.vertical, 10)
+                            .background(Color.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                }
+
+                Spacer()
+            }
+            .padding(.top, 16)
+            .navigationTitle("Цвет часов")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") {
+                        if isAuto {
+                            hex = "auto"
+                        } else {
+                            hex = picked.toHex() ?? hex
+                        }
+                        dismiss()
+                    }
+                    .foregroundStyle(Color.cyberBlue)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }
+                }
+            }
+            .background(Color.background)
+            .preferredColorScheme(.dark)
+        }
+        .onAppear {
+            isAuto = (hex == "auto")
+            if hex != "auto" { picked = Color(hex: hex) }
+        }
+    }
+}
+
 // MARK: - Color helpers
 extension Color {
     init(hex: String) {
@@ -461,70 +569,3 @@ extension Color {
     }
 }
 
-// MARK: - Clock Color Row
-private struct ClockColorRow: View {
-    @ObservedObject private var s = SettingsStore.shared
-
-    // preset palette: "auto" + 8 fixed colors
-    private let presets: [(String, String)] = [
-        ("auto",     "Авто"),
-        ("FFFFFF",   "Белый"),
-        ("000000",   "Чёрный"),
-        ("4DA6FF",   "Синий"),
-        ("52C41A",   "Зелёный"),
-        ("FF6B35",   "Оранжевый"),
-        ("FF4545",   "Красный"),
-        ("FFD700",   "Золотой"),
-        ("C875FF",   "Фиолетовый"),
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: "paintpalette")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.cyberBlue)
-                    .frame(width: 22)
-                Text("Цвет часов")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.onSurface)
-            }
-            .padding(.horizontal, 14).padding(.top, 12)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(presets, id: \.0) { hex, label in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) { s.clockColorHex = hex }
-                        } label: {
-                            VStack(spacing: 5) {
-                                ZStack {
-                                    Circle()
-                                        .fill(hex == "auto"
-                                              ? AnyShapeStyle(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
-                                              : AnyShapeStyle(Color(hex: hex)))
-                                        .frame(width: 34, height: 34)
-                                    if s.clockColorHex == hex {
-                                        Circle()
-                                            .stroke(Color.cyberBlue, lineWidth: 2.5)
-                                            .frame(width: 40, height: 40)
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundStyle(hex == "000000" ? .white : .black)
-                                    }
-                                }
-                                Text(label)
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(s.clockColorHex == hex ? Color.cyberBlue : Color.onSurfaceMut)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .frame(width: 50)
-                    }
-                }
-                .padding(.horizontal, 14)
-            }
-            .padding(.bottom, 12)
-        }
-    }
-}
