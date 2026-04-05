@@ -1,30 +1,16 @@
 import SwiftUI
 
-// MARK: - SelfCode Logo Canvas
-// Replicates the SelfCode brand mark: "Self" white + "Code" green-yellow gradient
+// MARK: - SelfCode Logo View
+// "Self" in white + "Code" in lime green, centered in any frame
 struct SelfCodeLogoView: View {
     var body: some View {
-        Canvas { ctx, sz in
-            let w = sz.width, h = sz.height
-            // "Self" — white
-            let selfAttrs = AttributedString("Self", attributes: AttributeContainer([
-                .font: UIFont.systemFont(ofSize: h * 0.85, weight: .light),
-                .foregroundColor: UIColor.white
-            ]))
-            // "Code" — lime green
-            let codeAttrs = AttributedString("Code", attributes: AttributeContainer([
-                .font: UIFont.systemFont(ofSize: h * 0.85, weight: .light),
-                .foregroundColor: UIColor(red: 0.49, green: 0.73, blue: 0.09, alpha: 1)
-            ]))
-            // Measure Self width
-            let selfResolved = ctx.resolve(Text(selfAttrs))
-            let codeResolved = ctx.resolve(Text(codeAttrs))
-            let selfSize = selfResolved.measure(in: sz)
-            let totalWidth = selfSize.width + codeResolved.measure(in: sz).width
-            let startX = (w - totalWidth) / 2
-            let baseY = (h - selfSize.height) / 2
-            ctx.draw(selfResolved, at: CGPoint(x: startX, y: baseY), anchor: .topLeading)
-            ctx.draw(codeResolved, at: CGPoint(x: startX + selfSize.width, y: baseY), anchor: .topLeading)
+        HStack(spacing: 0) {
+            Text("Self")
+                .font(.system(size: 22, weight: .light, design: .default))
+                .foregroundStyle(Color.white)
+            Text("Code")
+                .font(.system(size: 22, weight: .light, design: .default))
+                .foregroundStyle(Color(r: 0x7D, g: 0xBB, b: 0x17))
         }
     }
 }
@@ -95,7 +81,6 @@ struct AboutView: View {
                             )
 
                         SelfCodeLogoView()
-                            .frame(width: 56, height: 28)
                     }
                     .opacity(logoVisible ? 1 : 0)
                     .scaleEffect(logoVisible ? 1 : 0.5)
