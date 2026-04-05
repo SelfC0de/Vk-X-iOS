@@ -256,7 +256,7 @@ struct RegDateCheckerView: View {
         }
         // Fallback: VK API
         if name == "id\(id)" {
-            let numericId = id.trimmingCharacters(in: .letters) // handle "id12345" → "12345"
+            let _ = id.trimmingCharacters(in: .letters) // handle "id12345" → "12345"
             let lookupId = id.hasPrefix("id") ? String(id.dropFirst(2)) : id
             if let user = try? await VKAPIClient.shared.getUserById(lookupId) {
                 name = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)

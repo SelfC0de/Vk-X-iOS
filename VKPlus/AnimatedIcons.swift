@@ -1218,9 +1218,9 @@ struct SFAnimIcon: View {
         let isSnow = name.contains("snow") // handled separately but fallback
         // Cloud body
         var cloud = Path()
-        cloud.addArc(center: CGPoint(x:w*0.36,y:h*0.38), radius: w*0.18, startAngle:.degrees(180),.degrees(0),clockwise:false)
-        cloud.addArc(center: CGPoint(x:w*0.54,y:h*0.32), radius: w*0.22, startAngle:.degrees(180),.degrees(0),clockwise:false)
-        cloud.addArc(center: CGPoint(x:w*0.72,y:h*0.40), radius: w*0.14, startAngle:.degrees(180),.degrees(0),clockwise:false)
+        cloud.addArc(center: CGPoint(x:w*0.36,y:h*0.38), radius: w*0.18, startAngle:.degrees(180), endAngle:.degrees(0),clockwise:false)
+        cloud.addArc(center: CGPoint(x:w*0.54,y:h*0.32), radius: w*0.22, startAngle:.degrees(180), endAngle:.degrees(0),clockwise:false)
+        cloud.addArc(center: CGPoint(x:w*0.72,y:h*0.40), radius: w*0.14, startAngle:.degrees(180), endAngle:.degrees(0),clockwise:false)
         cloud.addLine(to: CGPoint(x:w*0.86, y:h*0.52))
         cloud.addLine(to: CGPoint(x:w*0.14, y:h*0.52))
         cloud.closeSubpath()
