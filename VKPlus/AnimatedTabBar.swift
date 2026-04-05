@@ -1,5 +1,18 @@
 import SwiftUI
 
+// MARK: - Tab order persistence
+private let tabOrderKey = "tab_order"
+
+func loadTabOrder() -> [Int] {
+    let saved = UserDefaults.standard.array(forKey: tabOrderKey) as? [Int] ?? []
+    if saved.count == 6 { return saved }
+    return [0, 1, 2, 3, 4, 5]
+}
+
+func saveTabOrder(_ order: [Int]) {
+    UserDefaults.standard.set(order, forKey: tabOrderKey)
+}
+
 // MARK: - Animated Tab Item
 struct AnimatedTabItem: View {
     let icon:       String
@@ -13,21 +26,16 @@ struct AnimatedTabItem: View {
     @State private var prevSelected = false
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             ZStack(alignment: .topTrailing) {
-                // [ ] bracket selection indicator
                 if isSelected {
                     BracketHighlight(glowing: glowing)
-                        .frame(width: 44, height: 30)
+                        .frame(width: 40, height: 28)
                 }
-
-                // Custom animated icon
-                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 22)
-                    .frame(width: 44, height: 30)
+                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 21)
+                    .frame(width: 40, height: 28)
                     .scaleEffect(bouncing ? 1.14 : 1.0)
                     .animation(.spring(response: 0.26, dampingFraction: 0.44), value: bouncing)
-
-                // Badge
                 if badgeCount > 0 {
                     Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
                         .font(.system(size: 7, weight: .bold))
@@ -35,15 +43,15 @@ struct AnimatedTabItem: View {
                         .padding(.horizontal, 3).padding(.vertical, 1)
                         .background(Color.errorRed)
                         .clipShape(Capsule())
-                        .offset(x: 14, y: -4)
+                        .offset(x: 13, y: -4)
                 }
             }
-
             Text(label)
-                .font(.system(size: 9.5, weight: isSelected ? .semibold : .regular))
+                .font(.system(size: 8.5, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.7))
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(0.60)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .onChange(of: isSelected) { _, newVal in
             if newVal && !prevSelected {
@@ -59,77 +67,37 @@ struct AnimatedTabItem: View {
     }
 }
 
-// MARK: - Bracket [ ] highlight with glow
+// MARK: - Bracket highlight
 private struct BracketHighlight: View {
     let glowing: Bool
-
     var body: some View {
         Canvas { ctx, sz in
             let w = sz.width, h = sz.height
-            let arm: CGFloat = 6      // bracket arm length (horizontal)
-            let thick: CGFloat = 1.8  // line thickness
-            let inset: CGFloat = 2    // padding from edges
-            let glow = glowing
-
-            // Glow fill background
-            if glow {
-                let bgRect = CGRect(x: inset+arm, y: 0, width: w - (inset+arm)*2, height: h)
-                ctx.fill(
-                    Path(roundedRect: bgRect, cornerRadius: 3),
-                    with: .color(Color(red: 0.18, green: 0.60, blue: 1.0).opacity(0.10))
-                )
-            }
-
+            let arm: CGFloat = 5; let thick: CGFloat = 1.8; let inset: CGFloat = 2
             let color = Color(red: 0.38, green: 0.72, blue: 1.0)
-            let alpha: Double = glow ? 1.0 : 0.55
-
-            // LEFT bracket [
-            // vertical bar
-            var lb = Path()
-            lb.move(to: CGPoint(x: inset + thick/2, y: inset))
-            lb.addLine(to: CGPoint(x: inset + thick/2, y: h - inset))
-            ctx.stroke(lb, with: .color(color.opacity(alpha)), lineWidth: thick)
-            // top arm
-            var lt = Path()
-            lt.move(to: CGPoint(x: inset, y: inset + thick/2))
-            lt.addLine(to: CGPoint(x: inset + arm, y: inset + thick/2))
-            ctx.stroke(lt, with: .color(color.opacity(alpha)), lineWidth: thick)
-            // bottom arm
-            var lb2 = Path()
-            lb2.move(to: CGPoint(x: inset, y: h - inset - thick/2))
-            lb2.addLine(to: CGPoint(x: inset + arm, y: h - inset - thick/2))
-            ctx.stroke(lb2, with: .color(color.opacity(alpha)), lineWidth: thick)
-
-            // RIGHT bracket ]
-            let rx = w - inset - thick/2
-            // vertical bar
-            var rb = Path()
-            rb.move(to: CGPoint(x: rx, y: inset))
-            rb.addLine(to: CGPoint(x: rx, y: h - inset))
-            ctx.stroke(rb, with: .color(color.opacity(alpha)), lineWidth: thick)
-            // top arm
-            var rt = Path()
-            rt.move(to: CGPoint(x: w - inset, y: inset + thick/2))
-            rt.addLine(to: CGPoint(x: w - inset - arm, y: inset + thick/2))
-            ctx.stroke(rt, with: .color(color.opacity(alpha)), lineWidth: thick)
-            // bottom arm
-            var rb2 = Path()
-            rb2.move(to: CGPoint(x: w - inset, y: h - inset - thick/2))
-            rb2.addLine(to: CGPoint(x: w - inset - arm, y: h - inset - thick/2))
-            ctx.stroke(rb2, with: .color(color.opacity(alpha)), lineWidth: thick)
-
-            // Glow effect — same paths with blur via opacity layers
-            if glow {
-                for blurAlpha in [0.12, 0.08] {
-                    let gc = Color(red: 0.30, green: 0.75, blue: 1.0)
-                    var glb = Path()
-                    glb.move(to: CGPoint(x: inset + thick/2, y: inset))
-                    glb.addLine(to: CGPoint(x: inset + thick/2, y: h - inset))
-                    ctx.stroke(glb, with: .color(gc.opacity(blurAlpha)), lineWidth: thick + 4)
-                    var grb = Path()
-                    grb.move(to: CGPoint(x: rx, y: inset))
-                    grb.addLine(to: CGPoint(x: rx, y: h - inset))
-                    ctx.stroke(grb, with: .color(gc.opacity(blurAlpha)), lineWidth: thick + 4)
+            let alpha: Double = glowing ? 1.0 : 0.55
+            if glowing {
+                ctx.fill(Path(roundedRect: CGRect(x: inset+arm, y: 0, width: w-(inset+arm)*2, height: h), cornerRadius: 3),
+                         with: .color(Color(red:0.18,green:0.60,blue:1.0).opacity(0.10)))
+            }
+            func hline(_ x1: CGFloat,_ y: CGFloat,_ x2: CGFloat) {
+                var p = Path(); p.move(to: CGPoint(x:x1,y:y)); p.addLine(to: CGPoint(x:x2,y:y))
+                ctx.stroke(p, with: .color(color.opacity(alpha)), lineWidth: thick)
+            }
+            func vline(_ x: CGFloat,_ y1: CGFloat,_ y2: CGFloat) {
+                var p = Path(); p.move(to: CGPoint(x:x,y:y1)); p.addLine(to: CGPoint(x:x,y:y2))
+                ctx.stroke(p, with: .color(color.opacity(alpha)), lineWidth: thick)
+            }
+            let lx = inset+thick/2; let rx = w-inset-thick/2
+            vline(lx, inset, h-inset); hline(inset, inset+thick/2, inset+arm); hline(inset, h-inset-thick/2, inset+arm)
+            vline(rx, inset, h-inset); hline(w-inset, inset+thick/2, w-inset-arm); hline(w-inset, h-inset-thick/2, w-inset-arm)
+            if glowing {
+                let gc = Color(red:0.30,green:0.75,blue:1.0)
+                for a in [0.12, 0.08] {
+                    var p1 = Path(); p1.move(to:CGPoint(x:lx,y:inset)); p1.addLine(to:CGPoint(x:lx,y:h-inset))
+                    ctx.stroke(p1, with:.color(gc.opacity(a)), lineWidth: thick+4)
+                    var p2 = Path(); p2.move(to:CGPoint(x:rx,y:inset)); p2.addLine(to:CGPoint(x:rx,y:h-inset))
+                    ctx.stroke(p2, with:.color(gc.opacity(a)), lineWidth: thick+4)
                 }
             }
         }
@@ -137,85 +105,152 @@ private struct BracketHighlight: View {
     }
 }
 
-// MARK: - Custom Tab Bar
+// MARK: - Custom Tab Bar with drag-to-reorder
 struct AnimatedTabBar: View {
     @Binding var selected: Int
     @ObservedObject var toastMgr = ToastManager.shared
     @ObservedObject private var store = SettingsStore.shared
 
-    private let tabs: [(icon: String, selectedIcon: String, label: String)] = [
-        ("house",                    "house.fill",                      "Лента"),
-        ("bubble.left.and.bubble.right", "bubble.left.and.bubble.right.fill", "Сообщения"),
-        ("person.2",                 "person.2.fill",                   "Друзья"),
-        ("person",                   "person.fill",                     "Профиль"),
-        ("gearshape",                 "gearshape.fill",                  "Настройки"),
-        ("building.columns", "building.columns.fill", "Сообщества"),
+    // Tab definitions (fixed, indexed 0-5)
+    let tabDefs: [(icon: String, label: String)] = [
+        ("house.fill",                      "Лента"),
+        ("bubble.left.and.bubble.right.fill","Сообщения"),
+        ("person.2.fill",                   "Друзья"),
+        ("person.fill",                     "Профиль"),
+        ("gearshape.fill",                  "Настройки"),
+        ("building.columns.fill",           "Сообщества"),
     ]
 
+    // Persisted order: each element is a tab index 0-5
+    @State private var tabOrder: [Int] = loadTabOrder()
+
+    // Drag state
+    @State private var draggingIdx: Int? = nil      // position in tabOrder being dragged
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging = false
+
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(tabs.indices, id: \.self) { i in
-                AnimatedTabItem(
-                    icon: tabs[i].icon,
-                    label: tabs[i].label,
-                    isSelected: selected == i,
-                    badgeCount: 0,
-                    tabIndex: i
-                )
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
-                .onTapGesture { if selected != i { selected = i } }
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { v in
-                            let tabW = UIScreen.main.bounds.width / CGFloat(tabs.count)
-                            let newIdx = Int((v.location.x + tabW * CGFloat(i)) / tabW)
-                            let clamped = max(0, min(tabs.count-1, newIdx))
-                            if clamped != selected { selected = clamped }
+        GeometryReader { geo in
+            let tabW = geo.size.width / CGFloat(tabOrder.count)
+            ZStack(alignment: .bottom) {
+                HStack(spacing: 0) {
+                    ForEach(Array(tabOrder.enumerated()), id: \.offset) { pos, tabIdx in
+                        let isSelected = selected == tabIdx
+                        let isDraggedItem = draggingIdx == pos
+
+                        AnimatedTabItem(
+                            icon:       tabDefs[tabIdx].icon,
+                            label:      tabDefs[tabIdx].label,
+                            isSelected: isSelected,
+                            badgeCount: 0,
+                            tabIndex:   tabIdx
+                        )
+                        .frame(width: tabW)
+                        .opacity(isDraggedItem ? 0.0 : 1.0)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if !isDragging { selected = tabIdx }
                         }
-                )
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.4)
+                                .onEnded { _ in
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    withAnimation(.spring(response: 0.3)) {
+                                        draggingIdx = pos
+                                        isDragging = true
+                                        dragOffset = 0
+                                    }
+                                }
+                        )
+                    }
+                }
+
+                // Floating dragged item
+                if let dragPos = draggingIdx {
+                    let tabIdx = tabOrder[dragPos]
+                    AnimatedTabItem(
+                        icon:       tabDefs[tabIdx].icon,
+                        label:      tabDefs[tabIdx].label,
+                        isSelected: selected == tabIdx,
+                        badgeCount: 0,
+                        tabIndex:   tabIdx
+                    )
+                    .frame(width: tabW)
+                    .scaleEffect(1.12)
+                    .shadow(color: Color.cyberBlue.opacity(0.4), radius: 12)
+                    .offset(x: tabW * CGFloat(dragPos) - geo.size.width/2 + tabW/2 + dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { val in
+                                dragOffset = val.translation.width
+                                // Calculate target position
+                                let currentX = tabW * CGFloat(dragPos) + dragOffset
+                                let targetPos = max(0, min(tabOrder.count - 1, Int((currentX + tabW/2) / tabW)))
+                                if targetPos != dragPos {
+                                    withAnimation(.spring(response: 0.25)) {
+                                        var newOrder = tabOrder
+                                        newOrder.remove(at: dragPos)
+                                        newOrder.insert(tabIdx, at: targetPos)
+                                        tabOrder = newOrder
+                                        draggingIdx = targetPos
+                                        dragOffset = currentX - tabW * CGFloat(targetPos)
+                                    }
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                            }
+                            .onEnded { _ in
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    dragOffset = 0
+                                    draggingIdx = nil
+                                    isDragging = false
+                                }
+                                saveTabOrder(tabOrder)
+                                // Update selected to match new position
+                            }
+                    )
+                }
             }
         }
-        .padding(.top, 8)
+        .frame(height: 60)
+        .padding(.top, 6)
         .padding(.bottom, 26)
-        .background(
-            ZStack {
-                if store.liquidGlass {
-                    Rectangle().fill(.ultraThinMaterial)
-                    VStack(spacing: 0) {
-                        Rectangle()
-                            .fill(LinearGradient(
-                                colors: [Color.white.opacity(0.16), Color.white.opacity(0.03), Color.clear],
-                                startPoint: .top, endPoint: .bottom))
-                            .frame(height: 12)
-                        Spacer()
-                    }
-                    Color.cyberBlue.opacity(0.03)
-                } else {
-                    Color.surface
-                }
-                // Top border line with blue gradient
-                VStack {
+        .background(tabBarBackground)
+    }
+
+    @ViewBuilder private var tabBarBackground: some View {
+        ZStack {
+            if store.liquidGlass {
+                Rectangle().fill(.ultraThinMaterial)
+                VStack(spacing: 0) {
                     Rectangle()
                         .fill(LinearGradient(
-                            colors: [Color.white.opacity(store.liquidGlass ? 0.20 : 0),
-                                     Color.cyberBlue.opacity(0.30), Color.clear],
-                            startPoint: .leading, endPoint: .trailing))
-                        .frame(height: 0.5)
+                            colors: [Color.white.opacity(0.16), Color.white.opacity(0.03), Color.clear],
+                            startPoint: .top, endPoint: .bottom))
+                        .frame(height: 12)
                     Spacer()
                 }
+                Color.cyberBlue.opacity(0.03)
+            } else {
+                Color.surface
             }
-        )
+            VStack {
+                Rectangle()
+                    .fill(LinearGradient(
+                        colors: [Color.white.opacity(store.liquidGlass ? 0.20 : 0),
+                                 Color.cyberBlue.opacity(0.30), Color.clear],
+                        startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 0.5)
+                Spacer()
+            }
+        }
     }
 }
 
-// MARK: - MainTabView using AnimatedTabBar
+// MARK: - MainTabView
 struct AnimatedMainTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var selectedTab = 0
     @ObservedObject private var store = SettingsStore.shared
-
-    private let tabCount = 6
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -228,16 +263,20 @@ struct AnimatedMainTabView: View {
                 tabView(for: 5).opacity(selectedTab == 5 ? 1 : 0).allowsHitTesting(selectedTab == 5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 80)
+            .padding(.bottom, 92)
             .gesture(
                 DragGesture(minimumDistance: 40, coordinateSpace: .local)
                     .onEnded { val in
                         guard abs(val.translation.width) > abs(val.translation.height) * 1.5 else { return }
+                        let order = loadTabOrder()
+                        let curPos = order.firstIndex(of: selectedTab) ?? selectedTab
                         withAnimation(.easeInOut(duration: 0.22)) {
                             if val.translation.width < 0 {
-                                selectedTab = min(selectedTab + 1, tabCount - 1)
+                                let nextPos = min(curPos + 1, 5)
+                                selectedTab = order[nextPos]
                             } else {
-                                selectedTab = max(selectedTab - 1, 0)
+                                let prevPos = max(curPos - 1, 0)
+                                selectedTab = order[prevPos]
                             }
                         }
                     }

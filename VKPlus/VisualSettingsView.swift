@@ -109,7 +109,7 @@ struct VisualTab: View {
                         Divider().background(Color.divider).padding(.leading, 50)
 
                         // Style picker
-                        ClockStylePicker(selected: $s.clockStyle, ampm: s.clockAmPm, seconds: s.clockSeconds, colorHex: s.clockColorHex)
+                        ClockStylePicker(selected: $s.clockStyle, ampm: s.clockAmPm, sec: s.clockSeconds, colorHex: s.clockColorHex)
 
                         Divider().background(Color.divider).padding(.leading, 14)
 
