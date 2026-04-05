@@ -193,6 +193,16 @@ struct ChatView: View {
                             }
                         }
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if !store.hideSender && peerId > 0 {
+                            Task {
+                                if let u = try? await VKAPIClient.shared.getUserById("\(peerId)") {
+                                    await MainActor.run { profileUser = u; showProfile = true }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -219,7 +229,11 @@ struct ChatView: View {
         .navigationDestination(isPresented: $showProfile) {
             if let u = profileUser { FriendProfileView(user: u) }
         }
-        .task { await load() }
+        .task {
+            await load()
+            startMessagePolling()
+        }
+        .onDisappear { messagePollingTask?.cancel(); messagePollingTask = nil }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
             Button("Фото") { showPhotoPicker = true }
             Button("Видео") { showVideoPicker = true }
@@ -352,16 +366,19 @@ struct ChatView: View {
 
     @ViewBuilder private func replyBanner(_ msg: VKMessage) -> some View {
         HStack(spacing: 8) {
-            Rectangle().fill(Color(red:0.5,green:0.4,blue:0.9)).frame(width: 3).clipShape(Capsule())
-            VStack(alignment: .leading, spacing: 1) {
+            Rectangle().fill(Color(red:0.5,green:0.4,blue:0.9)).frame(width: 2).clipShape(Capsule())
+            VStack(alignment: .leading, spacing: 0) {
                 Text("Ответ").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color(red:0.5,green:0.4,blue:0.9))
-                Text(msg.text.isEmpty ? "Вложение" : String(msg.text.prefix(60)))
+                Text(msg.text.isEmpty ? "Вложение" : String(msg.text.prefix(80)))
                     .font(.system(size: 12)).foregroundStyle(Color(red:0.6,green:0.7,blue:0.85)).lineLimit(1)
             }
             Spacer()
-            Button { replyMsg = nil } label: { Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color(red:0.4,green:0.5,blue:0.65)) }
+            Button { replyMsg = nil } label: {
+                Image(systemName: "xmark").font(.system(size: 11)).foregroundStyle(Color(red:0.4,green:0.5,blue:0.65))
+            }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8).background(Color(red:0.07,green:0.08,blue:0.13))
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(Color(red:0.07,green:0.08,blue:0.13))
     }
 
     @ViewBuilder private func attachBanner(_ att: String) -> some View {
@@ -396,6 +413,29 @@ struct ChatView: View {
     }
 
     // MARK: - Load
+    private func startMessagePolling() {
+        messagePollingTask?.cancel()
+        messagePollingTask = Task {
+            // Poll every 3 seconds for new messages
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard !Task.isCancelled else { break }
+                let fresh = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
+                if !fresh.isEmpty {
+                    let newIds = Set(fresh.map { $0.id })
+                    let oldIds = Set(messages.map { $0.id })
+                    if newIds != oldIds {
+                        await MainActor.run {
+                            withAnimation(.easeIn(duration: 0.2)) {
+                                messages = fresh
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func load() async {
         isLoading = true
         if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id; myAvatar = me.photo100; TokenStorage.shared.cachedUserId = me.id }
@@ -690,6 +730,7 @@ private struct BubbleView: View {
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
     @State private var profileUserId: Int? = nil
+    @State private var messagePollingTask: Task<Void, Never>? = nil
 
     @State private var photoViewerIndex = 0
     @State private var showVideoPlayer = false
@@ -772,9 +813,10 @@ private struct BubbleView: View {
                             Text(timeStr(msg.date))
                                 .font(.system(size: 10))
                                 .foregroundStyle(tc)
+                                .fixedSize()
                             readIndicator
                         }
-                        .layoutPriority(-1)
+                        .fixedSize()
                         .alignmentGuide(.bottom) { d in d[.bottom] }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
@@ -845,16 +887,37 @@ private struct BubbleView: View {
     }
 
     @ViewBuilder private func quotedView(_ q: VKMessage) -> some View {
-        HStack(spacing: 5) {
-            Rectangle().fill(isMe ? Color.cyberBlue : Color(red:0.5,green:0.4,blue:0.9))
-                .frame(width: 2).clipShape(Capsule())
-            Text(q.text.isEmpty ? "Вложение" : String(q.text.prefix(50)))
-                .font(.system(size: 12))
-                .foregroundStyle(isMe ? Color(red:0.6,green:0.8,blue:1.0) : Color(red:0.65,green:0.60,blue:0.90))
-                .lineLimit(2)
+        let accentColor = isMe ? Color.cyberBlue : Color(red:0.5,green:0.4,blue:0.9)
+        let senderName: String = {
+            if q.fromId == myId { return "Вы" }
+            if let u = avatarMap[q.fromId] { let _ = u; return allMsgs.first(where:{$0.fromId==q.fromId})?.fromId.description ?? "" }
+            return "id\(q.fromId)"
+        }()
+        HStack(spacing: 6) {
+            Rectangle().fill(accentColor).frame(width: 2).clipShape(Capsule())
+            VStack(alignment: .leading, spacing: 1) {
+                // Show quoted sender name from avatarMap context
+                Text(q.fromId == myId ? "Вы" : (allMsgs.first(where:{$0.fromId==q.fromId && $0.fromId != myId})
+                    .map { _ in "" } ?? ""))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(accentColor)
+                    .hidden()
+                // Attachment icon if no text
+                if q.text.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "paperclip").font(.system(size: 11)).foregroundStyle(accentColor.opacity(0.7))
+                        Text("Вложение").font(.system(size: 12)).foregroundStyle(accentColor.opacity(0.7))
+                    }
+                } else {
+                    Text(String(q.text.prefix(80)))
+                        .font(.system(size: 12))
+                        .foregroundStyle(isMe ? Color(red:0.7,green:0.85,blue:1.0) : Color(red:0.75,green:0.70,blue:0.95))
+                        .lineLimit(2)
+                }
+            }
         }
         .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(isMe ? Color(red:0.05,green:0.18,blue:0.35) : Color(red:0.07,green:0.08,blue:0.14))
+        .background(isMe ? Color(red:0.06,green:0.20,blue:0.38) : Color(red:0.09,green:0.09,blue:0.16))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 

@@ -167,6 +167,11 @@ final class SettingsStore: ObservableObject {
     @Published var weatherFog:  Bool { didSet { ud.set(weatherFog,  forKey: "weather_fog")  } }
     @Published var showPet:        Bool   { didSet { ud.set(showPet,        forKey: "show_pet")         } }
     @Published var petType:        String { didSet { ud.set(petType,        forKey: "pet_type")         } }
+    // Avatar shape settings
+    @Published var avatarShape:    String { didSet { ud.set(avatarShape,    forKey: "avatar_shape")     } } // "circle" | "nft" | "rhomb"
+    @Published var avatarGlow:     Bool   { didSet { ud.set(avatarGlow,     forKey: "avatar_glow")      } }
+    @Published var avatarColorHex: String { didSet { ud.set(avatarColorHex, forKey: "avatar_color_hex") } } // "auto" or hex
+    @Published var avatarGlowIntensity: Double { didSet { ud.set(avatarGlowIntensity, forKey: "avatar_glow_intensity") } }
     @Published var showClock:       Bool   { didSet { ud.set(showClock,       forKey: "show_clock")       } }
     @Published var clockStyle:      String { didSet { ud.set(clockStyle,      forKey: "clock_style")      } }
     @Published var clockAmPm:       Bool   { didSet { ud.set(clockAmPm,       forKey: "clock_ampm")       } }
@@ -214,6 +219,10 @@ final class SettingsStore: ObservableObject {
         weatherFog       = ud.bool(forKey: "weather_fog")
         showPet          = ud.bool(forKey: "show_pet")
         petType          = ud.string(forKey: "pet_type")         ?? "cat"
+        avatarShape      = ud.string(forKey: "avatar_shape")     ?? "circle"
+        avatarGlow       = ud.bool(forKey: "avatar_glow")
+        avatarColorHex   = ud.string(forKey: "avatar_color_hex") ?? "auto"
+        avatarGlowIntensity = ud.object(forKey: "avatar_glow_intensity") == nil ? 0.6 : ud.double(forKey: "avatar_glow_intensity")
         showClock        = ud.bool(forKey: "show_clock")
         clockStyle       = ud.string(forKey: "clock_style")      ?? "digital"
         clockAmPm        = ud.bool(forKey: "clock_ampm")

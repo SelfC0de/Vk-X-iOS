@@ -641,6 +641,8 @@ struct SFAnimIcon: View {
         // ── Circle / dashed ──────────────────────
         case "circle":
             drawCircleDash(ctx, w, h, color, p, on, alpha)
+        case "paintpalette": drawPalette(ctx, w, h, color, p, on, alpha)
+        case "sparkle":      drawSparkle(ctx, w, h, color, p, on, alpha)
         // ── Paw / pet ─────────────────────────────
         case "pawprint":    drawPaw(ctx, w, h, color, p, on, alpha)
         // ── Cloud / weather ───────────────────────
@@ -1186,6 +1188,50 @@ struct SFAnimIcon: View {
         }
     }
 
+
+
+    // 🎨 Palette
+    private func drawPalette(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        var oval = Path()
+        oval.addEllipse(in: CGRect(x:w*0.08, y:h*0.18, width:w*0.75, height:h*0.65))
+        ctx.fill(oval, with: .color(c.opacity(on ? 0.20:0.12)))
+        ctx.stroke(oval, with: .color(c.opacity(a)), lineWidth: 1.6)
+        // Color dots
+        let dots: [(CGFloat,CGFloat,Color)] = [
+            (0.26,0.36,Color.red),(0.50,0.28,Color.yellow),
+            (0.68,0.38,Color.green),(0.62,0.60,Color.blue),(0.34,0.62,Color(r:0xFF,g:0x80,b:0xFF))
+        ]
+        for (i,(dx,dy,dc)) in dots.enumerated() {
+            let r: CGFloat = on ? 5 + CGFloat(sin(p+Double(i)*0.9))*1.5 : 4
+            ctx.fill(Path(ellipseIn: CGRect(x:w*dx-r,y:h*dy-r,width:r*2,height:r*2)),
+                     with: .color(dc.opacity(on ? 0.9:0.6)))
+        }
+        // Thumb hole
+        ctx.fill(Path(ellipseIn: CGRect(x:w*0.70,y:h*0.58,width:w*0.16,height:h*0.18)),
+                 with: .color(Color(red:0.05,green:0.06,blue:0.10).opacity(0.9)))
+        ctx.stroke(Path(ellipseIn: CGRect(x:w*0.70,y:h*0.58,width:w*0.16,height:h*0.18)),
+                   with: .color(c.opacity(a*0.6)), lineWidth: 1.2)
+    }
+
+    // ✨ Sparkles
+    private func drawSparkle(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        let centers: [(CGFloat,CGFloat,CGFloat)] = [(0.50,0.50,1.0),(0.22,0.28,0.6),(0.76,0.30,0.55),(0.30,0.72,0.55),(0.72,0.72,0.60)]
+        for (i,(sx,sy,sc)) in centers.enumerated() {
+            let s2 = CGFloat(sc) * (on ? 1.0+0.3*CGFloat(abs(sin(p+Double(i)*0.9))) : 0.8)
+            let arms = i == 0 ? 4 : 4
+            let baseLen: CGFloat = (i==0 ? w*0.32 : w*0.16) * s2
+            for j in 0..<arms {
+                let angle = Double(j) * .pi / Double(arms) * 2 + (on ? p*0.2 : 0)
+                var arm = Path()
+                arm.move(to: CGPoint(x:w*sx, y:h*sy))
+                arm.addLine(to: CGPoint(x:w*sx+baseLen*CGFloat(cos(angle)), y:h*sy+baseLen*CGFloat(sin(angle))))
+                ctx.stroke(arm, with: .color(c.opacity(a * Double(sc))), lineWidth: i==0 ? 2.0:1.2)
+            }
+            let cr: CGFloat = on ? 3*s2+CGFloat(sin(p*2+Double(i)))*1 : 2.5*s2
+            ctx.fill(Path(ellipseIn: CGRect(x:w*sx-cr,y:h*sy-cr,width:cr*2,height:cr*2)),
+                     with: .color(c.opacity(a)))
+        }
+    }
 
     // 🐾 Paw — bouncing paw print
     private func drawPaw(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {

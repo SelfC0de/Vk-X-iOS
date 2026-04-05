@@ -101,22 +101,32 @@ struct MessagesView: View {
                 }
             } }
         .task { await load() }
+        .task(id: UUID()) {
+            // Periodic background refresh every 5s
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                await fetchDialogs()
+            }
+        }
         .refreshable { await refresh() }
     }
 
     private func load() async {
         isLoading = true
-        // Keep existing dialogs on error — don't blank screen
+        await fetchDialogs()
+        isLoading = false
+    }
+
+    private func fetchDialogs() async {
+        // Keep existing on error
         if let fresh = try? await VKAPIClient.shared.getDialogs(), !fresh.isEmpty {
             dialogs = fresh
         } else if dialogs.isEmpty {
-            // Retry once after short delay
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             if let retry = try? await VKAPIClient.shared.getDialogs() {
                 dialogs = retry
             }
         }
-        isLoading = false
     }
 
     private func refresh() async {
