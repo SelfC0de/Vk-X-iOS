@@ -435,7 +435,7 @@ struct SettingsSectionCard<Content: View>: View {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8).fill(iconColor.opacity(0.15)).frame(width: 34, height: 34)
-                        Image(systemName: icon).font(.system(size: 16)).foregroundStyle(iconColor)
+                        SFAnimIcon(name: icon, color: iconColor, size: 20, isOn: expanded)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
@@ -468,7 +468,7 @@ struct SettingsToggle: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Image(systemName: icon).foregroundStyle(Color.cyberBlue).frame(width: 22)
+                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val).frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                     if !subtitle.isEmpty {
@@ -489,7 +489,7 @@ struct SettingsNavRow<Dest: View>: View {
     var body: some View {
         NavigationLink(destination: destination()) {
             HStack(spacing: 12) {
-                Image(systemName: icon).foregroundStyle(Color.cyberBlue).frame(width: 22)
+                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val).frame(width: 22)
                 Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                 Spacer()
                 Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12, weight: .semibold))

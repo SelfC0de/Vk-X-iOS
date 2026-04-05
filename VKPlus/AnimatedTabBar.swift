@@ -13,39 +13,40 @@ struct AnimatedTabItem: View {
     @State private var prevSelected = false
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             ZStack(alignment: .topTrailing) {
                 // Glow capsule
                 if isSelected {
                     Capsule()
                         .fill(Color.cyberBlue.opacity(glowing ? 0.18 : 0.08))
-                        .frame(width: 46, height: 30)
-                        .scaleEffect(glowing ? 1.06 : 0.94)
+                        .frame(width: 36, height: 24)
+                        .scaleEffect(glowing ? 1.05 : 0.95)
                         .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowing)
                 }
 
                 // Custom animated icon
-                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 26)
-                    .scaleEffect(bouncing ? 1.18 : 1.0)
+                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 22)
+                    .scaleEffect(bouncing ? 1.15 : 1.0)
                     .animation(.spring(response: 0.28, dampingFraction: 0.42), value: bouncing)
 
                 // Badge
                 if badgeCount > 0 {
                     Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 7, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 4).padding(.vertical, 2)
+                        .padding(.horizontal, 3).padding(.vertical, 1)
                         .background(Color.errorRed)
                         .clipShape(Capsule())
-                        .offset(x: 12, y: -4)
+                        .offset(x: 10, y: -3)
                 }
             }
-            .frame(width: 46, height: 30)
+            .frame(width: 36, height: 24)
 
             Text(label)
-                .font(.system(size: 9.5, weight: isSelected ? .semibold : .regular))
+                .font(.system(size: 8.5, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
                 .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
         .onChange(of: isSelected) { _, newVal in
             if newVal && !prevSelected {
@@ -100,8 +101,8 @@ struct AnimatedTabBar: View {
                 )
             }
         }
-        .padding(.top, 6)
-        .padding(.bottom, 22)
+        .padding(.top, 4)
+        .padding(.bottom, 20)
         .background(
             ZStack {
                 if store.liquidGlass {
