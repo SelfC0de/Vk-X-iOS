@@ -7,6 +7,14 @@ struct VKPlusApp: App {
 
     init() {
         URLProtocol.registerClass(PrivacyURLProtocol.self)
+        // Start offline manager immediately on launch if enabled
+        let s = SettingsStore.shared
+        if s.forceOffline || s.ghostOnline {
+            ForceOfflineManager.shared.start()
+        }
+        if s.typePush {
+            TypingPushManager.shared.start()
+        }
     }
 
     var body: some Scene {
@@ -15,19 +23,32 @@ struct VKPlusApp: App {
                 .preferredColorScheme(colorScheme)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     let needOffline = store.forceOffline || store.ghostOnline
-                    if needOffline { ForceOfflineManager.shared.start() }
-                    else { ForceOfflineManager.shared.stop() }
+                    if needOffline {
+                        ForceOfflineManager.shared.start()
+                        // Immediately set offline — don't wait for timer
+                        Task { try? await VKAPIClient.shared.setOffline() }
+                    } else {
+                        ForceOfflineManager.shared.stop()
+                    }
                     ScreenProtector.shared.apply(enabled: store.blurScreen)
                     if store.typePush { TypingPushManager.shared.start() }
                 }
                 .onChange(of: store.forceOffline) { _, val in
                     let needOffline = val || store.ghostOnline
-                    if needOffline { ForceOfflineManager.shared.start() }
-                    else { ForceOfflineManager.shared.stop() }
+                    if needOffline {
+                        ForceOfflineManager.shared.start()
+                        Task { try? await VKAPIClient.shared.setOffline() }
+                    } else {
+                        ForceOfflineManager.shared.stop()
+                    }
                 }
                 .onChange(of: store.ghostOnline) { _, val in
-                    if val { ForceOfflineManager.shared.start() }
-                    else if !store.forceOffline { ForceOfflineManager.shared.stop() }
+                    if val {
+                        ForceOfflineManager.shared.start()
+                        Task { try? await VKAPIClient.shared.setOffline() }
+                    } else if !store.forceOffline {
+                        ForceOfflineManager.shared.stop()
+                    }
                 }
                 .onChange(of: store.typePush) { _, val in
                     if val {

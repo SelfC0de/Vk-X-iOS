@@ -48,7 +48,7 @@
 		DCE5EB82E3FB4FC9B6ADA1A9={isa=PBXBuildFile;fileRef=B395A646C2054730A24C4621;};
 		CC2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = CC2233445566778899AABB00 /* CommunitiesView.swift */; };
 				DD2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = DD2233445566778899AABB00 /* AnimatedIcons.swift */; };
-				AA3344556677889900AABB11 /* TypingPushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3344556677889900AABB00 /* TypingPushManager.swift */; };
+				AA3344556677889900AABB11={isa=PBXBuildFile;fileRef=AA3344556677889900AABB00 /* TypingPushManager.swift */;settings={};};
 		/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -93,7 +93,7 @@
 		B395A646C2054730A24C4621={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=AVFoundation.framework;path=System/Library/Frameworks/AVFoundation.framework;sourceTree=SDKROOT;};
 		CC2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunitiesView.swift; sourceTree = "<group>"; };
 				DD2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedIcons.swift; sourceTree = "<group>"; };
-				AA3344556677889900AABB00 /* TypingPushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypingPushManager.swift; sourceTree = "<group>"; };
+				AA3344556677889900AABB00={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=TypingPushManager.swift;sourceTree="<group>";};
 		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
