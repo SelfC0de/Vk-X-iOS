@@ -57,5 +57,13 @@ struct ContentView: View {
                 EmptyView()
             }
         }
+        .onChange(of: authVM.isAuthenticated) { _, isAuth in
+            if !isAuth {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    phase    = .auth
+                    showMain = false
+                }
+            }
+        }
     }
 }
