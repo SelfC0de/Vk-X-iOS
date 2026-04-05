@@ -182,7 +182,37 @@ struct RegDateCheckerView: View {
                 .replacingOccurrences(of: "\"", with: "")
         }
 
-        return RegDateResult(name: "id\(id)", avatarUrl: avatarUrl,
+        // Extract name from HTML — smm-e.ru shows it in various places
+        var smmName = "id\(id)"
+        // Try <title>Дата регистрации — Имя Фамилия</title>
+        if let tr = html.range(of: #"<title>[^<]+"#, options: .regularExpression) {
+            let t = String(html[tr])
+                .replacingOccurrences(of: "<title>", with: "")
+                .replacingOccurrences(of: "Дата регистрации ВК — ", with: "")
+                .replacingOccurrences(of: "Дата регистрации — ", with: "")
+                .trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty && !t.lowercased().contains("smm") && t.count > 1 { smmName = t }
+        }
+        // Try <h1> or <h2> with name
+        if smmName == "id\(id)" {
+            for tag in ["h1", "h2", "h3"] {
+                if let nr = html.range(of: "<\(tag)>([^<]+)</\(tag)>", options: .regularExpression) {
+                    let nm = String(html[nr])
+                        .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+                        .trimmingCharacters(in: .whitespaces)
+                    if nm.count > 2 && !nm.lowercased().contains("smm") && !nm.lowercased().contains("регистрац") {
+                        smmName = nm; break
+                    }
+                }
+            }
+        }
+        // Fallback: fetch name from VK API
+        if smmName == "id\(id)", let numId = Int(id) {
+            if let user = try? await VKAPIClient.shared.getUserById("\(numId)") {
+                smmName = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return RegDateResult(name: smmName, avatarUrl: avatarUrl,
                              regDate: regDate, elapsed: elapsed,
                              isVerified: false, profileUrl: "https://vk.com/\(id)")
     }
@@ -203,11 +233,35 @@ struct RegDateCheckerView: View {
 
         // Name + verified flag
         var name = "id\(id)"; var isVerified = false
-        if let nr = html.range(of: #"<h3>[^<]+(<img[^>]*>)?</h3>"#, options: .regularExpression) {
-            let block = String(html[nr])
-            isVerified = block.contains("verified")
-            name = block.replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
-                         .trimmingCharacters(in: .whitespaces)
+        // Try multiple patterns for name extraction
+        let namePatterns = [
+            #"<h[123][^>]*>([^<]+(?:<[^/][^>]*>[^<]*</[^>]+>)?[^<]*)</h[123]>"#,
+            #"<h[123]>([^<]+)</h[123]>"#,
+            #"class="name[^"]*">([^<]+)<"#,
+            #"<strong>([^<]+)</strong>"#,
+        ]
+        for pattern in namePatterns {
+            if let nr = html.range(of: pattern, options: .regularExpression) {
+                let block = String(html[nr])
+                isVerified = block.contains("verified") || block.contains("✓")
+                let extracted = block
+                    .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .trimmingCharacters(in: .whitespaces)
+                if extracted.count > 2 && !extracted.lowercased().contains("regvk")
+                    && !extracted.lowercased().contains("дата") && !extracted.lowercased().contains("регистрац") {
+                    name = extracted; break
+                }
+            }
+        }
+        // Fallback: VK API
+        if name == "id\(id)" {
+            let numericId = id.trimmingCharacters(in: .letters) // handle "id12345" → "12345"
+            let lookupId = id.hasPrefix("id") ? String(id.dropFirst(2)) : id
+            if let user = try? await VKAPIClient.shared.getUserById(lookupId) {
+                name = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
+                isVerified = user.isVerified
+            }
         }
 
         // Date

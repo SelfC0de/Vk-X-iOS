@@ -900,17 +900,34 @@ struct SFAnimIcon: View {
     }
 
     private func drawPerson(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
-        let hr: CGFloat = h*0.16
-        ctx.fill(Path(ellipseIn: CGRect(x:w/2-hr,y:h*0.08,width:hr*2,height:hr*2)), with: .color(c.opacity(a)))
+        let hasXmark = name.contains("xmark") || name.contains("slash")
+        // Head — pulsates when selected and no xmark
+        let hr: CGFloat = on && !hasXmark ? h*0.17 + CGFloat(sin(p*1.2))*1.5 : h*0.16
+        ctx.fill(Path(ellipseIn: CGRect(x:w/2-hr,y:h*0.07,width:hr*2,height:hr*2)), with: .color(c.opacity(a)))
+        // Body arc
         var body = Path()
-        body.move(to: CGPoint(x:w*0.10,y:h*0.92))
-        body.addQuadCurve(to: CGPoint(x:w*0.90,y:h*0.92), control: CGPoint(x:w/2,y:h*(on ? 0.48+0.04*CGFloat(sin(p)):0.52)))
-        ctx.stroke(body, with: .color(c.opacity(a)), lineWidth: 2.0)
-        if name.contains("xmark") || name.contains("slash") {
-            var x = Path(); x.move(to: CGPoint(x:w*0.60,y:h*0.30)); x.addLine(to: CGPoint(x:w*0.88,y:h*0.58))
-            var x2 = Path(); x2.move(to: CGPoint(x:w*0.88,y:h*0.30)); x2.addLine(to: CGPoint(x:w*0.60,y:h*0.58))
-            ctx.stroke(x, with: .color(c.opacity(a)), lineWidth: 1.8)
-            ctx.stroke(x2, with: .color(c.opacity(a)), lineWidth: 1.8)
+        body.move(to: CGPoint(x:w*0.08,y:h*0.92))
+        body.addQuadCurve(to: CGPoint(x:w*0.92,y:h*0.92),
+                          control: CGPoint(x:w/2,y:h*(on ? 0.48+0.05*CGFloat(sin(p)):0.52)))
+        ctx.stroke(body, with: .color(c.opacity(a)), lineWidth: 2.2)
+        if hasXmark {
+            // Animated X that rotates/pulses
+            let xScale: CGFloat = on ? 1.0 + 0.12*CGFloat(abs(sin(p*1.5))) : 1.0
+            let xCx = w*0.74, xCy = h*0.42
+            let xR = h*0.14 * xScale
+            // Red tinted circle background
+            ctx.fill(Path(ellipseIn: CGRect(x:xCx-xR*1.1,y:xCy-xR*1.1,width:xR*2.2,height:xR*2.2)),
+                     with: .color(Color(red:1,green:0.25,blue:0.25).opacity(on ? 0.25+0.10*sin(p*2) : 0.15)))
+            // X lines
+            let angle: Double = on ? p * 0.3 : 0
+            var gCtx = ctx
+            gCtx.translateBy(x:xCx, y:xCy)
+            gCtx.rotate(by:.radians(angle))
+            gCtx.translateBy(x:-xCx, y:-xCy)
+            var x1 = Path(); x1.move(to:CGPoint(x:xCx-xR,y:xCy-xR)); x1.addLine(to:CGPoint(x:xCx+xR,y:xCy+xR))
+            var x2 = Path(); x2.move(to:CGPoint(x:xCx+xR,y:xCy-xR)); x2.addLine(to:CGPoint(x:xCx-xR,y:xCy+xR))
+            gCtx.stroke(x1, with: .color(Color(red:1,green:0.3,blue:0.3).opacity(a)), lineWidth: 2.0)
+            gCtx.stroke(x2, with: .color(Color(red:1,green:0.3,blue:0.3).opacity(a)), lineWidth: 2.0)
         }
     }
 
@@ -1041,12 +1058,60 @@ struct SFAnimIcon: View {
     }
 
     private func drawArrow(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
-        let dy: CGFloat = on ? CGFloat(sin(p))*3 : 0
-        var arr = Path()
-        arr.move(to: CGPoint(x:w*0.20,y:h*0.50+dy)); arr.addLine(to: CGPoint(x:w*0.80,y:h*0.50+dy))
-        arr.move(to: CGPoint(x:w*0.58,y:h*0.28+dy)); arr.addLine(to: CGPoint(x:w*0.80,y:h*0.50+dy))
-        arr.addLine(to: CGPoint(x:w*0.58,y:h*0.72+dy))
-        ctx.stroke(arr, with: .color(c.opacity(a)), lineWidth: 2.0)
+        let isUturn = name.contains("uturn")
+        if isUturn {
+            // U-turn arrow for "bypass short URL" — loops around and shoots forward
+            let progress: Double = on ? p.truncatingRemainder(dividingBy: .pi * 2) / (.pi * 2) : 0.5
+            // Curved U path
+            var uturn = Path()
+            uturn.move(to: CGPoint(x:w*0.20, y:h*0.72))
+            uturn.addLine(to: CGPoint(x:w*0.20, y:h*0.38))
+            uturn.addArc(center: CGPoint(x:w*0.50,y:h*0.38), radius: w*0.30,
+                         startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+            uturn.addLine(to: CGPoint(x:w*0.80, y:h*0.72))
+            ctx.stroke(uturn, with: .color(c.opacity(on ? 0.55 : 0.40)), lineWidth: 1.8)
+            // Animated dot travelling along the U path
+            if on {
+                let t = CGFloat(progress)
+                let dotX: CGFloat
+                let dotY: CGFloat
+                if t < 0.25 {
+                    // going up left side
+                    dotX = w*0.20
+                    dotY = h*(0.72 - t*4*(0.72-0.38))
+                } else if t < 0.75 {
+                    // arc across top
+                    let arcT = (t - 0.25) / 0.50
+                    let angle = Double.pi - arcT * Double.pi
+                    dotX = w*0.50 + w*0.30*CGFloat(cos(angle))
+                    dotY = h*0.38 - w*0.30*CGFloat(abs(sin(angle)))*0.5
+                } else {
+                    // going down right side
+                    let dt = (t - 0.75) / 0.25
+                    dotX = w*0.80
+                    dotY = h*(0.38 + dt*(0.72-0.38))
+                }
+                ctx.fill(Path(ellipseIn: CGRect(x:dotX-4,y:dotY-4,width:8,height:8)),
+                         with: .color(c.opacity(0.9)))
+            }
+            // Arrow tip at end
+            var tip = Path()
+            let tipDy: CGFloat = on ? CGFloat(sin(p*2))*2 : 0
+            tip.move(to: CGPoint(x:w*0.64, y:h*0.58+tipDy))
+            tip.addLine(to: CGPoint(x:w*0.80, y:h*0.72+tipDy))
+            tip.addLine(to: CGPoint(x:w*0.94, y:h*0.58+tipDy))
+            ctx.stroke(tip, with: .color(c.opacity(a)), lineWidth: 2.0)
+        } else {
+            // Regular arrow — bounces right
+            let dx: CGFloat = on ? CGFloat(sin(p))*3 : 0
+            var arr = Path()
+            arr.move(to: CGPoint(x:w*0.15+dx, y:h*0.50))
+            arr.addLine(to: CGPoint(x:w*0.78+dx, y:h*0.50))
+            arr.move(to: CGPoint(x:w*0.56+dx, y:h*0.26))
+            arr.addLine(to: CGPoint(x:w*0.80+dx, y:h*0.50))
+            arr.addLine(to: CGPoint(x:w*0.56+dx, y:h*0.74))
+            ctx.stroke(arr, with: .color(c.opacity(a)), lineWidth: 2.0)
+        }
     }
 
     private func drawWrench(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {

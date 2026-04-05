@@ -18,6 +18,7 @@ struct VKPlusApp: App {
                     if needOffline { ForceOfflineManager.shared.start() }
                     else { ForceOfflineManager.shared.stop() }
                     ScreenProtector.shared.apply(enabled: store.blurScreen)
+                    if store.typePush { TypingPushManager.shared.start() }
                 }
                 .onChange(of: store.forceOffline) { _, val in
                     let needOffline = val || store.ghostOnline
@@ -27,6 +28,14 @@ struct VKPlusApp: App {
                 .onChange(of: store.ghostOnline) { _, val in
                     if val { ForceOfflineManager.shared.start() }
                     else if !store.forceOffline { ForceOfflineManager.shared.stop() }
+                }
+                .onChange(of: store.typePush) { _, val in
+                    if val {
+                        TypingPushManager.shared.requestPermission()
+                        TypingPushManager.shared.start()
+                    } else {
+                        TypingPushManager.shared.stop()
+                    }
                 }
                 .onChange(of: store.blurScreen) { _, val in
                     ScreenProtector.shared.apply(enabled: val)
