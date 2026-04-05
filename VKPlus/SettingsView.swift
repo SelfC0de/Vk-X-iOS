@@ -468,7 +468,7 @@ struct SettingsToggle: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val).frame(width: 22)
+                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val.wrappedValue).frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                     if !subtitle.isEmpty {
@@ -489,7 +489,7 @@ struct SettingsNavRow<Dest: View>: View {
     var body: some View {
         NavigationLink(destination: destination()) {
             HStack(spacing: 12) {
-                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val).frame(width: 22)
+                SFAnimIcon(name: icon, color: Color.cyberBlue, size: 20, isOn: val.wrappedValue).frame(width: 22)
                 Text(title).foregroundStyle(Color.onSurface).font(.system(size: 14))
                 Spacer()
                 Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12, weight: .semibold))

@@ -51,60 +51,133 @@ struct AnimatedTabIcon: View {
         }
     }
 
-    // ── 0: Feed — animated lines scrolling ──
+    // ── 0: Feed — newspaper with sparkle ──
     private func drawFeed(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                           _ fg: Color, _ phase: Double, _ sel: Bool) {
-        let lw: CGFloat = sel ? 2.0 : 1.6
-        let offsets: [CGFloat] = [0.18, 0.38, 0.56, 0.74, 0.90]
-        for (i, yf) in offsets.enumerated() {
-            let y = h * yf
-            let wave: CGFloat = sel ? CGFloat(sin(phase + Double(i) * 0.6)) * 1.5 : 0
-            let shortLine = i == 2 || i == 4
-            var p = Path()
-            p.move(to:    CGPoint(x: w*0.08, y: y + wave))
-            p.addLine(to: CGPoint(x: shortLine ? w*0.62 : w*0.92, y: y + wave))
-            let alpha = sel ? 0.6 + 0.4 * sin(phase + Double(i) * 0.9) : 1.0
-            ctx.stroke(p, with: .color(fg.opacity(alpha)), lineWidth: lw)
+        // Newspaper page outline
+        let page = Path(roundedRect: CGRect(x:w*0.10,y:h*0.08,width:w*0.80,height:h*0.84), cornerRadius: 3)
+        ctx.fill(page, with: .color(fg.opacity(sel ? 0.14 : 0.08)))
+        ctx.stroke(page, with: .color(fg.opacity(sel ? 0.9 : 0.55)), lineWidth: 1.6)
+
+        // Big headline bar
+        let headline = CGRect(x:w*0.17,y:h*0.16,width:w*0.66,height:h*0.18)
+        ctx.fill(Path(roundedRect: headline, cornerRadius: 2),
+                 with: .color(fg.opacity(sel ? 0.35 + 0.15*sin(phase) : 0.25)))
+
+        // Photo placeholder left
+        ctx.fill(Path(roundedRect: CGRect(x:w*0.17,y:h*0.40,width:w*0.28,height:h*0.24), cornerRadius: 2),
+                 with: .color(fg.opacity(sel ? 0.22 : 0.15)))
+
+        // Text lines right
+        for i in 0..<3 {
+            let ly = h*(0.42 + CGFloat(i)*0.09)
+            var l = Path(); l.move(to:CGPoint(x:w*0.52,y:ly)); l.addLine(to:CGPoint(x:w*(i==2 ? 0.72:0.83),y:ly))
+            ctx.stroke(l, with: .color(fg.opacity(sel ? 0.55 : 0.35)), lineWidth: 1.2)
         }
-        // small square left (post avatar)
-        let sq = CGRect(x: w*0.08, y: h*0.28, width: h*0.22, height: h*0.22)
-        let sqPath = Path(roundedRect: sq, cornerRadius: 2)
-        ctx.fill(sqPath, with: .color(fg.opacity(sel ? 0.85 : 0.7)))
+
+        // Bottom lines
+        for i in 0..<2 {
+            let ly = h*(0.72 + CGFloat(i)*0.10)
+            var l = Path(); l.move(to:CGPoint(x:w*0.17,y:ly)); l.addLine(to:CGPoint(x:w*(i==1 ? 0.60:0.83),y:ly))
+            ctx.stroke(l, with: .color(fg.opacity(sel ? 0.45 : 0.30)), lineWidth: 1.2)
+        }
+
+        // Sparkle star top-right when selected
+        if sel {
+            let sx = w*0.82, sy = h*0.20
+            let sr: CGFloat = 4 + CGFloat(sin(phase*2))*1.5
+            for i in 0..<4 {
+                let a = Double(i) * .pi / 2 + phase * 0.5
+                var sp = Path()
+                sp.move(to: CGPoint(x:sx,y:sy))
+                sp.addLine(to: CGPoint(x:sx+sr*CGFloat(cos(a)),y:sy+sr*CGFloat(sin(a))))
+                ctx.stroke(sp, with: .color(fg.opacity(0.9)), lineWidth: 1.5)
+            }
+        }
     }
 
-    // ── 1: Messages — bubble with typing dots ──
+    // ── 1: Messages — two stacked bubbles, one pulses ──
     private func drawMessages(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                               _ fg: Color, _ phase: Double, _ sel: Bool) {
-        // Bubble body
-        let bubble = Path(roundedRect: CGRect(x:w*0.08,y:h*0.10,width:w*0.78,height:h*0.62), cornerRadius: h*0.18)
-        ctx.fill(bubble, with: .color(fg.opacity(sel ? 0.15 : 0.12)))
-        ctx.stroke(bubble, with: .color(fg.opacity(sel ? 0.9 : 0.6)), lineWidth: 1.6)
-        // Tail
-        var tail = Path()
-        tail.move(to: CGPoint(x:w*0.22, y:h*0.72))
-        tail.addLine(to: CGPoint(x:w*0.12, y:h*0.90))
-        tail.addLine(to: CGPoint(x:w*0.38, y:h*0.72))
-        tail.closeSubpath()
-        ctx.fill(tail, with: .color(fg.opacity(sel ? 0.9 : 0.6)))
-        // Typing dots
-        let dotY = h * 0.41
+        // Bottom bubble (incoming, smaller)
+        let b2 = Path(roundedRect: CGRect(x:w*0.28,y:h*0.52,width:w*0.64,height:h*0.32), cornerRadius: h*0.12)
+        ctx.fill(b2, with: .color(fg.opacity(sel ? 0.18 : 0.10)))
+        ctx.stroke(b2, with: .color(fg.opacity(sel ? 0.65 : 0.40)), lineWidth: 1.3)
+        // Tail bottom-right
+        var t2 = Path()
+        t2.move(to: CGPoint(x:w*0.82,y:h*0.84)); t2.addLine(to: CGPoint(x:w*0.92,y:h*0.94))
+        t2.addLine(to: CGPoint(x:w*0.72,y:h*0.84)); t2.closeSubpath()
+        ctx.fill(t2, with: .color(fg.opacity(sel ? 0.65 : 0.40)))
+
+        // Top bubble (outgoing, main)
+        let scale: CGFloat = sel ? 1.0 + 0.03*CGFloat(sin(phase)) : 1.0
+        let bw = w*0.72*scale, bh = h*0.36*scale
+        let bx = w*0.08, by = h*0.10
+        let b1 = Path(roundedRect: CGRect(x:bx,y:by,width:bw,height:bh), cornerRadius: h*0.14)
+        ctx.fill(b1, with: .color(fg.opacity(sel ? 0.22 : 0.14)))
+        ctx.stroke(b1, with: .color(fg.opacity(sel ? 0.95 : 0.60)), lineWidth: 1.6)
+        // Tail top-left
+        var t1 = Path()
+        t1.move(to: CGPoint(x:w*0.14,y:h*0.46)); t1.addLine(to: CGPoint(x:w*0.06,y:h*0.56))
+        t1.addLine(to: CGPoint(x:w*0.28,y:h*0.46)); t1.closeSubpath()
+        ctx.fill(t1, with: .color(fg.opacity(sel ? 0.95 : 0.60)))
+
+        // Dots inside top bubble
         for i in 0..<3 {
-            let dotX = w * (0.28 + Double(i) * 0.18)
-            let bounce: CGFloat = sel ? CGFloat(sin(phase + Double(i) * 1.1)) * 3 : 0
-            let r: CGFloat = sel ? 2.8 : 2.4
-            ctx.fill(Path(ellipseIn: CGRect(x:dotX-r, y:dotY-r+bounce, width:r*2,height:r*2)),
-                     with: .color(fg.opacity(sel ? 0.9 : 0.7)))
+            let dx = w*(0.22 + Double(i)*0.16)
+            let bounce: CGFloat = sel ? CGFloat(sin(phase + Double(i)*1.1))*2.5 : 0
+            let r: CGFloat = 2.8
+            ctx.fill(Path(ellipseIn: CGRect(x:dx-r,y:h*0.25-r+bounce,width:r*2,height:r*2)),
+                     with: .color(fg.opacity(sel ? 0.95 : 0.65)))
         }
     }
 
-    // ── 2: Friends — two figures, one waves ──
+    // ── 2: Friends — two silhouettes with heart pulse ──
     private func drawFriends(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                              _ fg: Color, _ phase: Double, _ sel: Bool) {
-        // Left figure
-        drawStickFigure(ctx, cx: w*0.32, headY: h*0.18, h: h, fg: fg, armWave: 0, sel: sel)
-        // Right figure (waves when selected)
-        let wave = sel ? CGFloat(sin(phase)) * 14 : 0
-        drawStickFigure(ctx, cx: w*0.68, headY: h*0.18, h: h, fg: fg, armWave: wave, sel: sel)
+        // Left figure (slightly smaller = friend)
+        drawPersonSilhouette(ctx, cx: w*0.32, w: w, h: h, fg: fg, scale: 0.88, sel: sel, phase: 0)
+        // Right figure (bigger, main user)
+        drawPersonSilhouette(ctx, cx: w*0.68, w: w, h: h, fg: fg, scale: 1.0, sel: sel, phase: phase)
+
+        // Connection heart between them
+        if sel {
+            let hx = w*0.50, hy = h*0.48
+            let hs: CGFloat = 4 + CGFloat(abs(sin(phase*1.5)))*2.5
+            var heart = Path()
+            heart.move(to: CGPoint(x:hx, y:hy+hs*0.6))
+            heart.addCurve(to: CGPoint(x:hx-hs, y:hy-hs*0.4),
+                           control1: CGPoint(x:hx-hs*1.2,y:hy+hs*0.8),
+                           control2: CGPoint(x:hx-hs*1.4,y:hy-hs*0.8))
+            heart.addArc(center: CGPoint(x:hx-hs*0.5,y:hy-hs*0.5), radius: hs*0.5,
+                         startAngle: .degrees(200), endAngle: .degrees(0), clockwise: false)
+            heart.addArc(center: CGPoint(x:hx+hs*0.5,y:hy-hs*0.5), radius: hs*0.5,
+                         startAngle: .degrees(180), endAngle: .degrees(-20), clockwise: false)
+            heart.addCurve(to: CGPoint(x:hx, y:hy+hs*0.6),
+                           control1: CGPoint(x:hx+hs*1.4,y:hy-hs*0.8),
+                           control2: CGPoint(x:hx+hs*1.2,y:hy+hs*0.8))
+            ctx.fill(heart, with: .color(fg.opacity(0.7+0.3*sin(phase*2))))
+        }
+    }
+
+    private func drawPersonSilhouette(_ ctx: GraphicsContext, cx: CGFloat, w: CGFloat, h: CGFloat,
+                                       fg: Color, scale: CGFloat, sel: Bool, phase: Double) {
+        let hr = h*0.14*scale
+        let wave: CGFloat = sel && scale == 1.0 ? CGFloat(sin(phase))*8 : 0
+        ctx.fill(Path(ellipseIn: CGRect(x:cx-hr,y:h*0.10,width:hr*2,height:hr*2)), with: .color(fg.opacity(sel ? 1.0:0.7)))
+        var body = Path()
+        body.move(to: CGPoint(x:cx-w*0.10*scale, y:h*0.90))
+        body.addQuadCurve(to: CGPoint(x:cx+w*0.10*scale, y:h*0.90),
+                          control: CGPoint(x:cx, y:h*0.55))
+        ctx.stroke(body, with: .color(fg.opacity(sel ? 1.0:0.65)), lineWidth: 2.0*scale)
+        // Waving arm
+        if sel && scale == 1.0 && wave != 0 {
+            var arm = Path()
+            arm.move(to: CGPoint(x:cx, y:h*0.52))
+            arm.addQuadCurve(to: CGPoint(x:cx+w*0.20, y:h*0.38+wave*0.3),
+                             control: CGPoint(x:cx+w*0.12, y:h*0.44))
+            ctx.stroke(arm, with: .color(fg.opacity(0.8)), lineWidth: 1.6)
+        }
     }
 
     private func drawStickFigure(_ ctx: GraphicsContext, cx: CGFloat, headY: CGFloat,
@@ -136,102 +209,115 @@ struct AnimatedTabIcon: View {
         ctx.stroke(legs, with: .color(fg.opacity(alpha)), lineWidth: lw)
     }
 
-    // ── 3: Profile — person silhouette, pulsing ring ──
+    // ── 3: Profile — ID card with photo ──
     private func drawProfile(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                              _ fg: Color, _ phase: Double, _ sel: Bool) {
-        if sel {
-            let ring = CGFloat(1.0 + 0.08 * sin(phase))
-            let rr = h * 0.46 * ring
-            ctx.stroke(Path(ellipseIn: CGRect(x:w/2-rr, y:h/2-rr, width:rr*2, height:rr*2)),
-                       with: .color(fg.opacity(0.25 + 0.15 * sin(phase))), lineWidth: 1.5)
+        // Card body
+        let card = CGRect(x:w*0.08,y:h*0.14,width:w*0.84,height:h*0.72)
+        ctx.fill(Path(roundedRect: card, cornerRadius: 6),
+                 with: .color(fg.opacity(sel ? 0.15 : 0.08)))
+        ctx.stroke(Path(roundedRect: card, cornerRadius: 6),
+                   with: .color(fg.opacity(sel ? 0.95 : 0.60)), lineWidth: 1.7)
+
+        // Photo circle left
+        let photoR: CGFloat = sel ? h*0.17 + CGFloat(sin(phase))*1.5 : h*0.17
+        let photoX = w*0.26, photoY = h*0.50
+        ctx.fill(Path(ellipseIn: CGRect(x:photoX-photoR,y:photoY-photoR,width:photoR*2,height:photoR*2)),
+                 with: .color(fg.opacity(sel ? 0.30 : 0.20)))
+        ctx.stroke(Path(ellipseIn: CGRect(x:photoX-photoR,y:photoY-photoR,width:photoR*2,height:photoR*2)),
+                   with: .color(fg.opacity(sel ? 0.90 : 0.55)), lineWidth: 1.4)
+        // Head inside photo
+        let hr: CGFloat = photoR*0.38
+        ctx.fill(Path(ellipseIn: CGRect(x:photoX-hr,y:photoY-photoR*0.55,width:hr*2,height:hr*2)),
+                 with: .color(fg.opacity(sel ? 0.80 : 0.50)))
+
+        // Name lines right
+        for i in 0..<3 {
+            let lx1 = w*0.44, lx2 = w*(i==0 ? 0.82 : i==1 ? 0.72 : 0.60)
+            let ly = h*(0.40 + CGFloat(i)*0.13)
+            let lw: CGFloat = i == 0 ? 1.8 : 1.2
+            let pulse = sel && i == 0 ? 0.75 + 0.25*sin(phase) : (sel ? 0.55 : 0.35)
+            var l = Path(); l.move(to:CGPoint(x:lx1,y:ly)); l.addLine(to:CGPoint(x:lx2,y:ly))
+            ctx.stroke(l, with: .color(fg.opacity(pulse)), lineWidth: lw)
         }
-        // Head
-        let hr: CGFloat = h * 0.20
-        ctx.fill(Path(ellipseIn: CGRect(x:w/2-hr, y:h*0.10, width:hr*2, height:hr*2)),
-                 with: .color(fg.opacity(sel ? 1.0 : 0.8)))
-        // Shoulders arc
-        var sh = Path()
-        sh.move(to: CGPoint(x:w*0.08, y:h*0.95))
-        sh.addQuadCurve(to: CGPoint(x:w*0.92, y:h*0.95), control: CGPoint(x:w/2, y:h*0.50))
-        ctx.stroke(sh, with: .color(fg.opacity(sel ? 1.0 : 0.8)), lineWidth: 2.0)
+
+        // Verified badge bottom-right if selected
+        if sel {
+            let bx = w*0.78, by = h*0.74
+            let br: CGFloat = 6 + CGFloat(sin(phase*2))*1
+            ctx.fill(Path(ellipseIn: CGRect(x:bx-br,y:by-br,width:br*2,height:br*2)),
+                     with: .color(fg.opacity(0.9)))
+            var chk = Path()
+            chk.move(to: CGPoint(x:bx-br*0.45,y:by))
+            chk.addLine(to: CGPoint(x:bx-br*0.05,y:by+br*0.45))
+            chk.addLine(to: CGPoint(x:bx+br*0.55,y:by-br*0.40))
+            ctx.stroke(chk, with: .color(Color(red:0.05,green:0.05,blue:0.15).opacity(0.9)), lineWidth: 1.5)
+        }
     }
 
-    // ── 4: Settings — spinning gear ──
+    // ── 4: Settings — three sliders with animated thumb ──
     private func drawSettings(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                               _ fg: Color, _ phase: Double, _ sel: Bool) {
-        let cx = w/2, cy = h/2
-        let outerR: CGFloat = h * 0.38
-        let innerR: CGFloat = h * 0.22
-        let teeth = 8
-        // Rotate when selected
-        var gearCtx = ctx
-        if sel {
-            gearCtx.translateBy(x: cx, y: cy)
-            gearCtx.rotate(by: .radians(phase * 0.4))
-            gearCtx.translateBy(x: -cx, y: -cy)
+        // 3 horizontal sliders
+        let sliderYs: [CGFloat] = [0.22, 0.50, 0.78]
+        // Animated thumb positions
+        let thumbPos: [CGFloat] = [
+            sel ? 0.35 + 0.35*CGFloat(sin(phase + 0.0)) : 0.55,
+            sel ? 0.60 + 0.20*CGFloat(sin(phase + 1.0)) : 0.35,
+            sel ? 0.45 + 0.30*CGFloat(sin(phase + 2.0)) : 0.65,
+        ]
+        for (i, yf) in sliderYs.enumerated() {
+            let y = h * yf
+            let tx = w * (0.12 + thumbPos[i] * 0.76)
+            // Track
+            var track = Path(); track.move(to:CGPoint(x:w*0.12,y:y)); track.addLine(to:CGPoint(x:w*0.88,y:y))
+            ctx.stroke(track, with: .color(fg.opacity(sel ? 0.30 : 0.20)), lineWidth: 2.5)
+            // Active left portion
+            var active = Path(); active.move(to:CGPoint(x:w*0.12,y:y)); active.addLine(to:CGPoint(x:tx,y:y))
+            ctx.stroke(active, with: .color(fg.opacity(sel ? 0.85 : 0.55)), lineWidth: 2.5)
+            // Thumb circle
+            let tr: CGFloat = sel ? 5.0 + CGFloat(sin(phase + Double(i)*1.2))*0.8 : 4.5
+            ctx.fill(Path(ellipseIn: CGRect(x:tx-tr,y:y-tr,width:tr*2,height:tr*2)),
+                     with: .color(fg.opacity(sel ? 1.0 : 0.75)))
+            ctx.stroke(Path(ellipseIn: CGRect(x:tx-tr,y:y-tr,width:tr*2,height:tr*2)),
+                       with: .color(fg.opacity(0.15)), lineWidth: 1)
         }
-        // Gear teeth path
-        var gear = Path()
-        for i in 0..<teeth {
-            let a1 = Double(i) / Double(teeth) * .pi * 2 + (sel ? 0 : 0)
-            let a2 = a1 + .pi / Double(teeth) * 0.6
-            let a3 = a2 + .pi / Double(teeth) * 0.4
-            let a4 = a3 + .pi / Double(teeth) * 0.6
-            func pt(_ r: CGFloat, _ a: Double) -> CGPoint {
-                CGPoint(x: cx + r * CGFloat(cos(a)), y: cy + r * CGFloat(sin(a)))
-            }
-            if i == 0 { gear.move(to: pt(innerR, a1)) }
-            gear.addLine(to: pt(innerR, a1))
-            gear.addLine(to: pt(outerR, a2))
-            gear.addLine(to: pt(outerR, a3))
-            gear.addLine(to: pt(innerR, a4))
-        }
-        gear.closeSubpath()
-        gearCtx.fill(gear, with: .color(fg.opacity(sel ? 0.25 : 0.18)))
-        gearCtx.stroke(gear, with: .color(fg.opacity(sel ? 0.95 : 0.65)), lineWidth: 1.5)
-        // Center hole
-        let hole = CGRect(x:cx-innerR*0.5, y:cy-innerR*0.5, width:innerR, height:innerR)
-        gearCtx.fill(Path(ellipseIn: hole), with: .color(fg.opacity(sel ? 0.9 : 0.6)))
     }
 
-    // ── 5: Communities — building with windows that light up ──
+    // ── 5: Communities — group of people with signal rings ──
     private func drawCommunity(_ ctx: GraphicsContext, _ w: CGFloat, _ h: CGFloat,
                                _ fg: Color, _ phase: Double, _ sel: Bool) {
-        // Building outline
-        let bx = w*0.15, by = h*0.25, bw = w*0.70, bh = h*0.68
-        let bldg = Path(roundedRect: CGRect(x:bx,y:by,width:bw,height:bh), cornerRadius: 2)
-        ctx.fill(bldg, with: .color(fg.opacity(sel ? 0.15 : 0.10)))
-        ctx.stroke(bldg, with: .color(fg.opacity(sel ? 0.9 : 0.6)), lineWidth: 1.6)
-        // Roof triangle
-        var roof = Path()
-        roof.move(to: CGPoint(x:w*0.10, y:h*0.27))
-        roof.addLine(to: CGPoint(x:w/2,   y:h*0.06))
-        roof.addLine(to: CGPoint(x:w*0.90, y:h*0.27))
-        roof.closeSubpath()
-        ctx.fill(roof, with: .color(fg.opacity(sel ? 0.20 : 0.12)))
-        ctx.stroke(roof, with: .color(fg.opacity(sel ? 0.9 : 0.6)), lineWidth: 1.6)
-        // Windows — 2×3 grid, light up sequentially
-        let winW: CGFloat = bw*0.20, winH: CGFloat = bh*0.16
-        let cols = 3, rows = 2
-        for row in 0..<rows {
-            for col in 0..<cols {
-                let wx = bx + bw*(0.12 + CGFloat(col)*0.30)
-                let wy = by + bh*(0.15 + CGFloat(row)*0.38)
-                let winRect = CGRect(x:wx, y:wy, width:winW, height:winH)
-                let idx = row * cols + col
-                let lit = sel ? 0.4 + 0.6 * max(0, sin(phase - Double(idx)*0.5)) : 0.0
-                ctx.fill(Path(roundedRect: winRect, cornerRadius: 1.5),
-                         with: .color(Color(red:1,green:0.85,blue:0.3).opacity(sel ? lit : 0.0)))
-                ctx.stroke(Path(roundedRect: winRect, cornerRadius: 1.5),
-                           with: .color(fg.opacity(sel ? 0.7 : 0.5)), lineWidth: 1.0)
+        // Three people silhouettes
+        let positions: [(CGFloat, CGFloat, CGFloat)] = [
+            (w*0.26, h*0.22, 0.78),  // left, slightly back
+            (w*0.50, h*0.12, 1.0),   // center, front
+            (w*0.74, h*0.22, 0.78),  // right, slightly back
+        ]
+
+        for (i, (cx, headY, sc)) in positions.enumerated() {
+            let hr = h*0.13*sc
+            let waveAnim: CGFloat = sel && i == 1 ? CGFloat(sin(phase + Double(i)*0.7))*2 : 0
+            ctx.fill(Path(ellipseIn: CGRect(x:cx-hr,y:headY-waveAnim*0.3,width:hr*2,height:hr*2)),
+                     with: .color(fg.opacity(sel ? 0.9*sc : 0.6*sc)))
+            var body = Path()
+            body.move(to: CGPoint(x:cx-h*0.09*sc, y:h*0.88))
+            body.addQuadCurve(to: CGPoint(x:cx+h*0.09*sc, y:h*0.88),
+                              control: CGPoint(x:cx, y:h*(0.50 - waveAnim*0.005)))
+            ctx.stroke(body, with: .color(fg.opacity(sel ? 0.9*sc : 0.55*sc)), lineWidth: 1.8*sc)
+        }
+
+        // Signal rings expanding from center top
+        if sel {
+            let rx = w*0.50, ry = h*0.06
+            for i in 0..<3 {
+                let progress = (phase * 0.5 + Double(i) * 0.7).truncatingRemainder(dividingBy: .pi * 2)
+                let normalised = progress / (.pi * 2)
+                let r = h * 0.08 * CGFloat(1 + normalised * 2.5)
+                let alpha = 0.8 * (1.0 - normalised)
+                ctx.stroke(Path(ellipseIn: CGRect(x:rx-r,y:ry-r*0.5,width:r*2,height:r)),
+                           with: .color(fg.opacity(alpha)), lineWidth: 1.2)
             }
         }
-        // Door
-        let dr = CGRect(x:w/2-winW*0.6, y:by+bh*0.68, width:winW*1.2, height:bh*0.32)
-        ctx.fill(Path(roundedRect: dr, cornerRadius: 2),
-                 with: .color(fg.opacity(sel ? 0.30 : 0.20)))
-        ctx.stroke(Path(roundedRect: dr, cornerRadius: 2),
-                   with: .color(fg.opacity(sel ? 0.8 : 0.5)), lineWidth: 1.0)
     }
 }
 
@@ -598,7 +684,7 @@ struct SFAnimIcon: View {
 
     private func drawEye(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double, slashed: Bool) {
         let blink = on ? abs(CGFloat(sin(p * 0.8))) : 1.0
-        let eyeH = h * 0.28 * blink
+        let _ = h * 0.28 * blink
         var eye = Path()
         eye.addArc(center: CGPoint(x:w/2,y:h/2), radius: w*0.36, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
         eye.addArc(center: CGPoint(x:w/2,y:h/2), radius: w*0.36, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
@@ -808,8 +894,8 @@ struct SFAnimIcon: View {
         bolt.addLine(to: CGPoint(x:w*0.68, y:h*0.46))
         bolt.addLine(to: CGPoint(x:w*0.50, y:h*0.46))
         bolt.closeSubpath()
-        let glow = on ? c.opacity(0.30 + 0.20*sin(p)) : c.opacity(0.15)
-        ctx.fill(bolt, with: glow)
+        let glowAlpha = on ? 0.30 + 0.20*sin(p) : 0.15
+        ctx.fill(bolt, with: .color(c.opacity(glowAlpha)))
         ctx.stroke(bolt, with: .color(c.opacity(a)), lineWidth: 1.5)
     }
 
@@ -871,7 +957,6 @@ struct SFAnimIcon: View {
     }
 
     private func drawSim(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
-        let card = CGRect(x:w*0.25,y:h*0.10,width:w*0.50,height:h*0.80)
         var s = Path()
         s.move(to: CGPoint(x:w*0.44,y:h*0.10)); s.addLine(to: CGPoint(x:w*0.25,y:h*0.10))
         s.addLine(to: CGPoint(x:w*0.25,y:h*0.90)); s.addLine(to: CGPoint(x:w*0.75,y:h*0.90))
@@ -890,8 +975,8 @@ struct SFAnimIcon: View {
             let outer = CGRect(x:w*ox,y:h*oy,width:w*0.32,height:h*0.32)
             let inner = CGRect(x:w*(ox+0.08),y:h*(oy+0.08),width:w*0.16,height:h*0.16)
             ctx.stroke(Path(roundedRect: outer, cornerRadius: 3), with: .color(c.opacity(a)), lineWidth: 1.4)
-            let fill = on ? c.opacity(0.5+0.4*sin(p)) : c.opacity(0.6)
-            ctx.fill(Path(roundedRect: inner, cornerRadius: 2), with: fill)
+            let fillAlpha = on ? 0.5+0.4*sin(p) : 0.6
+            ctx.fill(Path(roundedRect: inner, cornerRadius: 2), with: .color(c.opacity(fillAlpha)))
         }
         // Data dots
         for row in 0..<3 {
@@ -934,7 +1019,6 @@ struct SFAnimIcon: View {
             arc.addArc(center: CGPoint(x:w/2,y:h*0.26), radius: r, startAngle: .degrees(250), endAngle: .degrees(290), clockwise: false)
             var arcL = Path()
             arcL.addArc(center: CGPoint(x:w/2,y:h*0.26), radius: r, startAngle: .degrees(250), endAngle: .degrees(290), clockwise: true)
-            let fullArc = Path(ellipseIn: CGRect(x:w/2-r,y:h*0.26-r,width:r*2,height:r*2))
             ctx.stroke(
                 { var p2 = Path(); p2.addArc(center:CGPoint(x:w/2,y:h*0.26),radius:r,startAngle:.degrees(40),endAngle:.degrees(140),clockwise:false); return p2 }(),
                 with: .color(c.opacity(pulse)), lineWidth: 1.6)
@@ -983,7 +1067,8 @@ struct SFAnimIcon: View {
         ctx.stroke(Path(roundedRect: env, cornerRadius: 4), with: .color(c.opacity(a)), lineWidth: 1.6)
         var flap = Path()
         flap.move(to: CGPoint(x:w*0.08,y:h*0.22))
-        flap.addLine(to: CGPoint(x:w/2,y:h*(0.22+on ? 0.26+0.04*CGFloat(sin(p)):0.28)))
+        let flapY: CGFloat = on ? 0.26+0.04*CGFloat(sin(p)) : 0.28
+        flap.addLine(to: CGPoint(x:w/2,y:h*(0.22+flapY)))
         flap.addLine(to: CGPoint(x:w*0.92,y:h*0.22))
         ctx.stroke(flap, with: .color(c.opacity(a)), lineWidth: 1.6)
     }

@@ -19,13 +19,13 @@ struct AnimatedTabItem: View {
                 if isSelected {
                     Capsule()
                         .fill(Color.cyberBlue.opacity(glowing ? 0.18 : 0.08))
-                        .frame(width: 36, height: 24)
+                        .frame(width: 40, height: 26)
                         .scaleEffect(glowing ? 1.05 : 0.95)
                         .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowing)
                 }
 
                 // Custom animated icon
-                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 22)
+                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 24)
                     .scaleEffect(bouncing ? 1.15 : 1.0)
                     .animation(.spring(response: 0.28, dampingFraction: 0.42), value: bouncing)
 
@@ -40,10 +40,10 @@ struct AnimatedTabItem: View {
                         .offset(x: 10, y: -3)
                 }
             }
-            .frame(width: 36, height: 24)
+            .frame(width: 40, height: 26)
 
             Text(label)
-                .font(.system(size: 8.5, weight: isSelected ? .semibold : .regular))
+                .font(.system(size: 9.0, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -101,8 +101,8 @@ struct AnimatedTabBar: View {
                 )
             }
         }
-        .padding(.top, 4)
-        .padding(.bottom, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 24)
         .background(
             ZStack {
                 if store.liquidGlass {
@@ -157,7 +157,7 @@ struct AnimatedMainTabView: View {
                 tabView(for: 5).opacity(selectedTab == 5 ? 1 : 0).allowsHitTesting(selectedTab == 5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, store.liquidGlass ? 72 : 74)
+            .padding(.bottom, store.liquidGlass ? 76 : 78)
             .gesture(
                 DragGesture(minimumDistance: 40, coordinateSpace: .local)
                     .onEnded { val in
