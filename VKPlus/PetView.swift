@@ -336,7 +336,7 @@ private struct PetSprite: View {
         let ac = species.accentColor
 
         // Waddle: side-to-side tilt
-        let tilt = idle ? 0.0 : sin(phase * .pi * 2) * 8.0
+        let _ = idle ? 0.0 : sin(phase * .pi * 2) * 8.0  // waddle unused
         let legL = idle ? 0.0 : max(0, sin(phase * .pi * 2))
         let legR = idle ? 0.0 : max(0, -sin(phase * .pi * 2))
 

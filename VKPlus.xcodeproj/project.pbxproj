@@ -46,7 +46,8 @@
 		D0CF4B1BF47C4331A822B1B7={isa=PBXBuildFile;fileRef=DFE17E18553B426CA346FA30;};
 		E092D1100CCB4B839BBBF116={isa=PBXBuildFile;fileRef=24306AF3BEF945C18A815538;};
 		DCE5EB82E3FB4FC9B6ADA1A9={isa=PBXBuildFile;fileRef=B395A646C2054730A24C4621;};
-/* End PBXBuildFile section */
+		CC2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = CC2233445566778899AABB00 /* CommunitiesView.swift */; };
+		/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		3EEACAC82B7249DA8FEE5DE8={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AboutView.swift;sourceTree="<group>";};
@@ -88,7 +89,8 @@
 		24306AF3BEF945C18A815538={isa=PBXFileReference;lastKnownFileType=folder.assetcatalog;path=Assets.xcassets;sourceTree="<group>";};
 		ACFF0DCEDA344291A8465598={isa=PBXFileReference;explicitFileType=wrapper.application;includeInIndex=0;path=VKPlus.app;sourceTree=BUILT_PRODUCTS_DIR;};
 		B395A646C2054730A24C4621={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=AVFoundation.framework;path=System/Library/Frameworks/AVFoundation.framework;sourceTree=SDKROOT;};
-/* End PBXFileReference section */
+		CC2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunitiesView.swift; sourceTree = "<group>"; };
+		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		E87F3CFF1DDF4E439F2B86D2={isa=PBXFrameworksBuildPhase;buildActionMask=2147483647;files=(DCE5EB82E3FB4FC9B6ADA1A9,);runOnlyForDeploymentPostprocessing=0;};

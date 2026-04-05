@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - CommunitiesView
 struct CommunitiesView: View {
     @StateObject private var vm = CommunitiesViewModel()
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         ZStack {
@@ -35,22 +36,22 @@ struct CommunitiesView: View {
             TextField("Поиск сообществ...", text: $vm.query)
                 .foregroundStyle(Color.onSurface).font(.system(size: 15))
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
-                .focused($vm.searchFocused)
+                .focused($searchFocused)
                 .onChange(of: vm.query) { _, v in vm.onQueryChange(v) }
             if !vm.query.isEmpty {
                 Button { vm.query = ""; vm.searchMode = false; vm.searchResults = [] } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)
                 }
             }
-            if vm.searchFocused || !vm.query.isEmpty {
-                Button("Отмена") { vm.query = ""; vm.searchFocused = false; vm.searchMode = false; vm.searchResults = [] }
+            if searchFocused || !vm.query.isEmpty {
+                Button("Отмена") { vm.query = ""; searchFocused = false; vm.searchMode = false; vm.searchResults = [] }
                     .font(.system(size: 14)).foregroundStyle(Color.cyberBlue)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(Color.surface)
-        .animation(.easeInOut(duration: 0.2), value: vm.searchFocused)
+        .animation(.easeInOut(duration: 0.2), value: searchFocused)
     }
 
     // MARK: Content
@@ -100,7 +101,6 @@ final class CommunitiesViewModel: ObservableObject {
     @Published var searchMode   = false
     @Published var isLoading    = false
     @Published var isSearching  = false
-    @FocusState  var searchFocused: Bool
 
     private var searchTask: Task<Void, Never>? = nil
 
