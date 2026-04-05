@@ -418,21 +418,80 @@ struct ChatView: View {
     private func startMessagePolling() {
         messagePollingTask?.cancel()
         messagePollingTask = Task {
-            // Poll every 3 seconds for new messages
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
-                guard !Task.isCancelled else { break }
-                let fresh = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
-                if !fresh.isEmpty {
-                    let newIds = Set(fresh.map { $0.id })
-                    let oldIds = Set(messages.map { $0.id })
-                    if newIds != oldIds {
-                        await MainActor.run {
-                            withAnimation(.easeIn(duration: 0.2)) {
-                                messages = fresh
+            await runLongPoll()
+        }
+    }
+
+    // VK LongPoll — receives push events instantly, no 3s delay
+    private func runLongPoll() async {
+        var server: LongPollServer
+        do {
+            server = try await VKAPIClient.shared.getLongPollServer()
+        } catch {
+            // LongPoll init failed — fall back to 3s polling
+            await fallbackPolling()
+            return
+        }
+
+        var ts = server.ts
+
+        while !Task.isCancelled {
+            do {
+                let events = try await VKAPIClient.shared.pollLongPoll(server: server, ts: ts)
+                ts = events.ts
+
+                // Check for new message events in this peerId
+                // LongPoll update code 4 = new message, field[3] = peer_id
+                var hasNewMessage = false
+                for upd in events.updates {
+                    guard let code = upd.first as? Int else { continue }
+                    if code == 4 {
+                        // upd[1]=msg_id, upd[3]=peer_id
+                        let updatePeerId = upd.count > 3 ? (upd[3] as? Int ?? 0) : 0
+                        if updatePeerId == peerId { hasNewMessage = true; break }
+                    }
+                }
+
+                if hasNewMessage {
+                    // Fetch only new messages (last 20 enough)
+                    let fresh = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
+                    if !fresh.isEmpty {
+                        let currentMaxId = messages.map { $0.id }.max() ?? 0
+                        let freshMaxId   = fresh.map { $0.id }.max() ?? 0
+                        if freshMaxId > currentMaxId || fresh.count != messages.count {
+                            await MainActor.run {
+                                withAnimation(.easeIn(duration: 0.15)) {
+                                    messages = fresh
+                                }
                             }
                         }
                     }
+                }
+
+            } catch {
+                // LongPoll failed (failed=2/3) — reinit server
+                guard !Task.isCancelled else { break }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if let newServer = try? await VKAPIClient.shared.getLongPollServer() {
+                    server = newServer
+                    ts = newServer.ts
+                }
+            }
+        }
+    }
+
+    // Fallback: simple polling every 3s if LongPoll unavailable
+    private func fallbackPolling() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { break }
+            let fresh = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
+            guard !fresh.isEmpty else { continue }
+            let currentMaxId = messages.map { $0.id }.max() ?? 0
+            let freshMaxId   = fresh.map { $0.id }.max() ?? 0
+            if freshMaxId > currentMaxId || fresh.count != messages.count {
+                await MainActor.run {
+                    withAnimation(.easeIn(duration: 0.15)) { messages = fresh }
                 }
             }
         }
