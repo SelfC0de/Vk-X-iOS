@@ -109,37 +109,7 @@ struct VisualTab: View {
                         Divider().background(Color.divider).padding(.leading, 50)
 
                         // Style picker
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Стиль")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Color.onSurfaceMut)
-                                .padding(.horizontal, 14)
-                                .padding(.top, 12)
-                            HStack(spacing: 8) {
-                                ForEach([("digital", "Цифровой", "display"), ("minimal", "Минимальный", "minus.circle"), ("bold", "Жирный", "bold")], id: \.0) { id, label, icon in
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.15)) { s.clockStyle = id }
-                                    } label: {
-                                        VStack(spacing: 6) {
-                                            Image(systemName: icon)
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(s.clockStyle == id ? Color.cyberBlue : Color.onSurfaceMut)
-                                            Text(label)
-                                                .font(.system(size: 11))
-                                                .foregroundStyle(s.clockStyle == id ? Color.cyberBlue : Color.onSurfaceMut)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(s.clockStyle == id ? Color.cyberBlue.opacity(0.12) : Color(red:0.07,green:0.08,blue:0.13))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(
-                                            s.clockStyle == id ? Color.cyberBlue.opacity(0.4) : Color.divider, lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(.horizontal, 14).padding(.bottom, 12)
-                        }
+                        ClockStylePicker(selected: $s.clockStyle, ampm: s.clockAmPm, seconds: s.clockSeconds, colorHex: s.clockColorHex)
 
                         Divider().background(Color.divider).padding(.leading, 14)
 
