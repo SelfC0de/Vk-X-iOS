@@ -1,7 +1,7 @@
 import SwiftUI
 
-private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Прокси"]
-private let tabIcons = ["lock.shield.fill", "cpu.fill", "iphone", "paintbrush.fill", "network"]
+private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Прокси", "О нас"]
+private let tabIcons = ["lock.shield.fill", "cpu.fill", "iphone", "paintbrush.fill", "network", "info.circle.fill"]
 
 struct SettingsView: View {
     @State private var selectedTab = 0
@@ -20,7 +20,8 @@ struct SettingsView: View {
                         case 1: EngineTab()
                         case 2: DeviceTab()
                         case 3: VisualTab()
-                        default: ProxyTabView()
+                        case 4: ProxyTabView()
+                        default: AboutInlineView()
                         }
                     }
                     .padding(16)

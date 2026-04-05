@@ -224,15 +224,18 @@ private struct PostCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Author
-            HStack(spacing: 10) {
-                AvatarView(url: authorPhoto, size: 40)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(authorName).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
-                    Text(dateStr).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+            // Author — tappable, opens community page if group
+            NavigationLink(destination: authorDestination) {
+                HStack(spacing: 10) {
+                    AvatarView(url: authorPhoto, size: 40)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(authorName).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                        Text(dateStr).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                    }
+                    Spacer()
                 }
-                Spacer()
             }
+            .buttonStyle(.plain)
             .padding(.horizontal, 14).padding(.top, 12)
 
             // Text — selectable, links clickable
@@ -335,6 +338,21 @@ private struct PostCard: View {
         // Media forward sheet
         .sheet(isPresented: $showMediaForward) {
             MediaForwardSheet(post: post)
+        }
+    }
+
+    @ViewBuilder
+    private var authorDestination: some View {
+        if post.authorId < 0 {
+            CommunityDetailView(group: VKGroup(
+                id: -post.authorId, name: authorName,
+                photo100: authorPhoto, photo200: nil,
+                membersCount: nil, description: nil,
+                activity: nil, isMember: nil,
+                isAdmin: nil, isClosed: nil, screenName: nil
+            ))
+        } else {
+            EmptyView()
         }
     }
 

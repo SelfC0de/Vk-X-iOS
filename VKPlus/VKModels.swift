@@ -188,8 +188,34 @@ struct VKPeer: Decodable {
     enum CodingKeys: String, CodingKey { case id, type; case localId = "local_id" }
 }
 struct VKGroup: Decodable, Identifiable {
-    let id: Int; let name: String; let photo100: String?
-    enum CodingKeys: String, CodingKey { case id, name; case photo100 = "photo_100" }
+    let id:         Int
+    let name:       String
+    let photo100:   String?
+    let photo200:   String?
+    let membersCount: Int?
+    let description: String?
+    let activity:   String?
+    let isMember:   Int?    // 0/1
+    let isAdmin:    Int?
+    let isClosed:   Int?    // 0=open, 1=closed, 2=private
+    let screenName: String?
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, activity
+        case photo100    = "photo_100"
+        case photo200    = "photo_200"
+        case membersCount = "members_count"
+        case isMember    = "is_member"
+        case isAdmin     = "is_admin"
+        case isClosed    = "is_closed"
+        case screenName  = "screen_name"
+    }
+    var photoUrl: String? { photo200 ?? photo100 }
+    var memberText: String {
+        guard let n = membersCount else { return "" }
+        if n >= 1_000_000 { return String(format: "%.1fM участников", Double(n)/1_000_000) }
+        if n >= 1_000     { return String(format: "%.0fK участников", Double(n)/1_000) }
+        return "\(n) участников"
+    }
 }
 
 struct DialogItem: Identifiable {

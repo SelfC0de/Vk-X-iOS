@@ -97,6 +97,7 @@
 /* Begin PBXGroup section */
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
+				CC2233445566778899AABB00 /* CommunitiesView.swift */,
 				AA1122334455667788990011,
 				FF1122334455667788990011,
 				EE1122334455667788990011,
@@ -152,6 +153,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		1EF9FD6FDCE44A6EA87FDBBA={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+			CC2233445566778899AABB11,
 			AA1122334455667788990022,
 			FF1122334455667788990022,
 			EE1122334455667788990022,
@@ -206,4 +208,6 @@
 
 	};
 	rootObject=AF87D34026A54AAE9140C12C;
-}
+
+		CC2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunitiesView.swift; sourceTree = "<group>"; };
+		CC2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = CC2233445566778899AABB00 /* CommunitiesView.swift */; };}

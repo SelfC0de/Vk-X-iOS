@@ -78,7 +78,7 @@ struct AnimatedTabBar: View {
         ("person.2",                 "person.2.fill",                   "Друзья"),
         ("person",                   "person.fill",                     "Профиль"),
         ("ellipsis.circle",          "ellipsis.circle.fill",            "Ещё"),
-        ("person.crop.circle.badge.checkmark", "person.crop.circle.badge.checkmark", "About Dev"),
+        ("building.columns", "building.columns.fill", "Сообщества"),
     ]
 
     var body: some View {
@@ -192,7 +192,7 @@ struct AnimatedMainTabView: View {
         case 2: NavigationStack { FriendsView() }
         case 3: NavigationStack { ProfileView() }
         case 4: NavigationStack { SettingsView() }
-        case 5: NavigationStack { AboutView() }
+        case 5: NavigationStack { CommunitiesView() }
         default: NavigationStack { FeedView() }
         }
     }

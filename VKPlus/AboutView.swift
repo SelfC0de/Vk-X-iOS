@@ -232,3 +232,8 @@ private struct LinkCard: View {
         )
     }
 }
+
+// MARK: - Inline version for SettingsView tab
+struct AboutInlineView: View {
+    var body: some View { AboutView() }
+}

@@ -531,6 +531,83 @@ final class VKAPIClient {
         )
     }
 
+
+    // MARK: - Groups (Communities)
+    func getMyGroups(count: Int = 100, offset: Int = 0) async throws -> [VKGroup] {
+        let json = try await rawCall("groups.get", params: [
+            "extended": "1", "count": "\(count)", "offset": "\(offset)",
+            "fields": "photo_100,photo_200,members_count,description,activity,is_member,is_closed,screen_name"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]] else { return [] }
+        return items.compactMap { parseGroup($0) }
+    }
+
+    func searchGroups(query: String, count: Int = 50) async throws -> [VKGroup] {
+        let json = try await rawCall("groups.search", params: [
+            "q": query, "count": "\(count)", "type": "group,page,event",
+            "fields": "photo_100,photo_200,members_count,description,activity,is_member,is_closed,screen_name"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]] else { return [] }
+        return items.compactMap { parseGroup($0) }
+    }
+
+    func getGroupById(groupId: Int) async throws -> VKGroup? {
+        let json = try await rawCall("groups.getById", params: [
+            "group_id": "\(groupId)",
+            "fields": "photo_100,photo_200,members_count,description,activity,is_member,is_closed,screen_name"
+        ])
+        if let resp = json["response"] as? [String: Any],
+           let items = resp["groups"] as? [[String: Any]],
+           let item = items.first {
+            return parseGroup(item)
+        }
+        // Older API may return array directly
+        if let arr = json["response"] as? [[String: Any]], let item = arr.first {
+            return parseGroup(item)
+        }
+        return nil
+    }
+
+    func getGroupWall(groupId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
+        struct WR: Decodable {
+            let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]?
+        }
+        let r: WR = try await call("wall.get", params: [
+            "owner_id": "-\(groupId)", "count": "\(count)", "offset": "\(offset)",
+            "extended": "1",
+            "fields": "photo_100,screen_name,name,first_name,last_name"
+        ])
+        let pm = Dictionary(uniqueKeysWithValues: (r.profiles ?? []).map { ($0.id, $0) })
+        let gm = Dictionary(uniqueKeysWithValues: (r.groups   ?? []).map { ($0.id, $0) })
+        return NewsfeedPage(items: r.items, profiles: pm, groups: gm, nextFrom: nil)
+    }
+
+    func joinGroup(groupId: Int) async throws {
+        _ = try await rawCall("groups.join", params: ["group_id": "\(groupId)"])
+    }
+
+    func leaveGroup(groupId: Int) async throws {
+        _ = try await rawCall("groups.leave", params: ["group_id": "\(groupId)"])
+    }
+
+    private func parseGroup(_ d: [String: Any]) -> VKGroup? {
+        guard let id = d["id"] as? Int, let name = d["name"] as? String else { return nil }
+        return VKGroup(
+            id: id, name: name,
+            photo100:     d["photo_100"] as? String,
+            photo200:     d["photo_200"] as? String,
+            membersCount: d["members_count"] as? Int,
+            description:  d["description"] as? String,
+            activity:     d["activity"] as? String,
+            isMember:     d["is_member"] as? Int,
+            isAdmin:      d["is_admin"] as? Int,
+            isClosed:     d["is_closed"] as? Int,
+            screenName:   d["screen_name"] as? String
+        )
+    }
+
     // MARK: - Likes
     func addLike(ownerId: Int, itemId: Int) async throws -> Int {
         struct LR: Decodable { let likes: Int? }
