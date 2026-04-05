@@ -1,24 +1,25 @@
 import Foundation
 import UserNotifications
 
-// MARK: - TypingPushManager
-// Monitors VK LongPoll for typing events and fires local push notifications
-// when ghostMode is off and typePush is on.
+// MARK: - Predict Push System
+// Monitors VK LongPoll for typing events, applies smart filters,
+// fires local push notifications.
 
 final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = TypingPushManager()
     private override init() { super.init() }
 
-    private var pollTask:    Task<Void, Never>? = nil
-    private var server:      LongPollServer?    = nil
-    private var ts:          Int = 0
-    private var pts:         Int = 0
+    private var pollTask: Task<Void, Never>? = nil
+    private var server:   LongPollServer?    = nil
+    private var ts:       Int = 0
 
-    // Track who is currently typing to avoid spam
-    private var lastTypingNotif: [Int: Date] = [:]
-    private let cooldown: TimeInterval = 15  // seconds between notifs per user
+    // Cooldown per user (adaptive: DM=10s, group=30s)
+    private var lastNotif: [Int: Date] = [:]
 
-    // MARK: - Permission request
+    // Cache: peerId → member count (to avoid repeated API calls)
+    private var memberCountCache: [Int: Int] = [:]
+
+    // MARK: - Permission
     func requestPermission() {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
@@ -35,9 +36,7 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
     func start() {
         guard pollTask == nil else { return }
         UNUserNotificationCenter.current().delegate = self
-        pollTask = Task { [weak self] in
-            await self?.runLoop()
-        }
+        pollTask = Task { [weak self] in await self?.runLoop() }
     }
 
     func stop() {
@@ -50,46 +49,89 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
     private func runLoop() async {
         while !Task.isCancelled {
             do {
-                // Get/refresh server
                 if server == nil {
                     server = try await VKAPIClient.shared.getLongPollServer()
                     ts = server?.ts ?? 0
                 }
-                guard let srv = server else { try await Task.sleep(nanoseconds: 2_000_000_000); continue }
+                guard let srv = server else {
+                    try await Task.sleep(nanoseconds: 2_000_000_000); continue
+                }
 
-                // Poll for events
                 let events = try await VKAPIClient.shared.pollLongPoll(server: srv, ts: ts)
                 ts = events.ts
-                // Update pts if present
-                if let newPts = events.pts { pts = newPts }
 
                 let s = SettingsStore.shared
-                guard s.typePush else { try await Task.sleep(nanoseconds: 1_000_000_000); continue }
+                guard s.typePush else {
+                    try await Task.sleep(nanoseconds: 1_000_000_000); continue
+                }
 
-                // Process typing events (code 61 = user typing, code 62 = user typing in chat)
                 for update in events.updates {
                     guard let code = update.first as? Int else { continue }
-                    if code == 61 || code == 62 {
-                        // update[1] = userId, update[3] = flags
-                        if let userId = (update.count > 1 ? update[1] : nil) as? Int, userId > 0 {
-                            await handleTyping(userId: userId)
-                        }
+                    // code 61 = user typing in DM
+                    // code 62 = user typing in group chat
+                    guard code == 61 || code == 62 else { continue }
+
+                    guard let userId = (update.count > 1 ? update[1] : nil) as? Int,
+                          userId > 0 else { continue }
+
+                    // peerId: for code 62 it's in update[3], for 61 it equals userId
+                    let peerId = (code == 62 && update.count > 3)
+                        ? (update[3] as? Int ?? userId)
+                        : userId
+
+                    // Apply filters
+                    if await shouldFilter(code: code, userId: userId, peerId: peerId, settings: s) {
+                        continue
                     }
+
+                    await handleTyping(userId: userId, peerId: peerId, isGroup: code == 62)
                 }
+
             } catch {
-                // On error: reset server and retry after delay
                 server = nil
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
             }
         }
     }
 
-    private func handleTyping(userId: Int) async {
-        // Cooldown — don't spam
-        if let last = lastTypingNotif[userId], Date().timeIntervalSince(last) < cooldown { return }
-        lastTypingNotif[userId] = Date()
+    // MARK: - Filter logic (Пункт 6)
+    private func shouldFilter(code: Int, userId: Int, peerId: Int, settings s: SettingsStore) async -> Bool {
 
-        // Get user name for notification
+        // ── 1. Only DMs mode — block all group typing events ──────────
+        if s.predictOnlyDMs && code == 62 {
+            return true
+        }
+
+        // ── 2. Favorites only — block non-favorites ───────────────────
+        if s.predictFavoritesOnly {
+            if !s.predictFavoriteIds.contains(userId) {
+                return false // will be filtered — not in favorites
+            }
+        }
+
+        // ── 3. Group size filter ───────────────────────────────────────
+        if s.predictFilterGroups && code == 62 {
+            let memberCount = await getGroupMemberCount(peerId: peerId)
+            if memberCount >= s.predictMinGroupSize {
+                return true // group too large — filter it
+            }
+        }
+
+        // ── 4. Self filter — never notify about own typing ────────────
+        let myId = TokenStorage.shared.cachedUserId ?? 0
+        if userId == myId { return true }
+
+        return false
+    }
+
+    // MARK: - Handle typing event
+    private func handleTyping(userId: Int, peerId: Int, isGroup: Bool) async {
+        let cooldown: TimeInterval = isGroup ? 30 : 10
+        if let last = lastNotif[userId],
+           Date().timeIntervalSince(last) < cooldown { return }
+        lastNotif[userId] = Date()
+
+        // Resolve name
         let name: String
         if let user = try? await VKAPIClient.shared.getUserById("\(userId)") {
             name = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
@@ -97,35 +139,39 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
             name = "Пользователь"
         }
 
-        await fireTypingNotification(name: name, userId: userId)
+        await fireNotification(name: name, userId: userId, peerId: peerId, isGroup: isGroup)
+    }
+
+    // MARK: - Group member count (cached)
+    private func getGroupMemberCount(peerId: Int) async -> Int {
+        if let cached = memberCountCache[peerId] { return cached }
+        // peerId for group chats is > 2_000_000_000
+        // For group chat: use messages.getConversationsById
+        let chatId = peerId > 2_000_000_000 ? peerId - 2_000_000_000 : peerId
+        let json = try? await VKAPIClient.shared.rawCall("messages.getConversationsById",
+            params: ["peer_ids": "\(peerId)", "extended": "0"])
+        let items = (json?["response"] as? [String: Any])?["items"] as? [[String: Any]] ?? []
+        let count = (items.first?["chat_settings"] as? [String: Any])?["members_count"] as? Int ?? 0
+        memberCountCache[peerId] = count
+        return count
     }
 
     // MARK: - Fire notification
     @MainActor
-    private func fireTypingNotification(name: String, userId: Int) {
+    private func fireNotification(name: String, userId: Int, peerId: Int, isGroup: Bool) {
         let content = UNMutableNotificationContent()
-        content.title = "✍️ \(name)"
-        content.body = "Начал(а) писать тебе сообщение"
-        content.sound = UNNotificationSound(named: UNNotificationSoundName("typing_ping.caf"))
-        content.badge = nil
-        // Custom thread for grouping per-user
-        content.threadIdentifier = "typing_\(userId)"
-        content.categoryIdentifier = "TYPING"
-        // Rich subtitle
-        content.subtitle = "VK+"
-
-        // Subtle visual customization via userInfo
-        content.userInfo = ["userId": userId, "type": "typing"]
-
-        // Interruption level — time sensitive (shows even in focus mode)
+        content.title  = "✍️ \(name)"
+        content.body   = isGroup ? "Пишет в групповом чате" : "Начал(а) писать тебе сообщение"
+        content.subtitle = "Predict Push System"
+        content.sound  = .default
+        content.threadIdentifier = "predict_\(userId)"
+        content.userInfo = ["userId": userId, "peerId": peerId, "type": "predict_push"]
         if #available(iOS 15.0, *) {
             content.interruptionLevel = .timeSensitive
         }
-
         let req = UNNotificationRequest(
-            identifier: "typing_\(userId)_\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: nil  // deliver immediately
+            identifier: "predict_\(userId)_\(Date().timeIntervalSince1970)",
+            content: content, trigger: nil
         )
         UNUserNotificationCenter.current().add(req)
     }
@@ -133,35 +179,29 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Foreground display
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                  willPresent notification: UNNotification,
-                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // Show banner + sound even when app is in foreground
-        completionHandler([.banner, .sound])
+                                 withCompletionHandler h: @escaping (UNNotificationPresentationOptions) -> Void) {
+        h([.banner, .sound])
     }
 }
 
 // MARK: - LongPoll models
 struct LongPollServer {
-    let key:    String
-    let server: String
-    let ts:     Int
+    let key: String; let server: String; let ts: Int
 }
 
 struct LongPollEvents {
-    let ts:      Int
-    let pts:     Int?
-    let updates: [[Any]]
+    let ts: Int; let pts: Int?; let updates: [[Any]]
 }
 
 // MARK: - VKAPIClient LongPoll extension
 extension VKAPIClient {
     func getLongPollServer() async throws -> LongPollServer {
-        let json = try await rawCall("messages.getLongPollServer", params: [
-            "lp_version": "3", "need_pts": "1"
-        ])
+        let json = try await rawCall("messages.getLongPollServer",
+            params: ["lp_version": "3", "need_pts": "1"])
         guard let resp = json["response"] as? [String: Any],
-              let key = resp["key"] as? String,
+              let key    = resp["key"]    as? String,
               let server = resp["server"] as? String,
-              let ts = resp["ts"] as? Int
+              let ts     = resp["ts"]     as? Int
         else { throw VKError.noData }
         return LongPollServer(key: key, server: server, ts: ts)
     }
@@ -173,16 +213,16 @@ extension VKAPIClient {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw VKError.noData
         }
-        // Handle failed / outdated errors
         if let failed = json["failed"] as? Int {
             if failed == 1, let newTs = json["ts"] as? Int {
                 return LongPollEvents(ts: newTs, pts: nil, updates: [])
             }
             throw VKError.api(failed, "LongPoll failed=\(failed)")
         }
-        let ts2   = json["ts"] as? Int ?? ts
-        let pts2  = json["pts"] as? Int
-        let upd   = json["updates"] as? [[Any]] ?? []
-        return LongPollEvents(ts: ts2, pts: pts2, updates: upd)
+        return LongPollEvents(
+            ts:  json["ts"]      as? Int     ?? ts,
+            pts: json["pts"]     as? Int,
+            updates: json["updates"] as? [[Any]] ?? []
+        )
     }
 }

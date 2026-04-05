@@ -154,7 +154,16 @@ final class SettingsStore: ObservableObject {
     }}
 
     // Notifications
-    @Published var typePush:        Bool { didSet { ud.set(typePush,       forKey: "type_push")        } }
+    @Published var typePush:             Bool   { didSet { ud.set(typePush,             forKey: "type_push")             } }
+    @Published var notifyStyle:          String { didSet { ud.set(notifyStyle,          forKey: "notify_style")           } } // "default" | "center" | "slide"
+    // Predict Push System — filter settings
+    @Published var predictFilterGroups:  Bool   { didSet { ud.set(predictFilterGroups,  forKey: "predict_filter_groups")  } } // ignore group chats
+    @Published var predictMinGroupSize:  Int    { didSet { ud.set(predictMinGroupSize,  forKey: "predict_min_group_size") } } // ignore groups with N+ members
+    @Published var predictOnlyDMs:       Bool   { didSet { ud.set(predictOnlyDMs,       forKey: "predict_only_dms")       } } // only direct messages
+    @Published var predictFavoritesOnly: Bool   { didSet { ud.set(predictFavoritesOnly, forKey: "predict_favorites_only") } } // only favourite contacts
+    @Published var predictFavoriteIds:   [Int]  { didSet {
+        ud.set(try? JSONEncoder().encode(predictFavoriteIds), forKey: "predict_favorite_ids")
+    }}
 
     // Device
     @Published var hardwareSpoof:   Bool { didSet { ud.set(hardwareSpoof,   forKey: "hardware_spoof")   } }
@@ -238,7 +247,16 @@ final class SettingsStore: ObservableObject {
         silentVm         = ud.bool(forKey: "silent_vm")
         typeStatus       = ud.string(forKey: "type_status")    ?? TypeStatus.none.rawValue
         bypassCopy       = ud.object(forKey: "bypass_copy")    == nil ? true  : ud.bool(forKey: "bypass_copy")
-        typePush         = ud.bool(forKey: "type_push")
+        typePush             = ud.bool(forKey: "type_push")
+        notifyStyle          = ud.string(forKey: "notify_style") ?? "default"
+        predictFilterGroups  = ud.object(forKey: "predict_filter_groups")  == nil ? true : ud.bool(forKey: "predict_filter_groups")
+        predictMinGroupSize  = ud.object(forKey: "predict_min_group_size") == nil ? 5    : ud.integer(forKey: "predict_min_group_size")
+        predictOnlyDMs       = ud.bool(forKey: "predict_only_dms")
+        predictFavoritesOnly = ud.bool(forKey: "predict_favorites_only")
+        if let d = ud.data(forKey: "predict_favorite_ids"),
+           let arr = try? JSONDecoder().decode([Int].self, from: d) {
+            predictFavoriteIds = arr
+        } else { predictFavoriteIds = [] }
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
         liquidGlass      = ud.bool(forKey: "liquid_glass")
         weatherGarland   = ud.bool(forKey: "weather_garland")

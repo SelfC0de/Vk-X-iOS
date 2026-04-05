@@ -136,7 +136,18 @@ private struct PrivacyTab: View {
             SettingsSectionCard(title: "Уведомления",
                                 subtitle: "Уведомления о действиях собеседников",
                                 icon: "bell.badge.fill", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
-                SettingsToggle("Type You Push", icon: "bell.and.waves.left.and.right", subtitle: "Уведомление когда тебе начинают писать", val: $s.typePush)
+                SettingsToggle("Predict Push System", icon: "bell.and.waves.left.and.right",
+                               subtitle: "Уведомление когда тебе начинают писать", val: $s.typePush)
+
+                Divider().background(Color.divider).padding(.leading, 50)
+
+                // Notify style selector (always visible)
+                NotifyStylePicker()
+
+                if s.typePush {
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    PredictPushFilterCard()
+                }
             }
             NavigationLink(destination: ExploitsView()) {
                 exploitsBanner
@@ -491,6 +502,274 @@ struct SettingsNavRow<Dest: View>: View {
                 Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12, weight: .semibold))
             }
             .padding(.horizontal, 14).padding(.vertical, 13)
+        }
+    }
+}
+
+// MARK: - Predict Push Filter Card
+struct PredictPushFilterCard: View {
+    @ObservedObject private var s = SettingsStore.shared
+
+    var body: some View {
+        VStack(spacing: 0) {
+
+            // ── Filter groups toggle ───────────────────────────────────
+            HStack(spacing: 12) {
+                SFAnimIcon(name: "bubble.left.and.bubble.right", color: Color(r:0xFF,g:0x6B,b:0x35), size: 18, isOn: s.predictFilterGroups)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Фильтр групповых чатов")
+                        .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                    Text("Игнорировать typing из групп")
+                        .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                Toggle("", isOn: $s.predictFilterGroups).tint(Color(r:0xFF,g:0x6B,b:0x35)).labelsHidden()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+
+            // ── Min group size slider (when group filter is on) ────────
+            if s.predictFilterGroups {
+                Divider().background(Color.divider).padding(.leading, 50)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+                            .frame(width: 22)
+                        Text("Мин. участников в группе: \(s.predictMinGroupSize)+")
+                            .font(.system(size: 13)).foregroundStyle(Color.onSurface)
+                    }
+                    .padding(.horizontal, 14)
+                    HStack(spacing: 10) {
+                        Text("2").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        Slider(value: Binding(
+                            get: { Double(s.predictMinGroupSize) },
+                            set: { s.predictMinGroupSize = Int($0) }
+                        ), in: 2...50, step: 1)
+                        .tint(Color(r:0xFF,g:0x6B,b:0x35))
+                        Text("50").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                    }
+                    .padding(.horizontal, 14).padding(.bottom, 8)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(.easeInOut(duration: 0.2), value: s.predictFilterGroups)
+            }
+
+            Divider().background(Color.divider).padding(.leading, 50)
+
+            // ── Only DMs toggle ────────────────────────────────────────
+            HStack(spacing: 12) {
+                SFAnimIcon(name: "person.fill", color: Color.cyberBlue, size: 18, isOn: s.predictOnlyDMs)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Только личные сообщения")
+                        .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                    Text("Игнорировать все групповые чаты")
+                        .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                Toggle("", isOn: $s.predictOnlyDMs).tint(.cyberBlue).labelsHidden()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+
+            Divider().background(Color.divider).padding(.leading, 50)
+
+            // ── Favorites only toggle ──────────────────────────────────
+            HStack(spacing: 12) {
+                SFAnimIcon(name: "star.fill", color: Color(r:0xFF,g:0xD7,b:0x00), size: 18, isOn: s.predictFavoritesOnly)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Только избранные")
+                        .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                    Text("Уведомления только от нужных людей")
+                        .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                Toggle("", isOn: $s.predictFavoritesOnly).tint(Color(r:0xFF,g:0xD7,b:0x00)).labelsHidden()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+
+            // ── Favorites list ─────────────────────────────────────────
+            if s.predictFavoritesOnly {
+                Divider().background(Color.divider).padding(.leading, 50)
+                PredictFavoritesEditor()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: s.predictFavoritesOnly)
+            }
+        }
+        .background(Color(red:0.06,green:0.07,blue:0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 14).padding(.vertical, 6)
+    }
+}
+
+// MARK: - Favorites Editor (add/remove VK IDs)
+private struct PredictFavoritesEditor: View {
+    @ObservedObject private var s = SettingsStore.shared
+    @State private var inputText = ""
+    @State private var isLoading = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Избранные контакты")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.onSurfaceMut)
+                .padding(.horizontal, 14).padding(.top, 10)
+
+            // Add by ID or URL
+            HStack(spacing: 8) {
+                TextField("vk.com/id или числовой ID", text: $inputText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.onSurface)
+                    .keyboardType(.default)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color(red:0.08,green:0.09,blue:0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                Button {
+                    Task { await addFavorite() }
+                } label: {
+                    if isLoading {
+                        ProgressView().tint(.cyberBlue).frame(width: 32, height: 32)
+                    } else {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(inputText.isEmpty ? Color.onSurfaceMut : Color.cyberBlue)
+                    }
+                }
+                .disabled(inputText.isEmpty || isLoading)
+            }
+            .padding(.horizontal, 14)
+
+            // Favorites list
+            if s.predictFavoriteIds.isEmpty {
+                Text("Список пуст — уведомления отключены для всех")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.onSurfaceMut)
+                    .padding(.horizontal, 14).padding(.bottom, 10)
+            } else {
+                ForEach(s.predictFavoriteIds, id: \.self) { uid in
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.cyberBlue)
+                            .frame(width: 22)
+                        Text("ID: \(uid)")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.onSurface)
+                        Spacer()
+                        Button {
+                            s.predictFavoriteIds.removeAll { $0 == uid }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Color.onSurfaceMut)
+                                .font(.system(size: 16))
+                        }
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                }
+            }
+        }
+        .padding(.bottom, 8)
+    }
+
+    private func addFavorite() async {
+        isLoading = true
+        // Parse input: could be "123456", "vk.com/id123456", "id123456"
+        var idStr = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        idStr = idStr.replacingOccurrences(of: "https://", with: "")
+        idStr = idStr.replacingOccurrences(of: "vk.com/", with: "")
+        if idStr.hasPrefix("id") { idStr = String(idStr.dropFirst(2)) }
+
+        if let uid = Int(idStr), uid > 0 {
+            if !s.predictFavoriteIds.contains(uid) {
+                s.predictFavoriteIds.append(uid)
+                ToastManager.shared.show("Добавлен ID \(uid)", icon: "star.fill", style: .success)
+            }
+            inputText = ""
+        } else {
+            // Try to resolve screen name
+            if let user = try? await VKAPIClient.shared.getUserById(idStr) {
+                if !s.predictFavoriteIds.contains(user.id) {
+                    s.predictFavoriteIds.append(user.id)
+                    ToastManager.shared.show("\(user.firstName) добавлен", icon: "star.fill", style: .success)
+                }
+                inputText = ""
+            } else {
+                ToastManager.shared.show("Пользователь не найден", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+        }
+        isLoading = false
+    }
+}
+
+// MARK: - Notify Style Picker
+struct NotifyStylePicker: View {
+    @ObservedObject private var s = SettingsStore.shared
+
+    private let styles: [(id: String, label: String, icon: String, desc: String)] = [
+        ("default", "Default",       "bell.fill",               "Стандартный тост сверху"),
+        ("center",  "Notify Center", "square.filled.on.square", "Карточка в центре экрана"),
+        ("slide",   "Slide-Fade",    "arrow.right.to.line",     "Выезжает справа"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Стиль уведомления")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.onSurfaceMut)
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+
+            HStack(spacing: 8) {
+                ForEach(styles, id: \.id) { style in
+                    Button {
+                        withAnimation(.spring(response: 0.28)) {
+                            s.notifyStyle = style.id
+                        }
+                        // Demo toast
+                        ToastManager.shared.show(
+                            style.label,
+                            icon: style.icon,
+                            style: .info,
+                            duration: 2.0
+                        )
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: style.icon)
+                                .font(.system(size: 16))
+                                .foregroundStyle(s.notifyStyle == style.id
+                                    ? Color(r:0xFF,g:0x6B,b:0x35)
+                                    : Color.onSurfaceMut)
+                            Text(style.label)
+                                .font(.system(size: 11, weight: s.notifyStyle == style.id ? .semibold : .regular))
+                                .foregroundStyle(s.notifyStyle == style.id
+                                    ? Color(r:0xFF,g:0x6B,b:0x35)
+                                    : Color.onSurface)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Text(style.desc)
+                                .font(.system(size: 9))
+                                .foregroundStyle(Color.onSurfaceMut)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10).padding(.horizontal, 4)
+                        .background(s.notifyStyle == style.id
+                            ? Color(r:0xFF,g:0x6B,b:0x35).opacity(0.10)
+                            : Color(red:0.07,green:0.08,blue:0.13))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(s.notifyStyle == style.id
+                                ? Color(r:0xFF,g:0x6B,b:0x35).opacity(0.45)
+                                : Color.divider, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14).padding(.bottom, 10)
         }
     }
 }
