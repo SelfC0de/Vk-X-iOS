@@ -1,9 +1,45 @@
 import SwiftUI
 
+// MARK: - SelfCode Logo Canvas
+// Replicates the SelfCode brand mark: "Self" white + "Code" green-yellow gradient
+struct SelfCodeLogoView: View {
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width, h = sz.height
+            // "Self" — white
+            let selfAttrs = AttributedString("Self", attributes: AttributeContainer([
+                .font: UIFont.systemFont(ofSize: h * 0.85, weight: .light),
+                .foregroundColor: UIColor.white
+            ]))
+            // "Code" — lime green
+            let codeAttrs = AttributedString("Code", attributes: AttributeContainer([
+                .font: UIFont.systemFont(ofSize: h * 0.85, weight: .light),
+                .foregroundColor: UIColor(red: 0.49, green: 0.73, blue: 0.09, alpha: 1)
+            ]))
+            // Measure Self width
+            let selfResolved = ctx.resolve(Text(selfAttrs))
+            let codeResolved = ctx.resolve(Text(codeAttrs))
+            let selfSize = selfResolved.measure(in: sz)
+            let totalWidth = selfSize.width + codeResolved.measure(in: sz).width
+            let startX = (w - totalWidth) / 2
+            let baseY = (h - selfSize.height) / 2
+            ctx.draw(selfResolved, at: CGPoint(x: startX, y: baseY), anchor: .topLeading)
+            ctx.draw(codeResolved, at: CGPoint(x: startX + selfSize.width, y: baseY), anchor: .topLeading)
+        }
+    }
+}
+
 struct AboutView: View {
-    @State private var visible    = false
-    @State private var glowPhase  = false
-    @State private var pulsePhase = false
+    @State private var visible      = false
+    @State private var logoVisible   = false
+    @State private var nameVisible   = false
+    @State private var subVisible    = false
+    @State private var glowPhase     = false
+    @State private var pulsePhase    = false
+    // Typewriter states
+    @State private var selfCodeText  = ""     // typewritten "SelfCode"
+    @State private var subText       = ""     // typewritten "selfcode_dev"
+    @State private var cursorVisible = true   // blinking cursor
 
     private let links: [(icon: String, label: String, sub: String, color: Color, url: String)] = [
         ("person.fill",         "ВКонтакте",   "vk.com/selfcode_dev",         Color(r:0x4C,g:0x75,b:0xA3), "https://vk.com/selfcode_dev"),
@@ -58,30 +94,58 @@ struct AboutView: View {
                                     .stroke(LinearGradient.cyberGrad, lineWidth: 1.5)
                             )
 
-                        Text("SC")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.cyberBlue)
-                            .tracking(2)
+                        SelfCodeLogoView()
+                            .frame(width: 56, height: 28)
                     }
-                    .opacity(visible ? 1 : 0)
-                    .scaleEffect(visible ? 1 : 0.6)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.65).delay(0.0), value: visible)
+                    .opacity(logoVisible ? 1 : 0)
+                    .scaleEffect(logoVisible ? 1 : 0.5)
+                    .rotationEffect(.degrees(logoVisible ? 0 : -15))
+                    .animation(.spring(response: 0.7, dampingFraction: 0.60), value: logoVisible)
 
                     Spacer().frame(height: 20)
 
-                    // ── Name ────────────────────────────────────────────────
-                    VStack(spacing: 4) {
-                        Text("SelfCode")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.onSurface)
-                            .tracking(1)
-                        Text("selfcode_dev")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.onSurfaceMut)
+                    // ── Name (Typewriter) ────────────────────────────────
+                    VStack(spacing: 6) {
+                        // "SelfCode" typed out letter by letter
+                        HStack(spacing: 0) {
+                            // "Self" white portion
+                            Text(String(selfCodeText.prefix(min(selfCodeText.count, 4))))
+                                .font(.system(size: 26, weight: .light, design: .default))
+                                .foregroundStyle(Color.white)
+                                .tracking(0.5)
+                            // "Code" green portion
+                            Text(selfCodeText.count > 4 ? String(selfCodeText.dropFirst(4)) : "")
+                                .font(.system(size: 26, weight: .light, design: .default))
+                                .foregroundStyle(Color(r:0x7D,g:0xBB,b:0x17))
+                                .tracking(0.5)
+                            // Blinking cursor after SelfCode, before sub starts
+                            if selfCodeText.count < 8 || subText.isEmpty {
+                                Text("|")
+                                    .font(.system(size: 26, weight: .light))
+                                    .foregroundStyle(Color.cyberBlue)
+                                    .opacity(cursorVisible ? 1 : 0)
+                                    .animation(.easeInOut(duration: 0.5).repeatForever(), value: cursorVisible)
+                            }
+                        }
+                        .frame(height: 32)
+
+                        // "selfcode_dev" typed out after SelfCode finishes
+                        HStack(spacing: 0) {
+                            Text(subText)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundStyle(Color.onSurfaceMut)
+                            // Cursor at end of sub when typing
+                            if !subText.isEmpty && subText.count < 12 {
+                                Text("|")
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundStyle(Color.cyberBlue.opacity(0.8))
+                                    .opacity(cursorVisible ? 1 : 0)
+                                    .animation(.easeInOut(duration: 0.5).repeatForever(), value: cursorVisible)
+                            }
+                        }
+                        .opacity(subText.isEmpty ? 0 : 1)
+                        .frame(height: 18)
                     }
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 16)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.75).delay(0.2), value: visible)
 
                     Spacer().frame(height: 32)
 
@@ -155,17 +219,38 @@ struct AboutView: View {
                 }
             } }
         .onAppear {
-            // Reset and replay animation every time tab is opened
-            visible = false
-            glowPhase = false
-            pulsePhase = false
+            // Reset all
+            visible = false; logoVisible = false
+            selfCodeText = ""; subText = ""
+            glowPhase = false; pulsePhase = false
+
+            // Start ambient animations
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 visible = true
-                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                    glowPhase = true
+                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) { glowPhase = true }
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { pulsePhase = true }
+            }
+
+            // Step 1: Logo appears (0.1s)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                logoVisible = true
+                cursorVisible = true
+            }
+
+            // Step 2: Type "SelfCode" (starts 0.55s, 55ms per char)
+            let selfFull = "SelfCode"
+            for (i, ch) in selfFull.enumerated() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.55 + Double(i) * 0.055) {
+                    selfCodeText += String(ch)
                 }
-                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                    pulsePhase = true
+            }
+
+            // Step 3: Pause, then type "selfcode_dev" (starts after SelfCode + 0.2s)
+            let subFull = "selfcode_dev"
+            let subStart = 0.55 + Double(selfFull.count) * 0.055 + 0.20
+            for (i, ch) in subFull.enumerated() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + subStart + Double(i) * 0.045) {
+                    subText += String(ch)
                 }
             }
         }

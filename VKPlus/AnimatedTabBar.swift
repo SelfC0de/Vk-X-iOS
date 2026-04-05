@@ -148,7 +148,7 @@ struct AnimatedTabBar: View {
         ("bubble.left.and.bubble.right", "bubble.left.and.bubble.right.fill", "Сообщения"),
         ("person.2",                 "person.2.fill",                   "Друзья"),
         ("person",                   "person.fill",                     "Профиль"),
-        ("ellipsis.circle",          "ellipsis.circle.fill",            "Ещё"),
+        ("gearshape",                 "gearshape.fill",                  "Настройки"),
         ("building.columns", "building.columns.fill", "Сообщества"),
     ]
 
