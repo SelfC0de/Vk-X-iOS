@@ -1,31 +1,85 @@
 import SwiftUI
 
 struct MessagesView: View {
-    @State private var dialogs: [DialogItem] = []
+    @State private var dialogs:  [DialogItem] = []
     @State private var isLoading = false
+    @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
+
+    private var filtered: [DialogItem] {
+        guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else { return dialogs }
+        let q = searchText.lowercased()
+        return dialogs.filter {
+            $0.name.lowercased().contains(q) ||
+            $0.lastMessage.lowercased().contains(q)
+        }
+    }
 
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
-            Group {
-                if isLoading {
-                    ProgressView().tint(.cyberBlue)
-                } else if dialogs.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
-                        Text("Нет диалогов").foregroundStyle(Color.onSurfaceMut)
-                    }
-                } else {
-                    List(dialogs) { dialog in
-                        NavigationLink(destination: ChatView(peerId: dialog.id, peerName: dialog.name, peerAvatar: dialog.avatar)) {
-                            DialogRow(dialog: dialog)
+            VStack(spacing: 0) {
+                // Search bar
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color.onSurfaceMut)
+                        .font(.system(size: 15))
+                    TextField("Поиск диалогов...", text: $searchText)
+                        .foregroundStyle(Color.onSurface)
+                        .font(.system(size: 15))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .focused($searchFocused)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                            searchFocused = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Color.onSurfaceMut)
                         }
-                        .listRowBackground(Color.surface)
-                        .listRowSeparatorTint(Color.divider)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Color.surfaceVar)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Color.surface)
+
+                Group {
+                    if isLoading {
+                        Spacer()
+                        ProgressView().tint(.cyberBlue)
+                        Spacer()
+                    } else if filtered.isEmpty && !searchText.isEmpty {
+                        Spacer()
+                        VStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 36)).foregroundStyle(Color.onSurfaceMut)
+                            Text("Ничего не найдено")
+                                .foregroundStyle(Color.onSurfaceMut)
+                        }
+                        Spacer()
+                    } else if dialogs.isEmpty {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 44)).foregroundStyle(Color.onSurfaceMut)
+                            Text("Нет диалогов").foregroundStyle(Color.onSurfaceMut)
+                        }
+                        Spacer()
+                    } else {
+                        List(filtered) { dialog in
+                            NavigationLink(destination: ChatView(peerId: dialog.id, peerName: dialog.name, peerAvatar: dialog.avatar)) {
+                                DialogRow(dialog: dialog)
+                            }
+                            .listRowBackground(Color.surface)
+                            .listRowSeparatorTint(Color.divider)
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .scrollDismissesKeyboard(.immediately)
+                    }
                 }
             }
         }

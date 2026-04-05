@@ -30,6 +30,7 @@ struct FriendsView: View {
     @State private var search         = ""
     @State private var searchMode     = false
     @State private var searchTask:    Task<Void, Never>? = nil
+    @FocusState private var searchFocused: Bool
 
     private var localFiltered: [VKUser] {
         guard !search.isEmpty else { return friends }
@@ -47,6 +48,7 @@ struct FriendsView: View {
                         TextField("Поиск людей...", text: $search)
                             .foregroundStyle(Color.onSurface).font(.system(size: 15))
                             .autocorrectionDisabled()
+                            .focused($searchFocused)
                             .onChange(of: search) { _, v in onSearchChange(v) }
                         if !search.isEmpty {
                             Button { search = ""; searchMode = false; searchResults = [] } label: {
@@ -57,9 +59,22 @@ struct FriendsView: View {
                     .padding(.horizontal, 12).padding(.vertical, 9)
                     .background(Color.surfaceVar)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                if searchFocused || !search.isEmpty {
+                    Button("Отмена") {
+                        search = ""
+                        searchFocused = false
+                        searchMode = false
+                        searchResults = []
+                        searchTask?.cancel()
+                    }
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.cyberBlue)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(Color.surface)
+                .animation(.easeInOut(duration: 0.2), value: searchFocused)
 
                 if isLoading {
                     Spacer(); ProgressView().tint(.cyberBlue); Spacer()
