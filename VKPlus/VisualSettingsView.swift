@@ -33,7 +33,7 @@ struct VisualTab: View {
     }
 
     // MARK: - Pet card
-    private var petSubtitle: String { s.showPet ? (allPets.first { $0.id == s.petType }?.label ?? "Кот") : "Выключен" }
+    private var petSubtitle: String { s.showPet ? (PetSpecies(rawValue: s.petType)?.label ?? "Кот") : "Выключен" }
 
     @ViewBuilder private var petCard: some View {
         SettingsSectionCard(title: "🐾 Питомец",
@@ -399,11 +399,11 @@ private struct PetGridView: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-            ForEach(allPets, id: \.id) { pet in
-                let selected = s.petType == pet.id
-                Button { withAnimation(.easeInOut(duration: 0.15)) { s.petType = pet.id } } label: {
+            ForEach(allPets, id: \.rawValue) { pet in
+                let selected = s.petType == pet.rawValue
+                Button { withAnimation(.easeInOut(duration: 0.15)) { s.petType = pet.rawValue } } label: {
                     VStack(spacing: 4) {
-                        Text(pet.walkFrames[0]).font(.system(size: 28))
+                        Text(String(pet.label.split(separator: " ").first ?? "")).font(.system(size: 28))
                         Text(String(pet.label.split(separator: " ").last ?? ""))
                             .font(.system(size: 10))
                             .foregroundStyle(selected ? Color.cyberBlue : Color.onSurfaceMut)

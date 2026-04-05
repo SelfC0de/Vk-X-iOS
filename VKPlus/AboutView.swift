@@ -144,15 +144,14 @@ struct AboutView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar { ToolbarItem(placement: .navigationBarLeading) {
                 ZStack(alignment: .leading) {
-                    // Garland spans full navbar width
                     GarlandView()
                         .frame(width: UIScreen.main.bounds.width)
                         .allowsHitTesting(false)
-                    VStack(spacing: 0) {
-                        PetView()
-                        ClockView().padding(.leading, 4)
-                    }
-                    .frame(width: 200, alignment: .leading)
+                    PetView()
+                        .frame(width: UIScreen.main.bounds.width)
+                        .allowsHitTesting(false)
+                    ClockView()
+                        .padding(.leading, 6)
                 }
             } }
         .onAppear {
