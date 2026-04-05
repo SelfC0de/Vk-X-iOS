@@ -3,6 +3,30 @@ import AVFoundation
 import PhotosUI
 
 // MARK: - ChatView
+
+// MARK: - Ghost Read Store
+// Persists which incoming messages should appear unread when ghostMode is on
+// Key: "ghost_unread_<peerId>", Value: Set<Int> of message IDs that arrived while ghostMode was on
+private struct GhostReadStore {
+    static func markUnread(peerId: Int, msgId: Int) {
+        let key = "ghost_unread_\(peerId)"
+        var set = load(peerId: peerId)
+        set.insert(msgId)
+        UserDefaults.standard.set(Array(set), forKey: key)
+    }
+    static func clearAll(peerId: Int) {
+        UserDefaults.standard.removeObject(forKey: "ghost_unread_\(peerId)")
+    }
+    static func load(peerId: Int) -> Set<Int> {
+        let key = "ghost_unread_\(peerId)"
+        let arr = UserDefaults.standard.array(forKey: key) as? [Int] ?? []
+        return Set(arr)
+    }
+    static func isGhostUnread(peerId: Int, msgId: Int) -> Bool {
+        load(peerId: peerId).contains(msgId)
+    }
+}
+
 struct ChatView: View {
     let peerId:    Int
     let peerName:  String
@@ -98,6 +122,7 @@ struct ChatView: View {
                                     BubbleView(
                                         msg:      msg,
                                         myId:     myId,
+                                        peerId:   peerId,
                                         allMsgs:  messages,
                                         avatarMap: avatarMap,
                                         myAvatar:  myAvatar,
@@ -374,7 +399,15 @@ struct ChatView: View {
     private func load() async {
         isLoading = true
         if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id; myAvatar = me.photo100 }
-        messages = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? []
+        let fetched = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? []
+        let ghost = SettingsStore.shared.ghostMode
+        // Mark all incoming messages as ghost-unread when ghostMode is on
+        if ghost {
+            for msg in fetched where (msg.out ?? 0) == 0 {
+                GhostReadStore.markUnread(peerId: peerId, msgId: msg.id)
+            }
+        }
+        messages = fetched
         if peerId > 0, let user = try? await VKAPIClient.shared.getUserById("\(peerId)") { peerOnline = user.isOnline }
         let ids = Array(Set(messages.map { $0.fromId }.filter { $0 != myId && $0 > 0 }))
         if !ids.isEmpty, let users = try? await VKAPIClient.shared.getUsers(ids: ids.map(String.init).joined(separator: ",")) {
@@ -396,7 +429,7 @@ struct ChatView: View {
                 try await VKAPIClient.shared.editMessage(peerId: peerId, messageId: editing.id, text: text)
                 if let idx = messages.firstIndex(where: { $0.id == editing.id }) {
                     messages[idx] = VKMessage(id: editing.id, fromId: editing.fromId, text: text,
-                                              date: editing.date, replyMessageId: editing.replyMessageId, attachments: editing.attachments)
+                                              date: editing.date, replyMessageId: editing.replyMessageId, attachments: editing.attachments, out: editing.out, readState: editing.readState)
                 }
                 ToastManager.shared.show("Изменено", icon: "pencil.circle.fill", style: .success)
             } catch { ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
@@ -640,6 +673,7 @@ private struct TypingStatusView: View {
 private struct BubbleView: View {
     let msg:       VKMessage
     let myId:      Int
+    let peerId:    Int
     let allMsgs:   [VKMessage]
     let avatarMap: [Int: String]
     let myAvatar:  String?
@@ -667,23 +701,27 @@ private struct BubbleView: View {
     private var tc:   Color { isMe ? Color(red:0.55,green:0.75,blue:0.95) : Color(red:0.40,green:0.45,blue:0.58) }
     private let AV:   CGFloat = 28
 
-    // Read status indicator for outgoing messages
+    // Read status indicator
     @ViewBuilder
     private var readIndicator: some View {
         if isMe {
+            // Outgoing: single grey tick = unread, double blue ticks = read
             let isRead = (msg.readState ?? 0) == 1
-            HStack(spacing: -4) {
-                // First tick
+            HStack(spacing: -3) {
                 Image(systemName: "checkmark")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(isRead ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.5))
-                // Second tick — only shown if read
                 if isRead {
                     Image(systemName: "checkmark")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Color.cyberBlue)
                 }
             }
+        } else if SettingsStore.shared.ghostMode && GhostReadStore.isGhostUnread(peerId: peerId, msgId: msg.id) {
+            // Incoming while ghostMode: show orange dot = server doesn't know you read it
+            Circle()
+                .fill(Color.orange.opacity(0.85))
+                .frame(width: 6, height: 6)
         }
     }
 
