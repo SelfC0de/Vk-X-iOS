@@ -27,11 +27,11 @@ struct AboutView: View {
     @State private var subText       = ""     // typewritten "selfcode_dev"
     @State private var cursorVisible = true   // blinking cursor
 
-    private let links: [(icon: String, label: String, sub: String, color: Color, url: String)] = [
-        ("person.fill",         "ВКонтакте",   "vk.com/selfcode_dev",         Color(r:0x4C,g:0x75,b:0xA3), "https://vk.com/selfcode_dev"),
-        ("paperplane.fill",     "Telegram",    "t.me/selfcode.dev",            Color(r:0x2A,g:0xAB,b:0xEE), "https://t.me/selfcode.dev"),
-        ("chevron.left.forwardslash.chevron.right", "GitHub", "github.com/SelfC0de", Color(r:0xE8,g:0xE8,b:0xE8), "https://github.com/SelfC0de"),
-        ("doc.text.fill",       "GitHub Gist", "gist.github.com/SelfC0de",    Color(r:0x8B,g:0x94,b:0x9E), "https://gist.github.com/SelfC0de"),
+    private let links: [(icon: String, label: String, sub: String, color: Color, url: String, iconURL: String?)] = [
+        ("person.fill",         "ВКонтакте",   "vk.com/selfcode_dev",         Color(r:0x4C,g:0x75,b:0xA3), "https://vk.com/selfcode_dev",         nil),
+        ("paperplane.fill",     "Telegram",    "t.me/selfcode.dev",            Color(r:0x2A,g:0xAB,b:0xEE), "https://t.me/selfcode.dev",            nil),
+        ("chevron.left.forwardslash.chevron.right", "GitHub", "github.com/SelfC0de", Color(r:0xE8,g:0xE8,b:0xE8), "https://github.com/SelfC0de", "https://github.com/favicon.ico"),
+        ("doc.text.fill",       "GitHub Gist", "gist.github.com/SelfC0de",    Color(r:0x8B,g:0x94,b:0x9E), "https://gist.github.com/SelfC0de",    nil),
     ]
 
     var body: some View {
@@ -145,11 +145,12 @@ struct AboutView: View {
 
                         ForEach(links.indices, id: \.self) { i in
                             LinkCard(
-                                icon:  links[i].icon,
-                                label: links[i].label,
-                                sub:   links[i].sub,
-                                color: links[i].color,
-                                url:   links[i].url
+                                icon:    links[i].icon,
+                                label:   links[i].label,
+                                sub:     links[i].sub,
+                                color:   links[i].color,
+                                url:     links[i].url,
+                                iconURL: links[i].iconURL
                             )
                             .opacity(visible ? 1 : 0)
                             .offset(y: visible ? 0 : 20)
@@ -245,9 +246,11 @@ struct AboutView: View {
 private struct LinkCard: View {
     let icon: String; let label: String; let sub: String
     let color: Color; let url: String
+    var iconURL: String? = nil
 
     @State private var borderPhase = false
     @State private var pressed     = false
+    @State private var faviconImage: UIImage? = nil
 
     var body: some View {
         Button {
@@ -259,9 +262,23 @@ private struct LinkCard: View {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(color.opacity(0.15))
                         .frame(width: 40, height: 40)
-                    Image(systemName: icon)
-                        .font(.system(size: 17))
-                        .foregroundStyle(color)
+                    if let img = faviconImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                    } else {
+                        Image(systemName: icon)
+                            .font(.system(size: 17))
+                            .foregroundStyle(color)
+                    }
+                }
+                .task {
+                    guard faviconImage == nil, let urlStr = iconURL,
+                          let url = URL(string: urlStr),
+                          let (data, _) = try? await URLSession.shared.data(from: url),
+                          let img = UIImage(data: data) else { return }
+                    await MainActor.run { faviconImage = img }
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
