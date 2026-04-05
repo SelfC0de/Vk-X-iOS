@@ -36,6 +36,14 @@ struct VisualTab: View {
     private var petSubtitle: String { s.showPet ? (PetSpecies(rawValue: s.petType)?.label ?? "Кот") : "Выключен" }
 
     @ViewBuilder private var petCard: some View {
+            // ── Аватар ──────────────────────────────────────────────────
+            SettingsSectionCard(title: "Аватар",
+                                subtitle: "Форма и эффекты аватара",
+                                icon: "person.crop.circle.fill",
+                                iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
+                AvatarShapeCard()
+            }
+
         SettingsSectionCard(title: "Питомец",
                                 subtitle: petSubtitle,
                                 icon: "pawprint.fill",
