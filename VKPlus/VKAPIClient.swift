@@ -472,7 +472,7 @@ final class VKAPIClient {
         let nextFrom: String?
     }
 
-    func getNewsfeed(count: Int = 30, startFrom: String? = nil) async throws -> NewsfeedPage {
+    func getNewsfeed(count: Int = 50, startFrom: String? = nil) async throws -> NewsfeedPage {
         struct NR: Decodable {
             let items:    [VKWallPost]
             let profiles: [VKUser]?
@@ -482,7 +482,14 @@ final class VKAPIClient {
                 case items, profiles, groups; case nextFrom = "next_from"
             }
         }
-        var params: [String: String] = ["filters": "post", "count": "\(count)"]
+        // filters=post shows posts from friends AND groups the user follows
+        // return_banned=0 excludes hidden sources
+        var params: [String: String] = [
+            "filters":       "post",
+            "count":         "\(count)",
+            "return_banned": "0",
+            "fields":        "photo_100,screen_name,name,first_name,last_name"
+        ]
         if let sf = startFrom { params["start_from"] = sf }
         let r: NR = try await call("newsfeed.get", params: params)
         let profileMap = Dictionary(uniqueKeysWithValues: (r.profiles ?? []).map { ($0.id, $0) })

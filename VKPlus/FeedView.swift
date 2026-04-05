@@ -38,8 +38,17 @@ final class FeedViewModel: ObservableObject {
         isRefreshing = true; error = nil
         do {
             let page = try await VKAPIClient.shared.getNewsfeed()
-            posts = page.items; profiles = page.profiles
-            groups = page.groups; nextFrom = page.nextFrom
+            // Prepend fresh posts, deduplicate
+            let existingKeys = Set(posts.map { $0.uniqueKey })
+            let fresh = page.items.filter { !existingKeys.contains($0.uniqueKey) }
+            // Merge profiles/groups into existing maps
+            profiles.merge(page.profiles) { _, n in n }
+            groups.merge(page.groups)     { _, n in n }
+            // Prepend new posts at top
+            if !fresh.isEmpty {
+                posts = fresh + posts
+            }
+            nextFrom = page.nextFrom ?? nextFrom
         } catch { self.error = error.localizedDescription }
         isRefreshing = false
     }
@@ -148,9 +157,10 @@ struct FeedView: View {
                     authorPhoto: vm.authorPhoto(for: post),
                     onLike:      { Task { await vm.toggleLike(post: post) } }
                 )
-                .listRowInsets(EdgeInsets())
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.background)
                 .listRowSeparator(.hidden)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .onAppear {
                     if post.id == vm.posts.suffix(5).first?.id {
                         Task { await vm.loadMore() }
@@ -263,6 +273,7 @@ private struct PostCard: View {
             Divider().background(Color.divider.opacity(0.4))
         }
         .background(Color.background)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func fmtViews(_ n: Int) -> String {
@@ -302,41 +313,82 @@ private struct ExpandableText: View {
 // MARK: - PhotoGrid
 private struct PhotoGrid: View {
     let photos: [VKPhoto]
+
     var body: some View {
-        let count = min(photos.count, 4)
-        Group {
-            if count == 1 { singlePhoto(photos[0]) }
-            else if count == 2 {
-                HStack(spacing: 4) { ForEach(0..<2,id:\.self) { tilePhoto(photos[$0]) } }.frame(height: 200)
-            } else if count == 3 {
-                HStack(spacing: 4) {
-                    singlePhoto(photos[0]).frame(maxWidth: .infinity)
-                    VStack(spacing: 4) { ForEach(1..<3,id:\.self) { tilePhoto(photos[$0]) } }.frame(maxWidth: .infinity)
-                }.frame(height: 240)
-            } else {
-                VStack(spacing: 4) {
-                    HStack(spacing: 4) { ForEach(0..<2,id:\.self) { tilePhoto(photos[$0]) } }
-                    HStack(spacing: 4) { ForEach(2..<4,id:\.self) { tilePhoto(photos[$0]) } }
-                }.frame(height: 280)
-            }
+        GeometryReader { geo in
+            let w = geo.size.width
+            let count = min(photos.count, 4)
+            photoLayout(count: count, width: w)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: photoHeight)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
-    @ViewBuilder private func singlePhoto(_ p: VKPhoto) -> some View {
-        if let url = p.maxUrl.flatMap(URL.init) {
-            AsyncImage(url: url) { phase in
-                if case .success(let img) = phase { img.resizable().scaledToFill() }
-                else { Color.surfaceVar }
-            }.frame(maxWidth:.infinity).frame(height:280).clipped()
+
+    private var photoHeight: CGFloat {
+        switch min(photos.count, 4) {
+        case 1: return 260
+        case 2: return 180
+        case 3: return 220
+        default: return 260
         }
     }
-    @ViewBuilder private func tilePhoto(_ p: VKPhoto) -> some View {
-        if let url = p.maxUrl.flatMap(URL.init) {
-            AsyncImage(url: url) { phase in
-                if case .success(let img) = phase { img.resizable().scaledToFill() }
-                else { Color.surfaceVar }
-            }.frame(maxWidth:.infinity,maxHeight:.infinity).clipped()
+
+    @ViewBuilder
+    private func photoLayout(count: Int, width: CGFloat) -> some View {
+        switch count {
+        case 1:
+            photoCell(photos[0])
+                .frame(width: width, height: 260)
+        case 2:
+            HStack(spacing: 2) {
+                photoCell(photos[0]).frame(width: (width - 2) / 2, height: 180)
+                photoCell(photos[1]).frame(width: (width - 2) / 2, height: 180)
+            }
+        case 3:
+            HStack(spacing: 2) {
+                photoCell(photos[0]).frame(width: (width - 2) * 0.6, height: 220)
+                VStack(spacing: 2) {
+                    photoCell(photos[1]).frame(width: (width - 2) * 0.4, height: 109)
+                    photoCell(photos[2]).frame(width: (width - 2) * 0.4, height: 109)
+                }
+            }
+        default:
+            VStack(spacing: 2) {
+                HStack(spacing: 2) {
+                    photoCell(photos[0]).frame(width: (width - 2) / 2, height: 129)
+                    photoCell(photos[1]).frame(width: (width - 2) / 2, height: 129)
+                }
+                HStack(spacing: 2) {
+                    photoCell(photos[2]).frame(width: (width - 2) / 2, height: 129)
+                    photoCell(photos[3]).frame(width: (width - 2) / 2, height: 129)
+                }
+            }
         }
+    }
+
+    @ViewBuilder
+    private func photoCell(_ p: VKPhoto) -> some View {
+        let url = p.maxUrl.flatMap(URL.init)
+        Color.surfaceVar
+            .overlay(
+                Group {
+                    if let url {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let img):
+                                img.resizable().scaledToFill()
+                            case .failure:
+                                Image(systemName: "photo").foregroundStyle(Color.onSurfaceMut)
+                            default:
+                                ProgressView().tint(.cyberBlue)
+                            }
+                        }
+                    }
+                }
+            )
+            .clipped()
+            .contentShape(Rectangle())
     }
 }
 
