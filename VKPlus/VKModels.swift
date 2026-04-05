@@ -66,17 +66,19 @@ struct VKVideoAttachment: Decodable {
     let id: Int; let ownerId: Int; let title: String?
     let photo320: String?; let photo800: String?
     let duration: Int?
-    // Direct stream URLs (from video.get with extended=1)
     let player:  String?   // embed player URL
     let files:   VKVideoFiles?
+    // Manual override from rawCall parsing (not from JSON decode)
+    var _directUrl: String? = nil
+
     enum CodingKeys: String, CodingKey {
         case id; case ownerId = "owner_id"; case title
         case photo320 = "photo_320"; case photo800 = "photo_800"
         case duration; case player; case files
     }
     var thumbUrl: String? { photo800 ?? photo320 }
-    // Best available direct URL
     var directUrl: String? {
+        if let d = _directUrl { return d }
         guard let f = files else { return nil }
         return f.mp4_1080 ?? f.mp4_720 ?? f.mp4_480 ?? f.mp4_360 ?? f.mp4_240 ?? f.external
     }

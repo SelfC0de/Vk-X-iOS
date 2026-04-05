@@ -501,18 +501,34 @@ final class VKAPIClient {
 
     // MARK: - Video
     func getVideo(ownerId: Int, videoId: Int) async throws -> VKVideoAttachment? {
-        struct VR: Decodable {
-            let count: Int?
-            let items: [VKVideoAttachment]?
-        }
         let key = "\(ownerId)_\(videoId)"
-        let params: [String: String] = [
-            "videos":   key,
-            "extended": "1",
-            "fields":   "files,player"
-        ]
-        let r: VR = try await call("video.get", params: params)
-        return r.items?.first
+        let json = try await rawCall("video.get", params: [
+            "videos": key, "extended": "1"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]],
+              let item  = items.first else { return nil }
+
+        // Parse files dict → prefer best quality
+        var directUrl: String? = nil
+        if let files = item["files"] as? [String: Any] {
+            for q in ["mp4_1080","mp4_720","mp4_480","mp4_360","mp4_240"] {
+                if let u = files[q] as? String, !u.isEmpty { directUrl = u; break }
+            }
+        }
+        let playerUrl = item["player"] as? String
+
+        return VKVideoAttachment(
+            id:       (item["id"] as? Int) ?? videoId,
+            ownerId:  (item["owner_id"] as? Int) ?? ownerId,
+            title:    item["title"] as? String,
+            photo320: item["photo_320"] as? String,
+            photo800: item["photo_800"] as? String,
+            duration: item["duration"] as? Int,
+            player:   playerUrl,
+            files:    nil,    // already extracted above
+            _directUrl: directUrl
+        )
     }
 
     // MARK: - Likes

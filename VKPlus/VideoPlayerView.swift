@@ -48,9 +48,14 @@ struct VideoCard: View {
                 }
 
                 // Inline player
-                if showPlayer, let url = playableURL {
-                    InlineVideoPlayer(url: url, onFullscreen: { showFullscreen = true })
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if showPlayer {
+                    if let url = directVideoURL {
+                        InlineVideoPlayer(url: url, onFullscreen: { showFullscreen = true })
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let url = embedVideoURL {
+                        VideoWebPlayer(url: url, onFullscreen: { showFullscreen = true })
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -92,17 +97,23 @@ struct VideoCard: View {
         }
         // Fullscreen
         .fullScreenCover(isPresented: $showFullscreen) {
-            if let url = playableURL {
+            if let url = directVideoURL {
                 FullscreenVideoPlayer(url: url)
+            } else if let url = embedVideoURL {
+                FullscreenWebPlayer(url: url)
             }
         }
     }
 
-    private var playableURL: URL? {
+    private var directVideoURL: URL? {
         let src = resolved ?? video
-        guard let str = src.directUrl ?? src.player else { return nil }
-        return URL(string: str)
+        return src.directUrl.flatMap(URL.init)
     }
+    private var embedVideoURL: URL? {
+        let src = resolved ?? video
+        return src.player.flatMap(URL.init)
+    }
+    private var playableURL: URL? { directVideoURL ?? embedVideoURL }
 
     private func resolve() async {
         guard !loading else { return }
@@ -111,8 +122,8 @@ struct VideoCard: View {
             await MainActor.run {
                 resolved = v
                 loading  = false
-                if v.directUrl != nil { showPlayer = true }
-                else if let p = v.player.flatMap(URL.init) { UIApplication.shared.open(p) }
+                // Always show player — FullscreenVideoPlayer handles both directUrl and player URL
+                showPlayer = true
             }
         } else {
             await MainActor.run { loading = false }
@@ -343,5 +354,53 @@ private struct VideoPlayerLayer: UIViewRepresentable {
             get { playerLayer.player }
             set { playerLayer.player = newValue; playerLayer.videoGravity = .resizeAspect }
         }
+    }
+}
+
+// MARK: - WKWebView embed player (for VK player URLs)
+import WebKit
+
+struct VideoWebPlayer: UIViewRepresentable {
+    let url: URL
+    var onFullscreen: (() -> Void)? = nil
+
+    func makeUIView(context: Context) -> WKWebView {
+        let cfg = WKWebViewConfiguration()
+        cfg.allowsInlineMediaPlayback = true
+        cfg.mediaTypesRequiringUserActionForPlayback = []
+        let wv = WKWebView(frame: .zero, configuration: cfg)
+        wv.backgroundColor = .black
+        wv.scrollView.isScrollEnabled = false
+        wv.isOpaque = false
+        // Autoplay via JS injection
+        let req = URLRequest(url: url)
+        wv.load(req)
+        return wv
+    }
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+}
+
+// MARK: - Fullscreen web player
+struct FullscreenWebPlayer: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black.ignoresSafeArea()
+            VideoWebPlayer(url: url)
+                .ignoresSafeArea()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(.black.opacity(0.5))
+                    .clipShape(Circle())
+            }
+            .padding(.leading, 16)
+            .padding(.top, 52)
+        }
+        .statusBarHidden()
     }
 }

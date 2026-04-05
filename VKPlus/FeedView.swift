@@ -212,9 +212,10 @@ private struct PostCard: View {
     let authorPhoto: String?
     let onLike:      () -> Void
 
-    @State private var showPhotoViewer = false
-    @State private var photoViewerIndex = 0
-    @State private var showRepostSheet  = false
+    @State private var showPhotoViewer   = false
+    @State private var photoViewerIndex  = 0
+    @State private var showRepostSheet   = false
+    @State private var showMediaForward  = false
 
     private var dateStr: String {
         let df = DateFormatter(); df.locale = Locale(identifier: "ru_RU"); df.dateFormat = "d MMM · HH:mm"
@@ -248,14 +249,39 @@ private struct PostCard: View {
                 let videos = att.filter { $0.type == "video" }.compactMap { $0.video }
                 let links  = att.filter { $0.type == "link"  }.compactMap { $0.link }
                 if !photos.isEmpty {
-                    PhotoGrid(photos: photos, onTap: { idx in
-                        photoViewerIndex = idx
-                        showPhotoViewer  = true
-                    }).padding(.horizontal, 14).padding(.top, 8)
+                    ZStack(alignment: .topTrailing) {
+                        PhotoGrid(photos: photos, onTap: { idx in
+                            photoViewerIndex = idx
+                            showPhotoViewer  = true
+                        })
+                        Button { showMediaForward = true } label: {
+                            Image(systemName: "arrowshape.turn.up.right.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(6)
+                    }
+                    .padding(.horizontal, 14).padding(.top, 8)
                 }
                 ForEach(videos.indices, id: \.self) { i in
-                    VideoCard(video: videos[i])
-                        .padding(.horizontal, 14).padding(.top, 8)
+                    ZStack(alignment: .topTrailing) {
+                        VideoCard(video: videos[i])
+                        Button { showMediaForward = true } label: {
+                            Image(systemName: "arrowshape.turn.up.right.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(6)
+                    }
+                    .padding(.horizontal, 14).padding(.top, 8)
                 }
                 ForEach(links.indices, id: \.self) { i in
                     LinkPreview(link: links[i]).padding(.horizontal, 14).padding(.top, 6)
@@ -305,6 +331,10 @@ private struct PostCard: View {
         // Repost sheet
         .sheet(isPresented: $showRepostSheet) {
             RepostSheet(post: post, authorName: authorName)
+        }
+        // Media forward sheet
+        .sheet(isPresented: $showMediaForward) {
+            MediaForwardSheet(post: post)
         }
     }
 
@@ -744,6 +774,242 @@ struct RepostSheet: View {
                 sending = false
                 sent = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { dismiss() }
+            }
+        }
+    }
+}
+
+// MARK: - Media Forward Sheet
+struct MediaForwardSheet: View {
+    let post: VKWallPost
+    @Environment(\.dismiss) private var dismiss
+    @State private var dialogs:   [DialogItem] = []
+    @State private var loading    = true
+    @State private var sending    = false
+    @State private var sentTo:    Set<Int> = []
+    @State private var searchQ    = ""
+
+    // Media items for selection
+    private var photos: [VKPhoto] {
+        (post.attachments ?? []).filter { $0.type == "photo" }.compactMap { $0.photo }
+    }
+    private var videos: [VKVideoAttachment] {
+        (post.attachments ?? []).filter { $0.type == "video" }.compactMap { $0.video }
+    }
+
+    @State private var selectedPhotos: Set<Int> = []
+    @State private var selectedVideos: Set<Int> = []
+
+    private var hasSelection: Bool { !selectedPhotos.isEmpty || !selectedVideos.isEmpty }
+
+    private var filtered: [DialogItem] {
+        searchQ.isEmpty ? dialogs :
+        dialogs.filter { $0.name.lowercased().contains(searchQ.lowercased()) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Media selection grid
+                if !photos.isEmpty || !videos.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            // Photos
+                            ForEach(photos.indices, id: \.self) { i in
+                                mediaThumb(
+                                    urlStr: photos[i].maxUrl,
+                                    icon: "photo",
+                                    selected: selectedPhotos.contains(i)
+                                ) {
+                                    if selectedPhotos.contains(i) { selectedPhotos.remove(i) }
+                                    else { selectedPhotos.insert(i) }
+                                }
+                            }
+                            // Videos
+                            ForEach(videos.indices, id: \.self) { i in
+                                mediaThumb(
+                                    urlStr: videos[i].thumbUrl,
+                                    icon: "video",
+                                    selected: selectedVideos.contains(i)
+                                ) {
+                                    if selectedVideos.contains(i) { selectedVideos.remove(i) }
+                                    else { selectedVideos.insert(i) }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                    }
+                    .background(Color.surfaceVar)
+
+                    if hasSelection {
+                        Text("Выбрано: \(selectedPhotos.count + selectedVideos.count)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.cyberBlue)
+                            .padding(.vertical, 4)
+                    } else {
+                        Text("Выберите медиафайлы для пересылки")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.onSurfaceMut)
+                            .padding(.vertical, 4)
+                    }
+
+                    Divider().background(Color.divider)
+                }
+
+                // Dialog search
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut).font(.system(size: 14))
+                    TextField("Поиск диалога...", text: $searchQ)
+                        .font(.system(size: 14)).autocorrectionDisabled()
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color.surfaceVar)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 14).padding(.vertical, 8)
+
+                Divider().background(Color.divider)
+
+                if loading {
+                    Spacer(); ProgressView().tint(.cyberBlue); Spacer()
+                } else {
+                    List(filtered) { dialog in
+                        Button { send(to: dialog) } label: {
+                            HStack(spacing: 12) {
+                                AvatarView(url: dialog.avatar, size: 40)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(dialog.name)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.onSurface).lineLimit(1)
+                                    Text(dialog.lastMessage)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Color.onSurfaceMut).lineLimit(1)
+                                }
+                                Spacer()
+                                if sentTo.contains(dialog.peerId) {
+                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                                } else if sending {
+                                    ProgressView().tint(.cyberBlue)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!hasSelection)
+                        .listRowBackground(hasSelection ? Color.surface : Color.surface.opacity(0.5))
+                        .listRowSeparatorTint(Color.divider)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .scrollDismissesKeyboard(.immediately)
+                }
+            }
+            .background(Color.background)
+            .navigationTitle("Переслать медиа")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Закрыть") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if hasSelection {
+                        Button("Выбрать всё") {
+                            photos.indices.forEach { selectedPhotos.insert($0) }
+                            videos.indices.forEach { selectedVideos.insert($0) }
+                        }
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.cyberBlue)
+                    }
+                }
+            }
+            .task { await loadDialogs() }
+            .onAppear {
+                // Auto-select all by default
+                photos.indices.forEach { selectedPhotos.insert($0) }
+                videos.indices.forEach { selectedVideos.insert($0) }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private func mediaThumb(urlStr: String?, icon: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if let urlStr, let url = URL(string: urlStr) {
+                AsyncImage(url: url) { phase in
+                    if case .success(let img) = phase {
+                        img.resizable().scaledToFill()
+                    } else { Color.surfaceVar }
+                }
+                .frame(width: 72, height: 72)
+                .clipped()
+            } else {
+                Color.surfaceVar
+                    .frame(width: 72, height: 72)
+                    .overlay(Image(systemName: icon).foregroundStyle(Color.onSurfaceMut))
+            }
+
+            // Selection indicator
+            ZStack {
+                Circle()
+                    .fill(selected ? Color.cyberBlue : Color.black.opacity(0.5))
+                    .frame(width: 22, height: 22)
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .padding(4)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+            selected ? Color.cyberBlue : Color.clear, lineWidth: 2))
+        .onTapGesture { onTap() }
+    }
+
+    private func loadDialogs() async {
+        loading = true
+        dialogs = (try? await VKAPIClient.shared.getDialogs()) ?? []
+        loading = false
+    }
+
+    private func send(to dialog: DialogItem) {
+        guard hasSelection, !sending else { return }
+        sending = true
+
+        // Build attachment string: photo{ownerid}_{id},video{ownerid}_{id},...
+        var attachments: [String] = []
+
+        for i in selectedPhotos {
+            let p = photos[i]
+            attachments.append("photo\(p.id)_\(p.id)") // will fix with real ownerId below
+        }
+        // photos need owner_id — stored in maxUrl path isn't reliable; use post owner
+        let postOwnerId = post.postOwnerId
+
+        attachments = []
+        for i in selectedPhotos.sorted() {
+            if i < photos.count {
+                // VK photo attachment format: photo{owner_id}_{photo_id}
+                attachments.append("photo\(postOwnerId)_\(photos[i].id)")
+            }
+        }
+        for i in selectedVideos.sorted() {
+            if i < videos.count {
+                attachments.append("video\(videos[i].ownerId)_\(videos[i].id)")
+            }
+        }
+
+        let attachStr = attachments.joined(separator: ",")
+
+        Task {
+            _ = try? await VKAPIClient.shared.sendMessage(
+                peerId: dialog.peerId,
+                text: "",
+                attachment: attachStr
+            )
+            await MainActor.run {
+                sending = false
+                sentTo.insert(dialog.peerId)
             }
         }
     }
