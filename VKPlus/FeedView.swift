@@ -121,7 +121,7 @@ struct FeedView: View {
                 }
             }
         }
-        .navigationTitle("Лента")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)

@@ -70,7 +70,7 @@ struct FriendsView: View {
                 }
             }
         }
-        .navigationTitle("Друзья (\(friends.count))")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.surface, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)

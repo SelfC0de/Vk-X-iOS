@@ -67,13 +67,20 @@ struct WeatherOverlayView: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: Fog
+    // MARK: Fog — full-screen multi-layer
     private var fogLayer: some View {
         ZStack {
-            ForEach(0..<3, id: \.self) { i in
-                FogCloud(offset: Double(i) * 0.33)
-            }
+            // 5 layers at different depths/speeds for parallax feel
+            FogLayer(index: 0, speed: 22, yFrac: 0.15, opacity: 0.13, widthFrac: 1.4, height: 160)
+            FogLayer(index: 1, speed: 31, yFrac: 0.38, opacity: 0.11, widthFrac: 1.2, height: 140)
+            FogLayer(index: 2, speed: 18, yFrac: 0.58, opacity: 0.14, widthFrac: 1.6, height: 180)
+            FogLayer(index: 3, speed: 26, yFrac: 0.75, opacity: 0.10, widthFrac: 1.3, height: 150)
+            FogLayer(index: 4, speed: 20, yFrac: 0.92, opacity: 0.12, widthFrac: 1.5, height: 170)
+            // Ambient base fill — very subtle grey tint over entire screen
+            Color.white.opacity(0.04).ignoresSafeArea()
         }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     // MARK: Spawn
@@ -156,30 +163,49 @@ private struct RainDrop: Shape {
 }
 
 // MARK: - Fog cloud
-private struct FogCloud: View {
-    let offset: Double
-    @State private var x: CGFloat = 0
+private struct FogLayer: View {
+    let index:     Int
+    let speed:     Double    // animation duration
+    let yFrac:     Double    // vertical position 0..1
+    let opacity:   Double
+    let widthFrac: Double    // width multiplier vs screen
+    let height:    CGFloat
+
+    @State private var offsetX: CGFloat = 0
+    @State private var scale:   CGFloat = 1.0
 
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
+            let h = geo.size.height
+            let layerW = w * widthFrac
             Ellipse()
                 .fill(
-                    LinearGradient(colors: [
-                        Color.white.opacity(0.0),
-                        Color.white.opacity(0.18),
-                        Color.white.opacity(0.0)
-                    ], startPoint: .leading, endPoint: .trailing)
+                    RadialGradient(
+                        colors: [Color.white.opacity(opacity), Color.white.opacity(0)],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: layerW * 0.5
+                    )
                 )
-                .frame(width: w * 0.7, height: 80)
-                .blur(radius: 20)
-                .offset(x: x, y: geo.size.height * (0.2 + offset * 0.3))
+                .frame(width: layerW, height: height)
+                .blur(radius: 28)
+                .scaleEffect(x: scale, y: 1)
+                .position(x: w / 2 + offsetX, y: h * yFrac)
                 .onAppear {
-                    x = CGFloat.random(in: -w/2...w/2)
-                    withAnimation(.linear(duration: Double.random(in: 18...30)).repeatForever(autoreverses: true)) {
-                        x = CGFloat.random(in: -w/3...w/3)
+                    let startX = CGFloat.random(in: -w * 0.3 ... w * 0.3)
+                    offsetX = startX
+                    scale   = CGFloat.random(in: 0.85...1.15)
+                    let dur = speed + Double(index) * 3.7
+                    let targetX = startX + CGFloat.random(in: -w * 0.25 ... w * 0.25)
+                    withAnimation(
+                        .easeInOut(duration: dur).repeatForever(autoreverses: true)
+                    ) {
+                        offsetX = targetX
+                        scale   = CGFloat.random(in: 0.9...1.2)
                     }
                 }
         }
+        .ignoresSafeArea()
     }
 }
