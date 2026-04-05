@@ -2,46 +2,45 @@ import SwiftUI
 
 // MARK: - Animated Tab Item
 struct AnimatedTabItem: View {
-    let icon: String
+    let icon: String     // kept for compat, unused
     let label: String
     let isSelected: Bool
     let badgeCount: Int
+    var tabIndex: Int = 0
 
-    @State private var bouncing   = false
-    @State private var glowing    = false
+    @State private var bouncing     = false
+    @State private var glowing      = false
     @State private var prevSelected = false
 
     var body: some View {
         VStack(spacing: 2) {
             ZStack(alignment: .topTrailing) {
-                // Subtle glow capsule behind selected icon (like iOS 18 style)
+                // Glow capsule
                 if isSelected {
                     Capsule()
-                        .fill(Color.cyberBlue.opacity(glowing ? 0.16 : 0.08))
-                        .frame(width: 44, height: 28)
-                        .scaleEffect(glowing ? 1.05 : 0.95)
-                        .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: glowing)
+                        .fill(Color.cyberBlue.opacity(glowing ? 0.18 : 0.08))
+                        .frame(width: 46, height: 30)
+                        .scaleEffect(glowing ? 1.06 : 0.94)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: glowing)
                 }
 
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.cyberBlue : Color.onSurfaceMut)
-                    .scaleEffect(bouncing ? 1.22 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.45), value: bouncing)
+                // Custom animated icon
+                AnimatedTabIcon(tab: tabIndex, isSelected: isSelected, size: 26)
+                    .scaleEffect(bouncing ? 1.18 : 1.0)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.42), value: bouncing)
 
                 // Badge
                 if badgeCount > 0 {
                     Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 4).padding(.vertical, 2)
                         .background(Color.errorRed)
                         .clipShape(Capsule())
-                        .offset(x: 10, y: -4)
+                        .offset(x: 12, y: -4)
                 }
             }
-            .frame(width: 44, height: 28)
+            .frame(width: 46, height: 30)
 
             Text(label)
                 .font(.system(size: 9.5, weight: isSelected ? .semibold : .regular))
@@ -50,19 +49,13 @@ struct AnimatedTabItem: View {
         }
         .onChange(of: isSelected) { _, newVal in
             if newVal && !prevSelected {
-                bouncing = true
-                glowing  = true
+                bouncing = true; glowing = true
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { bouncing = false }
-            } else if !newVal {
-                glowing = false
-            }
+            } else if !newVal { glowing = false }
             prevSelected = newVal
         }
-        .onAppear {
-            prevSelected = isSelected
-            if isSelected { glowing = true }
-        }
+        .onAppear { prevSelected = isSelected; if isSelected { glowing = true } }
     }
 }
 
@@ -85,10 +78,11 @@ struct AnimatedTabBar: View {
         HStack(spacing: 0) {
             ForEach(tabs.indices, id: \.self) { i in
                 AnimatedTabItem(
-                    icon: selected == i ? tabs[i].selectedIcon : tabs[i].icon,
+                    icon: tabs[i].icon,
                     label: tabs[i].label,
                     isSelected: selected == i,
-                    badgeCount: 0
+                    badgeCount: 0,
+                    tabIndex: i
                 )
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())

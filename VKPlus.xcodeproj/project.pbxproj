@@ -47,6 +47,7 @@
 		E092D1100CCB4B839BBBF116={isa=PBXBuildFile;fileRef=24306AF3BEF945C18A815538;};
 		DCE5EB82E3FB4FC9B6ADA1A9={isa=PBXBuildFile;fileRef=B395A646C2054730A24C4621;};
 		CC2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = CC2233445566778899AABB00 /* CommunitiesView.swift */; };
+				DD2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = DD2233445566778899AABB00 /* AnimatedIcons.swift */; };
 		/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -90,6 +91,7 @@
 		ACFF0DCEDA344291A8465598={isa=PBXFileReference;explicitFileType=wrapper.application;includeInIndex=0;path=VKPlus.app;sourceTree=BUILT_PRODUCTS_DIR;};
 		B395A646C2054730A24C4621={isa=PBXFileReference;lastKnownFileType=wrapper.framework;name=AVFoundation.framework;path=System/Library/Frameworks/AVFoundation.framework;sourceTree=SDKROOT;};
 		CC2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunitiesView.swift; sourceTree = "<group>"; };
+				DD2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedIcons.swift; sourceTree = "<group>"; };
 		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +101,7 @@
 /* Begin PBXGroup section */
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
+				DD2233445566778899AABB00 /* AnimatedIcons.swift */,
 				CC2233445566778899AABB00 /* CommunitiesView.swift */,
 				AA1122334455667788990011,
 				FF1122334455667788990011,
@@ -155,6 +158,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		1EF9FD6FDCE44A6EA87FDBBA={isa=PBXSourcesBuildPhase;buildActionMask=2147483647;files=(
+				DD2233445566778899AABB11 /* AnimatedIcons.swift in Sources */,
 			CC2233445566778899AABB11,
 			AA1122334455667788990022,
 			FF1122334455667788990022,

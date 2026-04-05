@@ -206,7 +206,7 @@ struct FeedView: View {
 }
 
 // MARK: - PostCard
-private struct PostCard: View {
+struct PostCard: View {
     let post:        VKWallPost
     let authorName:  String
     let authorPhoto: String?
@@ -364,13 +364,13 @@ private struct PostCard: View {
 }
 
 // MARK: - ExpandableText
-private struct ExpandableText: View {
+struct ExpandableText: View {
     let text: String
     @State private var expanded = false
     private let limit = 300
 
     // Detect URLs in text
-    private static let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+    static let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
     private func attributedText(_ str: String) -> AttributedString {
         var attr = AttributedString(str)
@@ -417,7 +417,7 @@ private struct ExpandableText: View {
 }
 
 // MARK: - PhotoGrid
-private struct PhotoGrid: View {
+struct PhotoGrid: View {
     let photos: [VKPhoto]
     var onTap: ((Int) -> Void)? = nil
 
@@ -507,7 +507,7 @@ private struct PhotoGrid: View {
 }
 
 // MARK: - LinkPreview
-private struct LinkPreview: View {
+struct LinkPreview: View {
     let link: VKLinkAttach
     var body: some View {
         Button {

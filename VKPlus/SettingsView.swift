@@ -60,21 +60,20 @@ struct SettingsView: View {
                     Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { selectedTab = i }
                     } label: {
-                        HStack(spacing: 5) {
-                                Image(systemName: tabIcons[i])
-                                    .font(.system(size: 12, weight: .semibold))
-                                Text(tabs[i])
-                                    .font(.system(size: 12, weight: .semibold))
-                            }
-                            .foregroundStyle(selectedTab == i ? Color.background : Color.onSurfaceMut)
-                            .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(
-                                selectedTab == i
-                                    ? AnyShapeStyle(LinearGradient.cyberGrad)
-                                    : AnyShapeStyle(Color.surfaceVar)
-                            )
-                            .clipShape(Capsule())
-                            .shadow(color: selectedTab == i ? Color.cyberBlue.opacity(0.35) : .clear, radius: 6)
+                        HStack(spacing: 6) {
+                            SettingsTabIcon(tab: i, isSelected: selectedTab == i, size: 18)
+                            Text(tabs[i])
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(selectedTab == i ? Color.background : Color.onSurfaceMut)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(
+                            selectedTab == i
+                                ? AnyShapeStyle(LinearGradient.cyberGrad)
+                                : AnyShapeStyle(Color.surfaceVar)
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: selectedTab == i ? Color.cyberBlue.opacity(0.35) : .clear, radius: 6)
                     }
                 }
             }
