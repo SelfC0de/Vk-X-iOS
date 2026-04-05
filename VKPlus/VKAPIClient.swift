@@ -46,11 +46,15 @@ final class VKAPIClient {
             URLQueryItem(name: "access_token", value: tokenOverride ?? token),
             URLQueryItem(name: "v",            value: versionOverride ?? version)
         ]
+        let s = SettingsStore.shared
+        // Ghost Online / Force Offline: tell VK server not to update online status
+        if s.ghostOnline || s.forceOffline {
+            items.append(URLQueryItem(name: "online", value: "0"))
+        }
         comps.queryItems = items
         guard let url = comps.url else { throw VKError.network("Bad URL") }
 
         var req = URLRequest(url: url)
-        let s = SettingsStore.shared
         if s.hardwareSpoof {
             let dev = HardwareSpoofing.generate()
             req.setValue(dev.userAgent, forHTTPHeaderField: "User-Agent")
@@ -79,6 +83,10 @@ final class VKAPIClient {
             URLQueryItem(name: "access_token", value: token),
             URLQueryItem(name: "v",            value: versionOverride ?? version)
         ]
+        let _s = SettingsStore.shared
+        if _s.ghostOnline || _s.forceOffline {
+            items.append(URLQueryItem(name: "online", value: "0"))
+        }
         comps.queryItems = items
         guard let url = comps.url else { throw VKError.network("Bad URL") }
         let (data, _) = try await session.data(from: url)

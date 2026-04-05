@@ -14,13 +14,19 @@ struct VKPlusApp: App {
             ContentView()
                 .preferredColorScheme(colorScheme)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    if store.forceOffline { ForceOfflineManager.shared.start() }
+                    let needOffline = store.forceOffline || store.ghostOnline
+                    if needOffline { ForceOfflineManager.shared.start() }
                     else { ForceOfflineManager.shared.stop() }
                     ScreenProtector.shared.apply(enabled: store.blurScreen)
                 }
                 .onChange(of: store.forceOffline) { _, val in
+                    let needOffline = val || store.ghostOnline
+                    if needOffline { ForceOfflineManager.shared.start() }
+                    else { ForceOfflineManager.shared.stop() }
+                }
+                .onChange(of: store.ghostOnline) { _, val in
                     if val { ForceOfflineManager.shared.start() }
-                    else   { ForceOfflineManager.shared.stop()  }
+                    else if !store.forceOffline { ForceOfflineManager.shared.stop() }
                 }
                 .onChange(of: store.blurScreen) { _, val in
                     ScreenProtector.shared.apply(enabled: val)
