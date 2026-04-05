@@ -35,12 +35,17 @@ struct MessagesView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar { ToolbarItem(placement: .navigationBarLeading) {
-                VStack(spacing: 0) {
+                ZStack(alignment: .leading) {
+                    // Garland spans full navbar width
                     GarlandView()
-                    PetView()
-                    ClockView().padding(.leading, 4)
+                        .frame(width: UIScreen.main.bounds.width)
+                        .allowsHitTesting(false)
+                    VStack(spacing: 0) {
+                        PetView()
+                        ClockView().padding(.leading, 4)
+                    }
+                    .frame(width: 200, alignment: .leading)
                 }
-                .frame(width: 200, alignment: .leading)
             } }
         .task { await load() }
     }
