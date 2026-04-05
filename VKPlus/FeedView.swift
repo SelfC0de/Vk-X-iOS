@@ -245,12 +245,17 @@ private struct PostCard: View {
             // Attachments
             if let att = post.attachments, !att.isEmpty {
                 let photos = att.filter { $0.type == "photo" }.compactMap { $0.photo }
+                let videos = att.filter { $0.type == "video" }.compactMap { $0.video }
                 let links  = att.filter { $0.type == "link"  }.compactMap { $0.link }
                 if !photos.isEmpty {
                     PhotoGrid(photos: photos, onTap: { idx in
                         photoViewerIndex = idx
                         showPhotoViewer  = true
                     }).padding(.horizontal, 14).padding(.top, 8)
+                }
+                ForEach(videos.indices, id: \.self) { i in
+                    VideoCard(video: videos[i])
+                        .padding(.horizontal, 14).padding(.top, 8)
                 }
                 ForEach(links.indices, id: \.self) { i in
                     LinkPreview(link: links[i]).padding(.horizontal, 14).padding(.top, 6)
@@ -559,10 +564,10 @@ struct PhotoViewerSheet: View {
 // Zoomable photo with pinch gesture
 private struct ZoomablePhoto: View {
     let url: URL?
-    @State private var scale: CGFloat = 1
-    @State private var lastScale: CGFloat = 1
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
+    @State private var scale:      CGFloat = 1
+    @State private var lastScale:  CGFloat = 1
+    @State private var offset:     CGSize  = .zero
+    @State private var lastOffset: CGSize  = .zero
 
     var body: some View {
         GeometryReader { geo in
@@ -576,29 +581,45 @@ private struct ZoomablePhoto: View {
                                 .frame(width: geo.size.width, height: geo.size.height)
                                 .scaleEffect(scale)
                                 .offset(offset)
+                                // Pinch to zoom
                                 .gesture(
-                                    SimultaneousGesture(
-                                        MagnifyGesture()
-                                            .onChanged { v in
-                                                scale = max(1, min(5, lastScale * v.magnification))
+                                    MagnifyGesture()
+                                        .onChanged { v in
+                                            scale = max(1, min(5, lastScale * v.magnification))
+                                        }
+                                        .onEnded { _ in
+                                            lastScale = scale
+                                            if scale <= 1 {
+                                                withAnimation(.spring(response: 0.3)) {
+                                                    scale = 1; offset = .zero
+                                                    lastScale = 1; lastOffset = .zero
+                                                }
                                             }
-                                            .onEnded { _ in
-                                                lastScale = scale
-                                                if scale < 1 { withAnimation { scale = 1; offset = .zero; lastScale = 1; lastOffset = .zero } }
-                                            },
-                                        DragGesture()
-                                            .onChanged { v in
-                                                guard scale > 1 else { return }
-                                                offset = CGSize(width: lastOffset.width + v.translation.width,
-                                                                height: lastOffset.height + v.translation.height)
-                                            }
-                                            .onEnded { _ in lastOffset = offset }
-                                    )
+                                        }
+                                )
+                                // Drag only when zoomed — don't block TabView horizontal swipe
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 10)
+                                        .onChanged { v in
+                                            guard scale > 1 else { return }
+                                            offset = CGSize(
+                                                width:  lastOffset.width  + v.translation.width,
+                                                height: lastOffset.height + v.translation.height
+                                            )
+                                        }
+                                        .onEnded { _ in
+                                            guard scale > 1 else { return }
+                                            lastOffset = offset
+                                        }
                                 )
                                 .onTapGesture(count: 2) {
-                                    withAnimation(.spring()) {
-                                        if scale > 1 { scale = 1; offset = .zero; lastScale = 1; lastOffset = .zero }
-                                        else { scale = 2.5; lastScale = 2.5 }
+                                    withAnimation(.spring(response: 0.3)) {
+                                        if scale > 1 {
+                                            scale = 1; offset = .zero
+                                            lastScale = 1; lastOffset = .zero
+                                        } else {
+                                            scale = 2.5; lastScale = 2.5
+                                        }
                                     }
                                 }
                         default:
@@ -610,6 +631,7 @@ private struct ZoomablePhoto: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
+        // Reset zoom on swipe-away (when scale == 1, let TabView handle gesture)
     }
 }
 

@@ -252,46 +252,66 @@ struct VideoPlayerSheet: View {
     let ownerId: Int
     let thumb: String?
     @Environment(\.dismiss) var dismiss
-    @State private var videoUrl: String? = nil
-    @State private var player: AVPlayer? = nil
+
+    @State private var resolvedUrl: URL? = nil
     @State private var isLoading = true
+    @State private var failed    = false
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            if let p = player {
-                VideoPlayer(player: p).ignoresSafeArea()
-                    .onAppear { p.play() }
-                    .onDisappear { p.pause() }
-            } else if isLoading {
-                VStack(spacing: 16) {
+
+            if isLoading {
+                // Loading state with thumbnail
+                VStack(spacing: 20) {
                     if let thumb, let u = URL(string: thumb) {
                         AsyncImage(url: u) { phase in
-                            if case .success(let img) = phase { img.resizable().scaledToFit() }
-                            else { Color(red:0.1,green:0.1,blue:0.15) }
+                            if case .success(let img) = phase {
+                                img.resizable().scaledToFit()
+                                    .frame(maxHeight: 260)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            } else { Color.clear }
                         }
-                        .opacity(0.5)
+                        .opacity(0.45)
                     }
-                    ProgressView().tint(.white)
-                    Text("Загрузка видео...").font(.system(size: 13)).foregroundStyle(.white.opacity(0.6))
+                    ProgressView().tint(.white).scaleEffect(1.3)
+                    Text("Загрузка видео...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.55))
                 }
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle").font(.system(size: 40)).foregroundStyle(.white)
-                    Text("Не удалось загрузить видео").foregroundStyle(.white.opacity(0.7))
+                .padding(.horizontal, 32)
+            } else if let url = resolvedUrl {
+                // Full-featured player (reuse FullscreenVideoPlayer logic)
+                FullscreenVideoPlayer(url: url)
+            } else if failed {
+                VStack(spacing: 14) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 44)).foregroundStyle(.white.opacity(0.6))
+                    Text("Не удалось загрузить видео")
+                        .foregroundStyle(.white.opacity(0.6))
+                    Button("Закрыть") { dismiss() }
+                        .foregroundStyle(Color.cyberBlue)
                 }
             }
 
-            VStack {
-                HStack {
-                    Spacer()
-                    Button { player?.pause(); dismiss() } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28)).foregroundStyle(.white.opacity(0.8))
+            // Close button (when loading or failed)
+            if isLoading || failed {
+                VStack {
+                    HStack {
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+                        .padding(.leading, 16)
+                        .padding(.top, 52)
+                        Spacer()
                     }
-                    .padding(16)
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .task { await loadVideo() }
@@ -299,34 +319,21 @@ struct VideoPlayerSheet: View {
     }
 
     private func loadVideo() async {
-        // Fetch video URL via VK API video.get
-        let json = try? await VKAPIClient.shared.rawCall("video.get", params: [
-            "videos": "\(ownerId)_\(videoId)", "extended": "0"
-        ])
-        guard let response = json?["response"] as? [String: Any],
-              let items = response["items"] as? [[String: Any]],
-              let item = items.first,
-              let files = item["files"] as? [String: Any] else {
-            isLoading = false; return
+        guard let video = try? await VKAPIClient.shared.getVideo(ownerId: ownerId, videoId: videoId) else {
+            await MainActor.run { isLoading = false; failed = true }
+            return
         }
-        // Try quality from best to worst
-        for q in ["mp4_1080","mp4_720","mp4_480","mp4_360","mp4_240","external"] {
-            if let url = files[q] as? String, !url.isEmpty {
-                if q == "external" {
-                    // external = YouTube etc — open in Safari
-                    await MainActor.run {
-                        if let u = URL(string: url) { UIApplication.shared.open(u) }
-                        isLoading = false
-                    }
-                    return
-                }
-                await MainActor.run {
-                    player = AVPlayer(url: URL(string: url)!)
-                    isLoading = false
-                }
-                return
+        await MainActor.run {
+            isLoading = false
+            if let urlStr = video.directUrl, let url = URL(string: urlStr) {
+                resolvedUrl = url
+            } else if let urlStr = video.player, let url = URL(string: urlStr) {
+                // External (YouTube etc) — open in Safari
+                UIApplication.shared.open(url)
+                failed = true
+            } else {
+                failed = true
             }
         }
-        isLoading = false
     }
 }

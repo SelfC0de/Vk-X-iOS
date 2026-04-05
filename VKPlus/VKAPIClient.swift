@@ -498,6 +498,23 @@ final class VKAPIClient {
         return NewsfeedPage(items: r.items, profiles: profileMap, groups: groupMap, nextFrom: r.nextFrom)
     }
 
+
+    // MARK: - Video
+    func getVideo(ownerId: Int, videoId: Int) async throws -> VKVideoAttachment? {
+        struct VR: Decodable {
+            let count: Int?
+            let items: [VKVideoAttachment]?
+        }
+        let key = "\(ownerId)_\(videoId)"
+        let params: [String: String] = [
+            "videos":   key,
+            "extended": "1",
+            "fields":   "files,player"
+        ]
+        let r: VR = try await call("video.get", params: params)
+        return r.items?.first
+    }
+
     // MARK: - Likes
     func addLike(ownerId: Int, itemId: Int) async throws -> Int {
         struct LR: Decodable { let likes: Int? }
