@@ -148,25 +148,52 @@ struct AnimatedMainTabView: View {
     @State private var selectedTab = 0
     @ObservedObject private var store = SettingsStore.shared
 
+    private let tabCount = 6
+
     var body: some View {
         ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case 0: NavigationStack { FeedView() }
-                case 1: NavigationStack { MessagesView() }
-                case 2: NavigationStack { FriendsView() }
-                case 3: NavigationStack { ProfileView() }
-                case 4: NavigationStack { SettingsView() }
-                case 5: NavigationStack { AboutView() }
-                default: NavigationStack { FeedView() }
-                }
+            // Tab content with swipe gesture
+            ZStack {
+                tabView(for: 0).opacity(selectedTab == 0 ? 1 : 0).allowsHitTesting(selectedTab == 0)
+                tabView(for: 1).opacity(selectedTab == 1 ? 1 : 0).allowsHitTesting(selectedTab == 1)
+                tabView(for: 2).opacity(selectedTab == 2 ? 1 : 0).allowsHitTesting(selectedTab == 2)
+                tabView(for: 3).opacity(selectedTab == 3 ? 1 : 0).allowsHitTesting(selectedTab == 3)
+                tabView(for: 4).opacity(selectedTab == 4 ? 1 : 0).allowsHitTesting(selectedTab == 4)
+                tabView(for: 5).opacity(selectedTab == 5 ? 1 : 0).allowsHitTesting(selectedTab == 5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.bottom, store.liquidGlass ? 72 : 74)
+            .gesture(
+                DragGesture(minimumDistance: 40, coordinateSpace: .local)
+                    .onEnded { val in
+                        // Only horizontal swipes (more horizontal than vertical)
+                        guard abs(val.translation.width) > abs(val.translation.height) * 1.5 else { return }
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            if val.translation.width < 0 {
+                                selectedTab = min(selectedTab + 1, tabCount - 1)
+                            } else {
+                                selectedTab = max(selectedTab - 1, 0)
+                            }
+                        }
+                    }
+            )
 
             AnimatedTabBar(selected: $selectedTab)
         }
         .ignoresSafeArea(edges: .bottom)
         .toastOverlay()
+    }
+
+    @ViewBuilder
+    private func tabView(for index: Int) -> some View {
+        switch index {
+        case 0: NavigationStack { FeedView() }
+        case 1: NavigationStack { MessagesView() }
+        case 2: NavigationStack { FriendsView() }
+        case 3: NavigationStack { ProfileView() }
+        case 4: NavigationStack { SettingsView() }
+        case 5: NavigationStack { AboutView() }
+        default: NavigationStack { FeedView() }
+        }
     }
 }
