@@ -22,14 +22,18 @@ final class FeedViewModel: ObservableObject {
     @Published var isLoadingMore = false
     @Published var error:        String? = nil
     @Published var nextFrom:     String? = nil
+    private var lastPostTime:    Int    = 0   // unix timestamp of newest loaded post
 
     func load() async {
         guard !isLoading else { return }
         isLoading = true; error = nil
         do {
             let page = try await VKAPIClient.shared.getNewsfeed()
-            posts = page.items; profiles = page.profiles
-            groups = page.groups; nextFrom = page.nextFrom
+            posts    = page.items
+            profiles = page.profiles
+            groups   = page.groups
+            nextFrom = page.nextFrom
+            lastPostTime = page.items.map { $0.date }.max() ?? 0
         } catch { self.error = error.localizedDescription }
         isLoading = false
     }
@@ -37,18 +41,23 @@ final class FeedViewModel: ObservableObject {
     func refresh() async {
         isRefreshing = true; error = nil
         do {
-            let page = try await VKAPIClient.shared.getNewsfeed()
-            // Prepend fresh posts, deduplicate
-            let existingKeys = Set(posts.map { $0.uniqueKey })
-            let fresh = page.items.filter { !existingKeys.contains($0.uniqueKey) }
-            // Merge profiles/groups into existing maps
+            // Use start_time = last known post time to fetch only newer posts
+            let since = lastPostTime > 0 ? lastPostTime : nil
+            let page = try await VKAPIClient.shared.getNewsfeed(startTime: since)
             profiles.merge(page.profiles) { _, n in n }
             groups.merge(page.groups)     { _, n in n }
-            // Prepend new posts at top
-            if !fresh.isEmpty {
-                posts = fresh + posts
+            if !page.items.isEmpty {
+                let existingKeys = Set(posts.map { $0.uniqueKey })
+                let fresh = page.items.filter { !existingKeys.contains($0.uniqueKey) }
+                if !fresh.isEmpty {
+                    // Sort fresh by date descending before prepend
+                    posts = fresh.sorted { $0.date > $1.date } + posts
+                    let newMax = fresh.map { $0.date }.max() ?? lastPostTime
+                    if newMax > lastPostTime { lastPostTime = newMax }
+                }
             }
-            nextFrom = page.nextFrom ?? nextFrom
+            // Update nextFrom only if we got a new cursor (pagination for loadMore)
+            if let nf = page.nextFrom { nextFrom = nf }
         } catch { self.error = error.localizedDescription }
         isRefreshing = false
     }
