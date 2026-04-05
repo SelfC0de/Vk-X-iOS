@@ -87,7 +87,7 @@ private struct PrivacyTab: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
-            SettingsSectionCard(title: "🛡 Режим невидимки",
+            SettingsSectionCard(title: "Режим невидимки",
                                 subtitle: "Управление видимостью активности",
                                 icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
                 SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.shield.half.filled",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
@@ -96,24 +96,20 @@ private struct PrivacyTab: View {
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
                 SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "Смотреть истории анонимно",       val: $s.ghostStory)
             }
-            SettingsSectionCard(title: "🕶 Локальная Приватность",
+            SettingsSectionCard(title: "Локальная Приватность",
                                 subtitle: "Приватность в интерфейсе приложения",
                                 icon: "lock.shield.fill", iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
                 SettingsToggle("Скрыть отправителя",
                                icon: "person.fill.xmark",
                                subtitle: "Аватар и имя заменяются на «Пользователь скрыт»",
                                val: $s.hideSender)
-                SettingsToggle("Blur Screen",
-                               icon: "eye.trianglebadge.exclamationmark",
-                               subtitle: "Размывает контент при скриншоте",
-                               val: $s.blurScreen)
             }
-            SettingsSectionCard(title: "📅 Дата регистрации",
+            SettingsSectionCard(title: "Дата регистрации",
                                 subtitle: "Узнать дату регистрации аккаунта",
                                 icon: "calendar.badge.clock", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 RegDateCheckerView()
             }
-            SettingsSectionCard(title: "🕵️ Deep Privacy",
+            SettingsSectionCard(title: "Deep Privacy",
                                 subtitle: "Защита персональных данных устройства",
                                 icon: "shield.lefthalf.filled", iconColor: Color(r:0xFF,g:0x45,b:0x45)) {
                 SettingsToggle("Spoof Ads ID",
@@ -129,7 +125,7 @@ private struct PrivacyTab: View {
                                subtitle: "Скрывает название оператора связи",
                                val: $s.spoofCarrier)
             }
-            SettingsSectionCard(title: "📡 Антислежка",
+            SettingsSectionCard(title: "Антислежка",
                                 subtitle: "Защита от слежки и сбора данных",
                                 icon: "antenna.radiowaves.left.and.right", iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
                 SettingsToggle("Anti-Telemetry",   icon: "antenna.radiowaves.left.and.right", subtitle: "Блокировка аналитических трекеров", val: $s.antiTelemetry)
@@ -137,7 +133,7 @@ private struct PrivacyTab: View {
                 SettingsToggle("Bypass Links",     icon: "link.badge.plus",                   subtitle: "Переходить по ссылкам напрямую", val: $s.bypassLinks)
                 SettingsToggle("Bypass Short URL", icon: "arrow.uturn.right.circle",          subtitle: "Разворачивать укороченные ссылки", val: $s.bypassShortUrl)
             }
-            SettingsSectionCard(title: "🔔 Уведомления",
+            SettingsSectionCard(title: "Уведомления",
                                 subtitle: "Уведомления о действиях собеседников",
                                 icon: "bell.badge.fill", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 SettingsToggle("Type You Push", icon: "bell.and.waves.left.and.right", subtitle: "Уведомление когда тебе начинают писать", val: $s.typePush)
@@ -172,14 +168,14 @@ private struct EngineTab: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
-            SettingsSectionCard(title: "🎙 Silent VM Listener",
+            SettingsSectionCard(title: "Silent VM Listener",
                                 subtitle: "Анонимное прослушивание голосовых",
                                 icon: "mic.slash.fill", iconColor: Color(r:0xE9,g:0x3E,b:0xFF)) {
                 SettingsToggle("Silent VM Listener", icon: "mic.slash.fill",
                                subtitle: "Прослушивать голосовые анонимно",
                                val: $s.silentVm)
             }
-            SettingsSectionCard(title: "🔄 Anti-Ban Engine",
+            SettingsSectionCard(title: "Anti-Ban Engine",
                                 subtitle: "Защита от блокировок и ограничений",
                                 icon: "shield.lefthalf.filled", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Anti-Ban Engine", icon: "shield.fill",
@@ -189,7 +185,7 @@ private struct EngineTab: View {
                                subtitle: "Отправлять контент без обновления онлайна",
                                val: $s.offlinePost)
             }
-            SettingsSectionCard(title: "✅ Верификация",
+            SettingsSectionCard(title: "Верификация",
                                 subtitle: "Значки подтверждения личности",
                                 icon: "checkmark.seal.fill", iconColor: Color(r:0x1D,g:0xA1,b:0xF2)) {
                 SettingsToggle("Verify Checker", icon: "checkmark.seal.fill",
@@ -199,7 +195,7 @@ private struct EngineTab: View {
                                subtitle: "Показывать синюю галочку в своём профиле",
                                val: $s.fakeVerification)
             }
-            SettingsSectionCard(title: "🕵️ Activity Bypass",
+            SettingsSectionCard(title: "Activity Bypass",
                                 subtitle: "Скрытый режим чтения сообщений",
                                 icon: "figure.walk", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
                 SettingsToggle("Bypass Activity Status", icon: "eye.slash",
@@ -225,7 +221,7 @@ private struct EngineTab: View {
         @ObservedObject private var s = SettingsStore.shared
         var body: some View {
             SettingsSectionCard(
-                title: "⌨️ Type Status",
+                title: "Type Status",
                 subtitle: "Сейчас: \(s.currentTypeStatus.label)",
                 icon: "keyboard.fill",
                 iconColor: Color.cyberBlue
@@ -286,7 +282,7 @@ private struct DeviceTab: View {
     var body: some View {
         VStack(spacing: 14) {
             // Hardware Spoof toggle
-            SettingsSectionCard(title: "🔄 Hardware Spoof",
+            SettingsSectionCard(title: "Hardware Spoof",
                                 subtitle: "Маскировка параметров устройства",
                                 icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
                 SettingsToggle("Hardware Spoof", icon: "dice.fill",
@@ -298,7 +294,7 @@ private struct DeviceTab: View {
             deviceProfileSectionCard
 
             // Bypass copy
-            SettingsSectionCard(title: "📋 Bypass Copy",
+            SettingsSectionCard(title: "Bypass Copy",
                                 subtitle: "Снятие ограничений на копирование",
                                 icon: "doc.on.doc.fill", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
                 SettingsToggle("Bypass Copy + Reposts", icon: "doc.on.doc.fill",
@@ -323,7 +319,7 @@ private struct DeviceTab: View {
 
     private var deviceProfileSectionCard: some View {
         SettingsSectionCard(
-            title: "📱 Device Spoofer",
+            title: "Device Spoofer",
             subtitle: s.deviceUa.isEmpty ? "Выбрать профиль" : s.currentDeviceProfile.label,
             icon: "iphone",
             iconColor: Color.cyberBlue
@@ -434,8 +430,8 @@ struct SettingsSectionCard<Content: View>: View {
             Button { withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { expanded.toggle() } } label: {
                 HStack(spacing: 12) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8).fill(iconColor.opacity(0.15)).frame(width: 34, height: 34)
-                        SFAnimIcon(name: icon, color: iconColor, size: 20, isOn: expanded)
+                        RoundedRectangle(cornerRadius: 9).fill(iconColor.opacity(0.18)).frame(width: 36, height: 36)
+                        SFAnimIcon(name: icon, color: iconColor, size: 22, isOn: expanded)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
