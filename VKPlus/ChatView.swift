@@ -44,6 +44,7 @@ struct ChatView: View {
     // Profile navigation from link
     @State private var profileUser:  VKUser? = nil
     @State private var showProfile  = false
+    @State private var messagePollingTask: Task<Void, Never>? = nil
     // Forward
     @State private var forwardMsg:  VKMessage? = nil
     @State private var showForward  = false
@@ -194,15 +195,7 @@ struct ChatView: View {
                         }
                     }
                     .contentShape(Rectangle())
-                    .onTapGesture {
-                        if !store.hideSender && peerId > 0 {
-                            Task {
-                                if let u = try? await VKAPIClient.shared.getUserById("\(peerId)") {
-                                    await MainActor.run { profileUser = u; showProfile = true }
-                                }
-                            }
-                        }
-                    }
+                    .onTapGesture { openPeerProfile() }
                 }
             }
         }
@@ -413,6 +406,15 @@ struct ChatView: View {
     }
 
     // MARK: - Load
+    private func openPeerProfile() {
+        guard !store.hideSender && peerId > 0 else { return }
+        Task {
+            if let u = try? await VKAPIClient.shared.getUserById("\(peerId)") {
+                await MainActor.run { profileUser = u; showProfile = true }
+            }
+        }
+    }
+
     private func startMessagePolling() {
         messagePollingTask?.cancel()
         messagePollingTask = Task {
@@ -730,7 +732,6 @@ private struct BubbleView: View {
     @ObservedObject private var store = SettingsStore.shared
     @State private var showPhotoViewer = false
     @State private var profileUserId: Int? = nil
-    @State private var messagePollingTask: Task<Void, Never>? = nil
 
     @State private var photoViewerIndex = 0
     @State private var showVideoPlayer = false
@@ -888,21 +889,12 @@ private struct BubbleView: View {
 
     @ViewBuilder private func quotedView(_ q: VKMessage) -> some View {
         let accentColor = isMe ? Color.cyberBlue : Color(red:0.5,green:0.4,blue:0.9)
-        let senderName: String = {
-            if q.fromId == myId { return "Вы" }
-            if let u = avatarMap[q.fromId] { let _ = u; return allMsgs.first(where:{$0.fromId==q.fromId})?.fromId.description ?? "" }
-            return "id\(q.fromId)"
-        }()
         HStack(spacing: 6) {
             Rectangle().fill(accentColor).frame(width: 2).clipShape(Capsule())
             VStack(alignment: .leading, spacing: 1) {
-                // Show quoted sender name from avatarMap context
-                Text(q.fromId == myId ? "Вы" : (allMsgs.first(where:{$0.fromId==q.fromId && $0.fromId != myId})
-                    .map { _ in "" } ?? ""))
+                Text(q.fromId == myId ? "Вы" : "Собеседник")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(accentColor)
-                    .hidden()
-                // Attachment icon if no text
                 if q.text.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "paperclip").font(.system(size: 11)).foregroundStyle(accentColor.opacity(0.7))

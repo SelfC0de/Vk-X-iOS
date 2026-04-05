@@ -1261,7 +1261,7 @@ struct SFAnimIcon: View {
     private func drawCloud(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
         let isRain = name.contains("rain")
         let isFog  = name.contains("fog")
-        let isSnow = name.contains("snow") // handled separately but fallback
+        let _ = name.contains("snow") // handled separately but fallback
         // Cloud body
         var cloud = Path()
         cloud.addArc(center: CGPoint(x:w*0.36,y:h*0.38), radius: w*0.18, startAngle:.degrees(180), endAngle:.degrees(0),clockwise:false)
