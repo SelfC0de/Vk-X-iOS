@@ -179,6 +179,12 @@ final class SettingsStore: ObservableObject {
     @Published var avatarGlowCircle:    String { didSet { ud.set(avatarGlowCircle,    forKey: "avatar_glow_circle")      } }
     @Published var avatarGlowNft:       String { didSet { ud.set(avatarGlowNft,       forKey: "avatar_glow_nft")         } }
     @Published var avatarGlowRhomb:     String { didSet { ud.set(avatarGlowRhomb,     forKey: "avatar_glow_rhomb")       } }
+    // Status Changer
+    @Published var statusChangerText:     String { didSet { ud.set(statusChangerText,     forKey: "status_changer_text")     } }
+    @Published var statusChangerMode:     String { didSet { ud.set(statusChangerMode,     forKey: "status_changer_mode")     } } // "local" | "server"
+    @Published var statusChangerPrevious: String { didSet { ud.set(statusChangerPrevious, forKey: "status_changer_prev")     } }
+    @Published var statusChangerApplied:  Bool   { didSet { ud.set(statusChangerApplied,  forKey: "status_changer_applied")  } }
+
     // Computed: current shape color
     var avatarColorHex: String {
         switch avatarShape {

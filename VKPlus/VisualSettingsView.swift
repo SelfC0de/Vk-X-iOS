@@ -184,6 +184,14 @@ struct VisualTab: View {
 
     // MARK: - Theme card
     @ViewBuilder private var themeCard: some View {
+            // ── Status Changer ──────────────────────────────────────
+            SettingsSectionCard(title: "Status Changer",
+                                subtitle: "Изменение статуса ВКонтакте",
+                                icon: "text.bubble.fill",
+                                iconColor: Color(r:0x34,g:0xC7,b:0x59)) {
+                StatusChangerCard()
+            }
+
         SettingsSectionCard(title: "Тема",
                                 subtitle: "Цветовая схема приложения",
                                 icon: "circle.lefthalf.filled",
@@ -547,3 +555,226 @@ extension Color {
     }
 }
 
+
+// MARK: - Status Changer Card
+struct StatusChangerCard: View {
+    @ObservedObject private var s = SettingsStore.shared
+    @State private var isLoading  = false
+    @State private var isFetching = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+
+            // ── Text input ────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Новый статус")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.onSurfaceMut)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+
+                HStack(spacing: 8) {
+                    TextField("Введите текст статуса...", text: $s.statusChangerText, axis: .vertical)
+                        .lineLimit(1...3)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.onSurface)
+                        .padding(.horizontal, 12).padding(.vertical, 10)
+                        .background(Color(red:0.07,green:0.08,blue:0.13))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.divider, lineWidth: 1))
+
+                    if !s.statusChangerText.isEmpty {
+                        Button { s.statusChangerText = "" } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Color.onSurfaceMut)
+                                .font(.system(size: 16))
+                        }
+                    }
+                }
+                .padding(.horizontal, 14).padding(.bottom, 8)
+            }
+
+            Divider().background(Color.divider)
+
+            // ── Mode selector ─────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Метод")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.onSurfaceMut)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+
+                HStack(spacing: 10) {
+                    ForEach([("local", "Local", "iphone", "Только в приложении"),
+                             ("server", "ServerSide", "server.rack", "Через VK API")], id: \.0) { id, label, icon, desc in
+                        Button {
+                            withAnimation(.spring(response: 0.25)) { s.statusChangerMode = id }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: icon)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(s.statusChangerMode == id ? Color(r:0x34,g:0xC7,b:0x59) : Color.onSurfaceMut)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(label)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(s.statusChangerMode == id ? Color(r:0x34,g:0xC7,b:0x59) : Color.onSurface)
+                                    Text(desc)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(Color.onSurfaceMut)
+                                }
+                                Spacer()
+                                if s.statusChangerMode == id {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(Color(r:0x34,g:0xC7,b:0x59))
+                                        .font(.system(size: 14))
+                                }
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            .background(s.statusChangerMode == id
+                                ? Color(r:0x34,g:0xC7,b:0x59).opacity(0.10)
+                                : Color(red:0.07,green:0.08,blue:0.13))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .stroke(s.statusChangerMode == id
+                                    ? Color(r:0x34,g:0xC7,b:0x59).opacity(0.4)
+                                    : Color.divider, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 14).padding(.bottom, 10)
+            }
+
+            Divider().background(Color.divider)
+
+            // ── Current/previous status info ──────────────────────────
+            if !s.statusChangerPrevious.isEmpty || s.statusChangerApplied {
+                HStack(spacing: 8) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.onSurfaceMut)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Предыдущий статус")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.onSurfaceMut)
+                        Text(s.statusChangerPrevious.isEmpty ? "—" : s.statusChangerPrevious)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.onSurface)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                Divider().background(Color.divider)
+            }
+
+            // ── Action buttons ────────────────────────────────────────
+            HStack(spacing: 10) {
+                // Apply
+                Button {
+                    Task { await applyStatus() }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isLoading {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                        }
+                        Text("Применить")
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(s.statusChangerText.isEmpty
+                        ? Color.onSurfaceMut.opacity(0.3)
+                        : Color(r:0x34,g:0xC7,b:0x59))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .disabled(s.statusChangerText.isEmpty || isLoading)
+
+                // Reset
+                if s.statusChangerApplied && !s.statusChangerPrevious.isEmpty {
+                    Button {
+                        Task { await resetStatus() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isFetching {
+                                ProgressView().tint(Color(r:0x34,g:0xC7,b:0x59)).scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.counterclockwise")
+                            }
+                            Text("Сбросить")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color(r:0x34,g:0xC7,b:0x59))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Color(r:0x34,g:0xC7,b:0x59).opacity(0.10))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(r:0x34,g:0xC7,b:0x59).opacity(0.3), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isFetching)
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+        }
+    }
+
+    // ── Apply ──────────────────────────────────────────────────────────
+    private func applyStatus() async {
+        guard !s.statusChangerText.isEmpty else { return }
+        isLoading = true
+
+        if s.statusChangerMode == "server" {
+            do {
+                // Save current before overwriting
+                if !s.statusChangerApplied {
+                    let prev = (try? await VKAPIClient.shared.getStatus()) ?? ""
+                    s.statusChangerPrevious = prev
+                }
+                try await VKAPIClient.shared.setStatus(s.statusChangerText)
+                s.statusChangerApplied = true
+                ToastManager.shared.show("Статус применён на сервере", icon: "checkmark.circle.fill", style: .success)
+            } catch {
+                ToastManager.shared.show("Ошибка: \(error.localizedDescription)", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+        } else {
+            // Local only — save previous if first apply
+            if !s.statusChangerApplied {
+                s.statusChangerPrevious = "Локальный статус"
+            }
+            s.statusChangerApplied = true
+            ToastManager.shared.show("Статус применён локально", icon: "iphone", style: .success)
+        }
+
+        isLoading = false
+    }
+
+    // ── Reset ──────────────────────────────────────────────────────────
+    private func resetStatus() async {
+        isFetching = true
+
+        if s.statusChangerMode == "server" {
+            do {
+                try await VKAPIClient.shared.setStatus(s.statusChangerPrevious)
+                s.statusChangerApplied = false
+                s.statusChangerText = ""
+                ToastManager.shared.show("Предыдущий статус восстановлен", icon: "arrow.counterclockwise", style: .info)
+            } catch {
+                ToastManager.shared.show("Ошибка: \(error.localizedDescription)", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+        } else {
+            s.statusChangerApplied = false
+            s.statusChangerText = ""
+            ToastManager.shared.show("Локальный статус сброшен", icon: "arrow.counterclockwise", style: .info)
+        }
+
+        isFetching = false
+    }
+
+}

@@ -155,6 +155,17 @@ final class VKAPIClient {
         return nil
     }
 
+
+    // MARK: - Status
+    func getStatus() async throws -> String {
+        let json = try await rawCall("status.get", params: [:])
+        return (json["response"] as? [String: Any])?["text"] as? String ?? ""
+    }
+
+    func setStatus(_ text: String) async throws {
+        _ = try await rawCall("status.set", params: ["text": text])
+    }
+
     // MARK: - Proxy support
     func setProxy(_ entry: ProxyEntry?) {
         var config: URLSessionConfiguration
