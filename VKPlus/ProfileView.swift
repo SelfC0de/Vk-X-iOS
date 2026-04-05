@@ -12,7 +12,13 @@ struct ProfileView: View {
 
     private var displayName:  String   { mirror.isActive && !mirror.name.isEmpty  ? mirror.name  : (user?.fullName ?? "") }
     private var displayPhoto: String?  { mirror.isActive && !mirror.photo.isEmpty ? mirror.photo : user?.avatar }
-    private var displayStatus: String? { mirror.isActive ? (mirror.status.isEmpty ? nil : mirror.status) : user?.status }
+    private var displayStatus: String? {
+        // Local status changer takes priority when active
+        if settings.statusChangerApplied && settings.statusChangerMode == "local" && !settings.statusChangerText.isEmpty {
+            return settings.statusChangerText
+        }
+        return mirror.isActive ? (mirror.status.isEmpty ? nil : mirror.status) : user?.status
+    }
     private var displayCity:  String?  { mirror.isActive && !mirror.city.isEmpty  ? mirror.city  : user?.city?.title }
     private var displayLink:  String {
         if mirror.isActive {
