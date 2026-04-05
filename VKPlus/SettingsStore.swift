@@ -168,10 +168,32 @@ final class SettingsStore: ObservableObject {
     @Published var showPet:        Bool   { didSet { ud.set(showPet,        forKey: "show_pet")         } }
     @Published var petType:        String { didSet { ud.set(petType,        forKey: "pet_type")         } }
     // Avatar shape settings
-    @Published var avatarShape:    String { didSet { ud.set(avatarShape,    forKey: "avatar_shape")     } } // "circle" | "nft" | "rhomb"
-    @Published var avatarGlow:     Bool   { didSet { ud.set(avatarGlow,     forKey: "avatar_glow")      } }
-    @Published var avatarColorHex: String { didSet { ud.set(avatarColorHex, forKey: "avatar_color_hex") } } // "auto" or hex
-    @Published var avatarGlowIntensity: Double { didSet { ud.set(avatarGlowIntensity, forKey: "avatar_glow_intensity") } }
+    @Published var avatarShape:         String { didSet { ud.set(avatarShape,         forKey: "avatar_shape")            } }
+    @Published var avatarGlow:          Bool   { didSet { ud.set(avatarGlow,          forKey: "avatar_glow")             } }
+    @Published var avatarGlowIntensity: Double { didSet { ud.set(avatarGlowIntensity, forKey: "avatar_glow_intensity")   } }
+    // Per-shape stroke colors
+    @Published var avatarColorCircle:   String { didSet { ud.set(avatarColorCircle,   forKey: "avatar_color_circle")     } }
+    @Published var avatarColorNft:      String { didSet { ud.set(avatarColorNft,      forKey: "avatar_color_nft")        } }
+    @Published var avatarColorRhomb:    String { didSet { ud.set(avatarColorRhomb,    forKey: "avatar_color_rhomb")      } }
+    // Per-shape glow colors
+    @Published var avatarGlowCircle:    String { didSet { ud.set(avatarGlowCircle,    forKey: "avatar_glow_circle")      } }
+    @Published var avatarGlowNft:       String { didSet { ud.set(avatarGlowNft,       forKey: "avatar_glow_nft")         } }
+    @Published var avatarGlowRhomb:     String { didSet { ud.set(avatarGlowRhomb,     forKey: "avatar_glow_rhomb")       } }
+    // Computed: current shape color
+    var avatarColorHex: String {
+        switch avatarShape {
+        case "nft":   return avatarColorNft
+        case "rhomb": return avatarColorRhomb
+        default:      return avatarColorCircle
+        }
+    }
+    var avatarGlowHex: String {
+        switch avatarShape {
+        case "nft":   return avatarGlowNft
+        case "rhomb": return avatarGlowRhomb
+        default:      return avatarGlowCircle
+        }
+    }
     @Published var showClock:       Bool   { didSet { ud.set(showClock,       forKey: "show_clock")       } }
     @Published var clockStyle:      String { didSet { ud.set(clockStyle,      forKey: "clock_style")      } }
     @Published var clockAmPm:       Bool   { didSet { ud.set(clockAmPm,       forKey: "clock_ampm")       } }
@@ -219,10 +241,15 @@ final class SettingsStore: ObservableObject {
         weatherFog       = ud.bool(forKey: "weather_fog")
         showPet          = ud.bool(forKey: "show_pet")
         petType          = ud.string(forKey: "pet_type")         ?? "cat"
-        avatarShape      = ud.string(forKey: "avatar_shape")     ?? "circle"
-        avatarGlow       = ud.bool(forKey: "avatar_glow")
-        avatarColorHex   = ud.string(forKey: "avatar_color_hex") ?? "auto"
+        avatarShape         = ud.string(forKey: "avatar_shape")          ?? "circle"
+        avatarGlow          = ud.bool(forKey: "avatar_glow")
         avatarGlowIntensity = ud.object(forKey: "avatar_glow_intensity") == nil ? 0.6 : ud.double(forKey: "avatar_glow_intensity")
+        avatarColorCircle   = ud.string(forKey: "avatar_color_circle")   ?? "#00B4FF"
+        avatarColorNft      = ud.string(forKey: "avatar_color_nft")      ?? "#8B5CF6"
+        avatarColorRhomb    = ud.string(forKey: "avatar_color_rhomb")    ?? "#00B4FF"
+        avatarGlowCircle    = ud.string(forKey: "avatar_glow_circle")    ?? "#00B4FF"
+        avatarGlowNft       = ud.string(forKey: "avatar_glow_nft")       ?? "#8B5CF6"
+        avatarGlowRhomb     = ud.string(forKey: "avatar_glow_rhomb")     ?? "#00B4FF"
         showClock        = ud.bool(forKey: "show_clock")
         clockStyle       = ud.string(forKey: "clock_style")      ?? "digital"
         clockAmPm        = ud.bool(forKey: "clock_ampm")
