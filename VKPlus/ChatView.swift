@@ -76,6 +76,7 @@ struct ChatView: View {
     @State private var peerOnline  = false
     @State private var peerTyping  = false
     @State private var typingTimer: Timer? = nil
+    @State private var lastTypingSent: Date = .distantPast
 
     // Screen width for bubble sizing
     private var W: CGFloat { UIScreen.main.bounds.width }
@@ -316,7 +317,7 @@ struct ChatView: View {
                         editingMsg != nil ? Color.cyberBlue.opacity(0.5) :
                         replyMsg   != nil ? Color(red:0.5,green:0.4,blue:0.9).opacity(0.5) : Color.clear,
                         lineWidth: 0.8))
-                    .onChange(of: draft) { _, v in if !v.isEmpty { simulateTyping() } }
+                    .onChange(of: draft) { _, v in if !v.isEmpty { notifyTyping() } }
 
                 if draft.trimmingCharacters(in: .whitespaces).isEmpty && pendingAttach == nil && !isSending {
                     VoiceRecordButton(
@@ -440,15 +441,32 @@ struct ChatView: View {
                 let events = try await VKAPIClient.shared.pollLongPoll(server: server, ts: ts)
                 ts = events.ts
 
-                // Check for new message events in this peerId
-                // LongPoll update code 4 = new message, field[3] = peer_id
+                // Process LongPoll events
                 var hasNewMessage = false
                 for upd in events.updates {
                     guard let code = upd.first as? Int else { continue }
-                    if code == 4 {
-                        // upd[1]=msg_id, upd[3]=peer_id
-                        let updatePeerId = upd.count > 3 ? (upd[3] as? Int ?? 0) : 0
-                        if updatePeerId == peerId { hasNewMessage = true; break }
+                    switch code {
+                    case 4:
+                        // New message: upd[3] = peer_id
+                        let msgPeerId = upd.count > 3 ? (upd[3] as? Int ?? 0) : 0
+                        if msgPeerId == peerId { hasNewMessage = true }
+                    case 61:
+                        // Peer typing: upd[1] = user_id, upd[2] = flags (1=typing)
+                        let userId   = upd.count > 1 ? (upd[1] as? Int ?? 0) : 0
+                        let isTyping = upd.count > 2 ? (upd[2] as? Int ?? 0) == 1 : true
+                        // Show indicator only if it's the peer (not me)
+                        if userId != 0 && userId != myId {
+                            await MainActor.run {
+                                peerTyping = isTyping
+                                typingTimer?.invalidate()
+                                if isTyping {
+                                    typingTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { _ in
+                                        peerTyping = false
+                                    }
+                                }
+                            }
+                        }
+                    default: break
                     }
                 }
 
@@ -517,9 +535,14 @@ struct ChatView: View {
         isLoading = false
     }
 
-    private func simulateTyping() {
-        peerTyping = true; typingTimer?.invalidate()
-        typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in peerTyping = false }
+    private func notifyTyping() {
+        let now = Date()
+        guard now.timeIntervalSince(lastTypingSent) > 5 else { return }
+        lastTypingSent = now
+        Task {
+            _ = try? await VKAPIClient.shared.rawCall("messages.setActivity",
+                params: ["peer_id": "\(peerId)", "type": "typing"])
+        }
     }
 
     private func send() async {
