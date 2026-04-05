@@ -667,6 +667,26 @@ private struct BubbleView: View {
     private var tc:   Color { isMe ? Color(red:0.55,green:0.75,blue:0.95) : Color(red:0.40,green:0.45,blue:0.58) }
     private let AV:   CGFloat = 28
 
+    // Read status indicator for outgoing messages
+    @ViewBuilder
+    private var readIndicator: some View {
+        if isMe {
+            let isRead = (msg.readState ?? 0) == 1
+            HStack(spacing: -4) {
+                // First tick
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(isRead ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.5))
+                // Second tick — only shown if read
+                if isRead {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Color.cyberBlue)
+                }
+            }
+        }
+    }
+
     var body: some View {
         HStack(alignment: .bottom, spacing: 4) {
             // Left: other's avatar or spacer
@@ -710,11 +730,14 @@ private struct BubbleView: View {
                             onVKLink: onVKLink
                         )
                         .fixedSize(horizontal: false, vertical: true)
-                        Text(timeStr(msg.date))
-                            .font(.system(size: 10))
-                            .foregroundStyle(tc)
-                            .layoutPriority(-1)
-                            .alignmentGuide(.bottom) { d in d[.bottom] }
+                        HStack(spacing: 2) {
+                            Text(timeStr(msg.date))
+                                .font(.system(size: 10))
+                                .foregroundStyle(tc)
+                            readIndicator
+                        }
+                        .layoutPriority(-1)
+                        .alignmentGuide(.bottom) { d in d[.bottom] }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(bg)
@@ -731,7 +754,10 @@ private struct BubbleView: View {
                         .stroke(Color.white.opacity(0.07), lineWidth: 0.5))
                 }
                 if msg.text.isEmpty {
-                    Text(timeStr(msg.date)).font(.system(size: 10)).foregroundStyle(tc).padding(.horizontal, 4)
+                    HStack(spacing: 2) {
+                        Text(timeStr(msg.date)).font(.system(size: 10)).foregroundStyle(tc)
+                        readIndicator
+                    }.padding(.horizontal, 4)
                 }
             }
             .frame(maxWidth: maxW, alignment: isMe ? .trailing : .leading)

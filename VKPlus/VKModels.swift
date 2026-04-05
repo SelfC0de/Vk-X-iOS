@@ -41,11 +41,18 @@ struct VKMessage: Decodable, Identifiable {
     let id: Int; let fromId: Int; let text: String; let date: Int
     let replyMessageId: Int?
     let attachments:    [VKAttachment]?
+    let out:            Int?   // 1 = outgoing, 0 = incoming
+    let readState:      Int?   // 1 = read, 0 = unread (incoming)
+    // For outgoing: read by peer when conversation.inRead >= message.id
+    // We track via simple field: isReadByPeer decoded below if present
     enum CodingKeys: String, CodingKey {
         case id, text, date, attachments
         case fromId         = "from_id"
         case replyMessageId = "reply_message"
+        case out
+        case readState      = "read_state"
     }
+    var isOutgoing: Bool { (out ?? 0) == 1 }
 }
 
 struct VKAttachment: Decodable {

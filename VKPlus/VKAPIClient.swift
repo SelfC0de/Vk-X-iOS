@@ -326,9 +326,10 @@ final class VKAPIClient {
 
     // MARK: - Messages
     func getMessages(peerId: Int, count: Int = 50) async throws -> [VKMessage] {
-        let json = try await rawCall("messages.getHistory", params: [
-            "peer_id": "\(peerId)", "count": "\(count)"
-        ])
+        let ghostMode = SettingsStore.shared.ghostMode
+        var params: [String: String] = ["peer_id": "\(peerId)", "count": "\(count)"]
+        if ghostMode { params["mark_as_read"] = "0" }
+        let json = try await rawCall("messages.getHistory", params: params)
         guard let response = json["response"] as? [String: Any],
               let items = response["items"] as? [[String: Any]] else { return [] }
         let decoder = JSONDecoder()
