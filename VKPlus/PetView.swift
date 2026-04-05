@@ -80,14 +80,11 @@ private struct PetSprite: View {
 
     var body: some View {
         Canvas { ctx, size in
-            if flipped {
-                // Mirror around center: translate +W, scale x=-1
-                ctx.translateBy(x: size.width, y: 0)
-                ctx.scaleBy(x: -1, y: 1)
-            }
             draw(ctx: ctx, ox: 0, size: size)
         }
         .frame(width: W, height: H)
+        // scaleEffect on the SwiftUI view — reliable mirror, no canvas transform bugs
+        .scaleEffect(x: flipped ? -1 : 1, y: 1, anchor: .center)
         .allowsHitTesting(false)
     }
 
@@ -136,14 +133,14 @@ private struct PetSprite: View {
 
         // === TAIL ===
         let tailWag: CGFloat = idle ? 0 : CGFloat(sin(t * .pi * 4)) * 8
-        drawTail(ctx, at: CGPoint(x: cx + 7, y: bodyY), wag: tailWag, color: bc, accent: ac, species: sp)
+        drawTail(ctx, at: CGPoint(x: cx - 7, y: bodyY), wag: -tailWag, color: bc, accent: ac, species: sp)
 
         // === BODY ===
         let bodyRect = CGRect(x: cx - 7, y: bodyY - 3, width: 14, height: 9)
         ctx.fill(Path(ellipseIn: bodyRect), with: .color(bc))
 
-        // === HEAD ===
-        let headX = cx - 8
+        // === HEAD === (right side = faces right)
+        let headX = cx + 1
         let headRect = CGRect(x: headX, y: bodyY - 9, width: 9, height: 8)
         ctx.fill(Path(ellipseIn: headRect), with: .color(bc))
 
@@ -246,17 +243,17 @@ private struct PetSprite: View {
                                width: CGFloat(12) * squash, height: CGFloat(8) * stretch)
         ctx.fill(Path(ellipseIn: bodyRect), with: .color(bc))
 
-        // Head
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 8, y: bodyY - 10, width: 8, height: 8)), with: .color(bc))
+        // Head (right side = faces right)
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 1, y: bodyY - 10, width: 8, height: 8)), with: .color(bc))
 
         // Long ears
         let earWobble: CGFloat = jumping ? -3 : (idle ? 0 : CGFloat(sin(phase * .pi * 2)) * 2)
-        drawBunnyEar(ctx, at: CGPoint(x: cx - 6, y: bodyY - 10), wobble: earWobble, bc: bc, ac: ac)
-        drawBunnyEar(ctx, at: CGPoint(x: cx - 3, y: bodyY - 10), wobble: earWobble * 0.7, bc: bc, ac: ac)
+        drawBunnyEar(ctx, at: CGPoint(x: cx + 3, y: bodyY - 10), wobble: earWobble, bc: bc, ac: ac)
+        drawBunnyEar(ctx, at: CGPoint(x: cx + 6, y: bodyY - 10), wobble: earWobble * 0.7, bc: bc, ac: ac)
 
         // Eye + nose
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 8, y: bodyY - 7, width: 2, height: 2)), with: .color(.black))
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 8.5, y: bodyY - 5, width: 2, height: 1.5)),
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 7, y: bodyY - 7, width: 2, height: 2)), with: .color(.black))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 6.5, y: bodyY - 5, width: 2, height: 1.5)),
                  with: .color(Color(red:1,green:0.6,blue:0.7)))
 
         // Shadow when jumping
@@ -308,23 +305,23 @@ private struct PetSprite: View {
                                width: 14, height: CGFloat(8) * squash)
         ctx.fill(Path(ellipseIn: bodyRect), with: .color(bc))
 
-        // Head (merged with body)
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 5, y: bodyY - 7, width: 10, height: 7)), with: .color(bc))
+        // Head (right side = faces right)
+        ctx.fill(Path(ellipseIn: CGRect(x: cx - 2, y: bodyY - 7, width: 10, height: 7)), with: .color(bc))
 
-        // Eyes (bulging)
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 5, y: bodyY - 9, width: 4, height: 4)), with: .color(bc))
+        // Eyes (bulging, both on right side)
         ctx.fill(Path(ellipseIn: CGRect(x: cx + 1, y: bodyY - 9, width: 4, height: 4)), with: .color(bc))
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 4, y: bodyY - 8.5, width: 2.5, height: 2.5)), with: .color(.black))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 5, y: bodyY - 9, width: 4, height: 4)), with: .color(bc))
         ctx.fill(Path(ellipseIn: CGRect(x: cx + 2, y: bodyY - 8.5, width: 2.5, height: 2.5)), with: .color(.black))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 6, y: bodyY - 8.5, width: 2.5, height: 2.5)), with: .color(.black))
         // Eye highlights
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 3.5, y: bodyY - 8.5, width: 1, height: 1)), with: .color(.white.opacity(0.8)))
         ctx.fill(Path(ellipseIn: CGRect(x: cx + 2.5, y: bodyY - 8.5, width: 1, height: 1)), with: .color(.white.opacity(0.8)))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 6.5, y: bodyY - 8.5, width: 1, height: 1)), with: .color(.white.opacity(0.8)))
 
         // Smile
         var smile = Path()
-        smile.move(to: CGPoint(x: cx - 3, y: bodyY - 3))
-        smile.addQuadCurve(to: CGPoint(x: cx + 3, y: bodyY - 3),
-                           control: CGPoint(x: cx, y: bodyY - 1))
+        smile.move(to: CGPoint(x: cx, y: bodyY - 3))
+        smile.addQuadCurve(to: CGPoint(x: cx + 6, y: bodyY - 3),
+                           control: CGPoint(x: cx + 3, y: bodyY - 1))
         ctx.stroke(smile, with: .color(ac), lineWidth: 1)
 
         if jumping {
@@ -369,20 +366,20 @@ private struct PetSprite: View {
                           control: CGPoint(x: cx + 3, y: bodyY - 1))
         ctx.stroke(wing, with: .color(Color(red:0.9, green:0.75, blue:0.1)), lineWidth: 2)
 
-        // Head
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 8, y: bodyY - 7, width: 7, height: 7)), with: .color(bc))
+        // Head (right side = faces right)
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 2, y: bodyY - 7, width: 7, height: 7)), with: .color(bc))
 
-        // Beak
+        // Beak (pointing right)
         var beak = Path()
-        beak.move(to: CGPoint(x: cx - 9, y: bodyY - 4))
-        beak.addLine(to: CGPoint(x: cx - 13, y: bodyY - 3))
-        beak.addLine(to: CGPoint(x: cx - 9, y: bodyY - 2))
+        beak.move(to: CGPoint(x: cx + 9, y: bodyY - 4))
+        beak.addLine(to: CGPoint(x: cx + 13, y: bodyY - 3))
+        beak.addLine(to: CGPoint(x: cx + 9, y: bodyY - 2))
         beak.closeSubpath()
         ctx.fill(beak, with: .color(ac))
 
         // Eye
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 8, y: bodyY - 6, width: 2.5, height: 2.5)), with: .color(.black))
-        ctx.fill(Path(ellipseIn: CGRect(x: cx - 7.5, y: bodyY - 5.5, width: 1, height: 1)), with: .color(.white.opacity(0.8)))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 3, y: bodyY - 6, width: 2.5, height: 2.5)), with: .color(.black))
+        ctx.fill(Path(ellipseIn: CGRect(x: cx + 3.5, y: bodyY - 5.5, width: 1, height: 1)), with: .color(.white.opacity(0.8)))
     }
 
     private func makeLine(from a: CGPoint, to b: CGPoint) -> Path {
