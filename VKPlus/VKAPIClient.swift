@@ -291,12 +291,18 @@ final class VKAPIClient {
 
         // Build profile map: id -> (name, photo, online)
         var profMap = [Int: (name: String, photo: String?, online: Bool)]()
+        let myId = TokenStorage.shared.cachedUserId ?? 0
+        let s = SettingsStore.shared
         for p in rawProfs {
             guard let id = p["id"] as? Int else { continue }
             let fn = p["first_name"] as? String ?? ""
             let ln = p["last_name"]  as? String ?? ""
             let ph = p["photo_100"]  as? String
-            let on = (p["online"] as? Int) == 1
+            // Never show self as online when ghost/forceOffline is on
+            // Also filter self from appearing as a "contact" with online dot
+            var on = (p["online"] as? Int) == 1
+            if id == myId { on = false }
+            if s.ghostOnline || s.forceOffline { on = false }
             profMap[id] = (fn + " " + ln, ph, on)
         }
         var grpMap = [Int: (name: String, photo: String?)]()

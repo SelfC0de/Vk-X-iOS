@@ -36,7 +36,7 @@ struct VisualTab: View {
     private var petSubtitle: String { s.showPet ? (PetSpecies(rawValue: s.petType)?.label ?? "Кот") : "Выключен" }
 
     @ViewBuilder private var petCard: some View {
-        SettingsSectionCard(title: "🐾 Питомец",
+        SettingsSectionCard(title: "Питомец",
                                 subtitle: petSubtitle,
                                 icon: "pawprint.fill",
                                 iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
@@ -61,7 +61,7 @@ struct VisualTab: View {
 
     // MARK: - Weather card
     @ViewBuilder private var weatherCard: some View {
-        SettingsSectionCard(title: "🌧 Погода",
+        SettingsSectionCard(title: "Погода",
                                 subtitle: weatherSubtitle,
                                 icon: "cloud.rain.fill",
                                 iconColor: Color(r:0x4D,g:0xA6,b:0xFF)) {
@@ -87,7 +87,7 @@ struct VisualTab: View {
 
     // MARK: - Clock card
     @ViewBuilder private var clockCard: some View {
-        SettingsSectionCard(title: "🕐 Часы",
+        SettingsSectionCard(title: "Часы",
                                 subtitle: s.showClock ? (s.clockSeconds ? "С секундами" : "Без секунд") : "Выключены",
                                 icon: "clock.fill",
                                 iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {

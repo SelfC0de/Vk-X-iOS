@@ -641,6 +641,20 @@ struct SFAnimIcon: View {
         // ── Circle / dashed ──────────────────────
         case "circle":
             drawCircleDash(ctx, w, h, color, p, on, alpha)
+        // ── Paw / pet ─────────────────────────────
+        case "pawprint":    drawPaw(ctx, w, h, color, p, on, alpha)
+        // ── Cloud / weather ───────────────────────
+        case "cloud":       drawCloud(ctx, w, h, color, p, on, alpha)
+        // ── Clock ─────────────────────────────────
+        case "clock":       drawClock(ctx, w, h, color, p, on, alpha)
+        // ── Bubbles ───────────────────────────────
+        case "bubble":      drawBubbles(ctx, w, h, color, p, on, alpha)
+        // ── Photo ─────────────────────────────────
+        case "photo":       drawPhoto(ctx, w, h, color, p, on, alpha)
+        // ── Snowflake ─────────────────────────────
+        case "snowflake":   drawSnowflake(ctx, w, h, color, p, on, alpha)
+        // ── Ribbon / garland ──────────────────────
+        case "ribbon":      drawRibbon(ctx, w, h, color, p, on, alpha)
         // ── Fallback: SF symbol placeholder dot ──
         default:
             fallbackDot(ctx, w, h, color, alpha)
@@ -677,7 +691,14 @@ struct SFAnimIcon: View {
         if n.hasPrefix("envelope") { return "envelope" }
         if n.hasPrefix("network") { return "network" }
         if n.hasPrefix("circle") { return "circle" }
-        return "other"
+        if n.hasPrefix("pawprint") || n.hasPrefix("paw") { return "pawprint" }
+        if n.hasPrefix("cloud") { return "cloud" }
+        if n.hasPrefix("clock") || n.hasPrefix("stopwatch") { return "clock" }
+        if n.hasPrefix("bubble") || n.hasPrefix("bubbles") { return "bubble" }
+        if n.hasPrefix("photo") { return "photo" }
+        if n.hasPrefix("snowflake") { return "snowflake" }
+        if n.hasPrefix("light.ribbon") { return "ribbon" }
+        return "other" 
     }
 
     // ── Draw implementations ──────────────────────────────────
@@ -1162,6 +1183,224 @@ struct SFAnimIcon: View {
             arc.addArc(center: CGPoint(x:w/2,y:h/2), radius: h*0.38, startAngle: .radians(a1), endAngle: .radians(a2), clockwise: false)
             let pulse = on ? 0.4 + 0.6*sin(p + Double(i)*0.5) : a
             ctx.stroke(arc, with: .color(c.opacity(pulse)), lineWidth: 2.2)
+        }
+    }
+
+
+    // 🐾 Paw — bouncing paw print
+    private func drawPaw(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        let bounce: CGFloat = on ? CGFloat(abs(sin(p * 1.8))) * 4 : 0
+        // Main pad
+        let pr: CGFloat = w * 0.22
+        ctx.fill(Path(ellipseIn: CGRect(x:w/2-pr, y:h*0.52-bounce, width:pr*2, height:pr*1.7)),
+                 with: .color(c.opacity(on ? 0.30+0.10*sin(p*2):0.20)))
+        ctx.stroke(Path(ellipseIn: CGRect(x:w/2-pr, y:h*0.52-bounce, width:pr*2, height:pr*1.7)),
+                   with: .color(c.opacity(a)), lineWidth: 1.7)
+        // 4 toe pads
+        let toeData: [(CGFloat,CGFloat,CGFloat,CGFloat)] = [
+            (0.22, 0.22, 0.11, 0.13),
+            (0.42, 0.14, 0.11, 0.13),
+            (0.58, 0.14, 0.11, 0.13),
+            (0.78, 0.22, 0.11, 0.13),
+        ]
+        for (i,(tx,ty,tw,th)) in toeData.enumerated() {
+            let tBounce: CGFloat = on ? CGFloat(abs(sin(p * 1.8 + Double(i) * 0.4))) * 3 : 0
+            let tRect = CGRect(x:w*tx - w*tw/2, y:h*ty - tBounce, width:w*tw, height:h*th)
+            ctx.fill(Path(ellipseIn: tRect), with: .color(c.opacity(on ? 0.28:0.18)))
+            ctx.stroke(Path(ellipseIn: tRect), with: .color(c.opacity(a)), lineWidth: 1.4)
+        }
+    }
+
+    // 🌧 Cloud — rain drops falling animated
+    private func drawCloud(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        let isRain = name.contains("rain")
+        let isFog  = name.contains("fog")
+        let isSnow = name.contains("snow") // handled separately but fallback
+        // Cloud body
+        var cloud = Path()
+        cloud.addArc(center: CGPoint(x:w*0.36,y:h*0.38), radius: w*0.18, startAngle:.degrees(180),.degrees(0),clockwise:false)
+        cloud.addArc(center: CGPoint(x:w*0.54,y:h*0.32), radius: w*0.22, startAngle:.degrees(180),.degrees(0),clockwise:false)
+        cloud.addArc(center: CGPoint(x:w*0.72,y:h*0.40), radius: w*0.14, startAngle:.degrees(180),.degrees(0),clockwise:false)
+        cloud.addLine(to: CGPoint(x:w*0.86, y:h*0.52))
+        cloud.addLine(to: CGPoint(x:w*0.14, y:h*0.52))
+        cloud.closeSubpath()
+        ctx.fill(cloud, with: .color(c.opacity(on ? 0.22:0.14)))
+        ctx.stroke(cloud, with: .color(c.opacity(a)), lineWidth: 1.6)
+        if isRain {
+            // Animated rain drops
+            for i in 0..<4 {
+                let dropX = w*(0.22 + CGFloat(i)*0.18)
+                let dropPhase = (p * 1.5 + Double(i) * 0.6).truncatingRemainder(dividingBy: .pi * 2)
+                let dropY = h*(0.58 + 0.20 * CGFloat(dropPhase / (.pi*2)))
+                let dropAlpha = on ? max(0, 1.0 - dropPhase/(.pi*2)) : a*0.6
+                var drop = Path()
+                drop.move(to: CGPoint(x:dropX, y:dropY-h*0.06))
+                drop.addLine(to: CGPoint(x:dropX, y:dropY))
+                ctx.stroke(drop, with: .color(c.opacity(dropAlpha)), lineWidth: 1.5)
+            }
+        } else if isFog {
+            // Fog lines
+            for i in 0..<3 {
+                let ly = h*(0.62 + CGFloat(i)*0.10)
+                let shift: CGFloat = on ? CGFloat(sin(p + Double(i)*0.8))*4 : 0
+                var fog = Path(); fog.move(to:CGPoint(x:w*0.12+shift,y:ly)); fog.addLine(to:CGPoint(x:w*(i==2 ? 0.72:0.88)+shift,y:ly))
+                ctx.stroke(fog, with: .color(c.opacity(on ? 0.50+0.20*sin(p+Double(i)):a*0.5)), lineWidth: 1.5)
+            }
+        }
+    }
+
+    // 🕐 Clock — rotating hands
+    private func drawClock(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        let cx = w/2, cy = h/2
+        let r: CGFloat = min(w,h)*0.40
+        // Face
+        ctx.stroke(Path(ellipseIn: CGRect(x:cx-r,y:cy-r,width:r*2,height:r*2)),
+                   with: .color(c.opacity(a)), lineWidth: 1.7)
+        ctx.fill(Path(ellipseIn: CGRect(x:cx-r,y:cy-r,width:r*2,height:r*2)),
+                 with: .color(c.opacity(on ? 0.14:0.08)))
+        // Hour ticks
+        for i in 0..<12 {
+            let angle = Double(i) * .pi / 6
+            let inner = r * (i % 3 == 0 ? 0.72 : 0.82)
+            var tick = Path()
+            tick.move(to: CGPoint(x:cx+inner*CGFloat(sin(angle)), y:cy-inner*CGFloat(cos(angle))))
+            tick.addLine(to: CGPoint(x:cx+r*0.92*CGFloat(sin(angle)), y:cy-r*0.92*CGFloat(cos(angle))))
+            ctx.stroke(tick, with: .color(c.opacity(a*0.6)), lineWidth: i%3==0 ? 1.4 : 0.8)
+        }
+        // Hour hand
+        let hourAngle: Double = on ? p * 0.08 : .pi * 0.3
+        let hrLen = r * 0.52
+        var hour = Path()
+        hour.move(to: CGPoint(x:cx, y:cy))
+        hour.addLine(to: CGPoint(x:cx+hrLen*CGFloat(sin(hourAngle)), y:cy-hrLen*CGFloat(cos(hourAngle))))
+        ctx.stroke(hour, with: .color(c.opacity(a)), lineWidth: 2.5)
+        // Minute hand
+        let minAngle: Double = on ? p * 0.5 : .pi * 1.2
+        let minLen = r * 0.70
+        var min2 = Path()
+        min2.move(to: CGPoint(x:cx, y:cy))
+        min2.addLine(to: CGPoint(x:cx+minLen*CGFloat(sin(minAngle)), y:cy-minLen*CGFloat(cos(minAngle))))
+        ctx.stroke(min2, with: .color(c.opacity(a)), lineWidth: 1.8)
+        // Center dot
+        ctx.fill(Path(ellipseIn: CGRect(x:cx-3,y:cy-3,width:6,height:6)), with: .color(c.opacity(a)))
+    }
+
+    // 💬 Bubbles — chat bubbles floating/pulsing
+    private func drawBubbles(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        // Bottom bubble (smaller, incoming)
+        let s2: CGFloat = on ? 1.0 + 0.04*CGFloat(sin(p+1.0)) : 1.0
+        let b2 = Path(roundedRect: CGRect(x:w*0.30,y:h*0.50,width:w*0.58*s2,height:h*0.30*s2), cornerRadius: h*0.11)
+        ctx.fill(b2, with: .color(c.opacity(on ? 0.16:0.10)))
+        ctx.stroke(b2, with: .color(c.opacity(a*0.65)), lineWidth: 1.3)
+        var t2 = Path(); t2.move(to:CGPoint(x:w*0.80,y:h*0.80)); t2.addLine(to:CGPoint(x:w*0.90,y:h*0.90)); t2.addLine(to:CGPoint(x:w*0.72,y:h*0.80)); t2.closeSubpath()
+        ctx.fill(t2, with: .color(c.opacity(a*0.65)))
+        // Top bubble (main)
+        let s1: CGFloat = on ? 1.0 + 0.05*CGFloat(sin(p)) : 1.0
+        let b1 = Path(roundedRect: CGRect(x:w*0.08,y:h*0.12,width:w*0.70*s1,height:h*0.34*s1), cornerRadius: h*0.13)
+        ctx.fill(b1, with: .color(c.opacity(on ? 0.22:0.14)))
+        ctx.stroke(b1, with: .color(c.opacity(a)), lineWidth: 1.6)
+        var t1 = Path(); t1.move(to:CGPoint(x:w*0.18,y:h*0.46)); t1.addLine(to:CGPoint(x:w*0.10,y:h*0.56)); t1.addLine(to:CGPoint(x:w*0.32,y:h*0.46)); t1.closeSubpath()
+        ctx.fill(t1, with: .color(c.opacity(a)))
+        // Sparkle dots if "bubbles.and.sparkles"
+        if name.contains("sparkles") && on {
+            let sparkPos: [(CGFloat,CGFloat)] = [(0.82,0.16),(0.92,0.30),(0.76,0.36)]
+            for (i,(sx,sy)) in sparkPos.enumerated() {
+                let sr: CGFloat = 3 + CGFloat(sin(p*2 + Double(i)*1.2))*1.5
+                for j in 0..<4 {
+                    let sa = Double(j) * .pi/2 + p*0.5
+                    var sp = Path(); sp.move(to:CGPoint(x:w*sx,y:h*sy)); sp.addLine(to:CGPoint(x:w*sx+sr*CGFloat(cos(sa)),y:h*sy+sr*CGFloat(sin(sa))))
+                    ctx.stroke(sp, with: .color(c.opacity(0.8)), lineWidth: 1.2)
+                }
+            }
+        }
+    }
+
+    // 📷 Photo — frame with landscape and sun
+    private func drawPhoto(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        // Frame
+        let frame = CGRect(x:w*0.08,y:h*0.12,width:w*0.84,height:h*0.76)
+        ctx.fill(Path(roundedRect: frame, cornerRadius: 4), with: .color(c.opacity(on ? 0.18:0.10)))
+        ctx.stroke(Path(roundedRect: frame, cornerRadius: 4), with: .color(c.opacity(a)), lineWidth: 1.7)
+        // Sky gradient (simple fill)
+        let sky = CGRect(x:w*0.08,y:h*0.12,width:w*0.84,height:h*0.44)
+        ctx.fill(Path(roundedRect: sky, cornerRadius: 4), with: .color(c.opacity(on ? 0.12:0.08)))
+        // Sun (animated)
+        let sunR: CGFloat = on ? h*0.09 + CGFloat(sin(p))*2 : h*0.09
+        let sunX = w*0.75, sunY = h*0.28
+        ctx.fill(Path(ellipseIn: CGRect(x:sunX-sunR,y:sunY-sunR,width:sunR*2,height:sunR*2)),
+                 with: .color(c.opacity(on ? 0.70+0.20*sin(p*2):0.50)))
+        // Mountain silhouette
+        var mtn = Path()
+        mtn.move(to: CGPoint(x:w*0.08, y:h*0.56))
+        mtn.addLine(to: CGPoint(x:w*0.28, y:h*0.32))
+        mtn.addLine(to: CGPoint(x:w*0.46, y:h*0.50))
+        mtn.addLine(to: CGPoint(x:w*0.60, y:h*0.38))
+        mtn.addLine(to: CGPoint(x:w*0.76, y:h*0.56))
+        mtn.addLine(to: CGPoint(x:w*0.92, y:h*0.56))
+        mtn.addLine(to: CGPoint(x:w*0.92, y:h*0.88))
+        mtn.addLine(to: CGPoint(x:w*0.08, y:h*0.88))
+        mtn.closeSubpath()
+        ctx.fill(mtn, with: .color(c.opacity(on ? 0.30:0.20)))
+        ctx.stroke(mtn, with: .color(c.opacity(a*0.7)), lineWidth: 1.2)
+    }
+
+    // ❄️ Snowflake — 6-pointed rotating
+    private func drawSnowflake(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        let cx = w/2, cy = h/2
+        let r = min(w,h)*0.40
+        let rotation = on ? p * 0.3 : 0.0
+        for i in 0..<6 {
+            let angle = Double(i) * .pi / 3 + rotation
+            // Main arm
+            var arm = Path()
+            arm.move(to: CGPoint(x:cx, y:cy))
+            arm.addLine(to: CGPoint(x:cx+r*CGFloat(cos(angle)), y:cy+r*CGFloat(sin(angle))))
+            ctx.stroke(arm, with: .color(c.opacity(a)), lineWidth: 1.8)
+            // Cross branches
+            for sign in [-1.0, 1.0] {
+                let brAngle = angle + sign * .pi/6
+                let brStart: CGFloat = r * 0.35
+                let brEnd: CGFloat = r * 0.60
+                var br = Path()
+                br.move(to: CGPoint(x:cx+brStart*CGFloat(cos(angle)), y:cy+brStart*CGFloat(sin(angle))))
+                br.addLine(to: CGPoint(x:cx+brStart*CGFloat(cos(angle))+brEnd*0.40*CGFloat(cos(brAngle)),
+                                       y:cy+brStart*CGFloat(sin(angle))+brEnd*0.40*CGFloat(sin(brAngle))))
+                ctx.stroke(br, with: .color(c.opacity(a*0.75)), lineWidth: 1.2)
+            }
+        }
+        // Center dot
+        let cr: CGFloat = on ? 4 + CGFloat(sin(p*2))*1 : 3.5
+        ctx.fill(Path(ellipseIn: CGRect(x:cx-cr,y:cy-cr,width:cr*2,height:cr*2)), with: .color(c.opacity(a)))
+    }
+
+    // 🎄 Ribbon / garland lights
+    private func drawRibbon(_ ctx: GraphicsContext,_ w: CGFloat,_ h: CGFloat,_ c: Color,_ p: Double,_ on: Bool,_ a: Double) {
+        // Wavy ribbon wire
+        var wire = Path()
+        wire.move(to: CGPoint(x:w*0.05, y:h*0.42))
+        for i in 0...20 {
+            let t = CGFloat(i)/20
+            let x = w*(0.05 + t*0.90)
+            let y = h*(0.42 + 0.12*sin(Double(t)*4*Double.pi + (on ? p : 0)))
+            wire.addLine(to: CGPoint(x:x, y:y))
+        }
+        ctx.stroke(wire, with: .color(c.opacity(a*0.5)), lineWidth: 1.2)
+        // Lights
+        let lightColors: [Color] = [.red, .yellow, .green, .blue, Color(r:0xFF,g:0x80,b:0xFF)]
+        for i in 0..<5 {
+            let t = CGFloat(i)/4
+            let lx = w*(0.14 + t*0.72)
+            let ly = h*(0.42 + 0.12*sin(Double(t)*4*Double.pi + (on ? p : 0)))
+            let lr: CGFloat = on ? 5 + CGFloat(sin(p*2 + Double(i)*0.8))*1.5 : 4
+            let lc = lightColors[i % lightColors.count]
+            ctx.fill(Path(ellipseIn: CGRect(x:lx-lr,y:ly-lr,width:lr*2,height:lr*2)),
+                     with: .color(lc.opacity(on ? 0.9+0.1*sin(p*3+Double(i)) : 0.5)))
+            // Glow
+            if on {
+                let gr: CGFloat = lr * 2.5
+                ctx.fill(Path(ellipseIn: CGRect(x:lx-gr,y:ly-gr,width:gr*2,height:gr*2)),
+                         with: .color(lc.opacity(0.20*abs(sin(p*3+Double(i))))))
+            }
         }
     }
 

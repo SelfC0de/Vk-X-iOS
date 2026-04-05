@@ -398,7 +398,7 @@ struct ChatView: View {
     // MARK: - Load
     private func load() async {
         isLoading = true
-        if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id; myAvatar = me.photo100 }
+        if let me = try? await VKAPIClient.shared.getProfile() { myId = me.id; myAvatar = me.photo100; TokenStorage.shared.cachedUserId = me.id }
         let fetched = (try? await VKAPIClient.shared.getMessages(peerId: peerId)) ?? []
         let ghost = SettingsStore.shared.ghostMode
         // Mark all incoming messages as ghost-unread when ghostMode is on

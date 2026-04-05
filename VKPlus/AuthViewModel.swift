@@ -19,8 +19,9 @@ final class AuthViewModel: ObservableObject {
         isLoading = true
         error     = nil
         do {
-            _ = try await VKAPIClient.shared.getMe(token: t)
+            let me = try await VKAPIClient.shared.getMe(token: t)
             TokenStorage.shared.token = t
+            TokenStorage.shared.cachedUserId = me.id
             VKAPIClient.shared.configure(token: t)
             isAuthenticated = true
         } catch {
