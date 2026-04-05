@@ -39,20 +39,33 @@ struct VKCity: Decodable { let id: Int; let title: String }
 
 struct VKMessage: Decodable, Identifiable {
     let id: Int; let fromId: Int; let text: String; let date: Int
-    let replyMessageId: Int?
+    let replyMessage:   VKReplyMessage?   // full reply object from VK API
     let attachments:    [VKAttachment]?
-    let out:            Int?   // 1 = outgoing, 0 = incoming
-    let readState:      Int?   // 1 = read, 0 = unread (incoming)
-    // For outgoing: read by peer when conversation.inRead >= message.id
-    // We track via simple field: isReadByPeer decoded below if present
+    let out:            Int?
+    let readState:      Int?
+
     enum CodingKeys: String, CodingKey {
-        case id, text, date, attachments
+        case id, text, date, attachments, out
         case fromId         = "from_id"
-        case replyMessageId = "reply_message"
-        case out
+        case replyMessage   = "reply_message"
         case readState      = "read_state"
     }
+
+    // For sendMessage API — keep id-based reply
+    var replyMessageId: Int? { replyMessage?.id }
     var isOutgoing: Bool { (out ?? 0) == 1 }
+}
+
+// Lightweight reply message object (VK returns nested message)
+struct VKReplyMessage: Decodable {
+    let id:   Int
+    let fromId: Int
+    let text: String
+    let attachments: [VKAttachment]?
+    enum CodingKeys: String, CodingKey {
+        case id, text, attachments
+        case fromId = "from_id"
+    }
 }
 
 struct VKAttachment: Decodable {

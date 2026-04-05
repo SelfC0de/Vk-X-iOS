@@ -530,7 +530,7 @@ struct ChatView: View {
                 try await VKAPIClient.shared.editMessage(peerId: peerId, messageId: editing.id, text: text)
                 if let idx = messages.firstIndex(where: { $0.id == editing.id }) {
                     messages[idx] = VKMessage(id: editing.id, fromId: editing.fromId, text: text,
-                                              date: editing.date, replyMessageId: editing.replyMessageId, attachments: editing.attachments, out: editing.out, readState: editing.readState)
+                                              date: editing.date, replyMessage: editing.replyMessage, attachments: editing.attachments, out: editing.out, readState: editing.readState)
                 }
                 ToastManager.shared.show("Изменено", icon: "pencil.circle.fill", style: .success)
             } catch { ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
@@ -851,10 +851,9 @@ private struct BubbleView: View {
 
             // Bubble content — naturally sized, capped at maxW
             VStack(alignment: isMe ? .trailing : .leading, spacing: 3) {
-                // Reply quote
-                if let rid = msg.replyMessageId,
-                   let q = allMsgs.first(where: { $0.id == rid }) {
-                    quotedView(q)
+                // Reply quote — use embedded object from API
+                if let reply = msg.replyMessage {
+                    quotedView(reply)
                 }
                 // Attachments
                 if let atts = msg.attachments, !atts.isEmpty {
@@ -946,7 +945,7 @@ private struct BubbleView: View {
         .padding(.vertical, 1)
     }
 
-    @ViewBuilder private func quotedView(_ q: VKMessage) -> some View {
+    @ViewBuilder private func quotedView(_ q: VKReplyMessage) -> some View {
         let accentColor = isMe ? Color.cyberBlue : Color(red:0.5,green:0.4,blue:0.9)
         HStack(spacing: 6) {
             Rectangle().fill(accentColor).frame(width: 2).clipShape(Capsule())
