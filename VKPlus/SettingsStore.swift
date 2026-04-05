@@ -277,6 +277,10 @@ final class SettingsStore: ObservableObject {
            let arr = try? JSONDecoder().decode([Int].self, from: d) {
             profileHistory = arr
         } else { profileHistory = [] }
+        statusChangerText     = ud.string(forKey: "status_changer_text") ?? ""
+        statusChangerMode     = ud.string(forKey: "status_changer_mode") ?? "local"
+        statusChangerPrevious = ud.string(forKey: "status_changer_prev") ?? ""
+        statusChangerApplied  = ud.bool(forKey: "status_changer_applied")
     }
 
     func addProfileHistory(_ id: Int) {
