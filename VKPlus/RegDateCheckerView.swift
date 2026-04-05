@@ -260,7 +260,7 @@ struct RegDateCheckerView: View {
             let lookupId = id.hasPrefix("id") ? String(id.dropFirst(2)) : id
             if let user = try? await VKAPIClient.shared.getUserById(lookupId) {
                 name = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
-                isVerified = user.isVerified
+                isVerified = (user.verified ?? 0) == 1
             }
         }
 
