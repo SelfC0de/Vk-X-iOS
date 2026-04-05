@@ -80,9 +80,12 @@ private struct PetSprite: View {
 
     var body: some View {
         Canvas { ctx, size in
-            ctx.scaleBy(x: flipped ? -1 : 1, y: 1)
-            let ox: CGFloat = flipped ? -size.width : 0
-            draw(ctx: ctx, ox: ox, size: size)
+            if flipped {
+                // Mirror around center: translate +W, scale x=-1
+                ctx.translateBy(x: size.width, y: 0)
+                ctx.scaleBy(x: -1, y: 1)
+            }
+            draw(ctx: ctx, ox: 0, size: size)
         }
         .frame(width: W, height: H)
         .allowsHitTesting(false)
@@ -391,7 +394,7 @@ private struct PetSprite: View {
 struct PetView: View {
     @ObservedObject private var s = SettingsStore.shared
 
-    @State private var posX:     CGFloat = -40
+    @State private var posX:     CGFloat = 16
     @State private var phase:    Double  = 0     // 0..1 walk cycle
     @State private var flipped:  Bool    = false
     @State private var jumping:  Bool    = false
@@ -416,7 +419,7 @@ struct PetView: View {
                     }
                     .onChange(of: s.petType) { _, _ in
                         stopMotion()
-                        posX = -40; flipped = false
+                        posX = 16; flipped = false
                         startWalking()
                     }
             }
@@ -489,8 +492,11 @@ struct PetView: View {
                 }
             }
 
-            // Check edge
-            let reached = direction > 0 ? posX > screenW + 40 : posX < -40
+            // Check edge — stop while still visible
+            let petHalf: CGFloat = 16
+            let reached = direction > 0
+                ? posX >= screenW - petHalf
+                : posX <= petHalf
             if reached {
                 t.invalidate()
                 _phaseTimer = nil
@@ -501,17 +507,19 @@ struct PetView: View {
     }
 
     private func decideAtEdge() {
+        // flipped=false means was going right → now turn back (walk left)
+        // flipped=true  means was going left  → now turn forward (walk right)
+        let goLeft = !flipped  // reverse direction
         let roll = Int.random(in: 0...2)
         if roll == 0 {
-            // Idle pause
             idle = true
             DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 0.8...2.5)) {
                 guard s.showPet else { return }
                 idle = false
-                if flipped { walkForward() } else { walkBack() }
+                if goLeft { self.walkBack() } else { self.walkForward() }
             }
         } else {
-            if flipped { walkForward() } else { walkBack() }
+            if goLeft { walkBack() } else { walkForward() }
         }
     }
 }
