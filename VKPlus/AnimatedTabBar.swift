@@ -121,6 +121,12 @@ struct AnimatedTabBar: View {
             case "neon":    NeonGlowBar(selected: $selected, tabDefs: tabDefs)
             case "ticker":  TickerLabelBar(selected: $selected, tabDefs: tabDefs)
             case "gravity": GravityDropBar(selected: $selected, tabDefs: tabDefs)
+            case "arc":     ArcMenuBar(selected: $selected, tabDefs: tabDefs)
+            case "pill":    PillSelectorBar(selected: $selected, tabDefs: tabDefs)
+            case "morph":   ShapeMorphBar(selected: $selected, tabDefs: tabDefs)
+            case "rail":    SideRailBar(selected: $selected, tabDefs: tabDefs)
+            case "mintop":  MinimalTopBar(selected: $selected, tabDefs: tabDefs)
+            case "radial":  RadialDockBar(selected: $selected, tabDefs: tabDefs)
             default:        defaultBar
             }
         }
@@ -542,5 +548,370 @@ struct AnimatedMainTabView: View {
         case 5: NavigationStack { CommunitiesView() }
         default: NavigationStack { FeedView() }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Arc Menu Bar
+// Полукруглый фон, иконки на дуге — центральная выше остальных
+// ─────────────────────────────────────────────────────────────────────
+struct ArcMenuBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+
+    // Вертикальные смещения иконок по дуге: край→центр→край
+    private let arcOffsets: [CGFloat] = [0, -6, -10, -6, 0, 4]
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Фон-купол
+            GeometryReader { geo in
+                let w = geo.size.width
+                Ellipse()
+                    .fill(Color(red:0.08,green:0.08,blue:0.15))
+                    .frame(width: w * 1.3, height: 70)
+                    .offset(x: -w * 0.15, y: 10)
+                Rectangle()
+                    .fill(Color(red:0.08,green:0.08,blue:0.15))
+                    .frame(width: w * 1.3, height: 30)
+                    .offset(x: -w * 0.15, y: 40)
+            }
+            // Верхняя граница купола
+            GeometryReader { geo in
+                let w = geo.size.width
+                Path { p in
+                    p.addArc(center: CGPoint(x: w / 2, y: 80),
+                             radius: w * 0.65,
+                             startAngle: .degrees(180), endAngle: .degrees(0),
+                             clockwise: false)
+                }
+                .stroke(Color(red:0.18,green:0.18,blue:0.32), lineWidth: 0.5)
+            }
+
+            HStack(spacing: 0) {
+                ForEach(0..<6, id: \.self) { i in
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) { selected = i }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tabDefs[i].icon)
+                                .font(.system(size: selected == i ? 22 : 18))
+                                .foregroundStyle(selected == i
+                                    ? Color(r:0x63,g:0x66,b:0xF1)
+                                    : Color.onSurfaceMut.opacity(0.5))
+                                .scaleEffect(selected == i ? 1.1 : 1.0)
+                            Circle()
+                                .fill(selected == i ? Color(r:0x63,g:0x66,b:0xF1) : Color.clear)
+                                .frame(width: 3, height: 3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .offset(y: arcOffsets[i])
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.65), value: selected)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 28)
+        }
+        .frame(height: 72)
+        .background(Color.surface)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.divider).frame(height: 0.5)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Pill Selector Bar
+// Активная вкладка разворачивается в пилюлю с подписью
+// ─────────────────────────────────────────────────────────────────────
+struct PillSelectorBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+
+    var body: some View {
+        ZStack {
+            Color.surface
+            VStack(spacing: 0) {
+                Divider().background(Color.divider)
+                HStack(spacing: 4) {
+                    ForEach(0..<6, id: \.self) { i in
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) { selected = i }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            HStack(spacing: selected == i ? 5 : 0) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(selected == i
+                                        ? Color(r:0xA5,g:0xB4,b:0xFC)
+                                        : Color.onSurfaceMut.opacity(0.5))
+                                if selected == i {
+                                    Text(tabDefs[i].label)
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(Color(r:0xA5,g:0xB4,b:0xFC))
+                                        .lineLimit(1)
+                                        .transition(.opacity)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, selected == i ? 12 : 8)
+                            .background(
+                                Capsule()
+                                    .fill(selected == i
+                                        ? Color(r:0x31,g:0x2E,b:0x81).opacity(0.8)
+                                        : Color.clear)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: selected)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8).padding(.bottom, 28)
+            }
+        }
+        .frame(height: 66)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Shape Morph Bar
+// Иконка меняет форму: квадрат → круг при активации
+// ─────────────────────────────────────────────────────────────────────
+struct ShapeMorphBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+
+    var body: some View {
+        ZStack {
+            Color.surface
+            VStack(spacing: 0) {
+                Divider().background(Color.divider)
+                HStack(spacing: 0) {
+                    ForEach(0..<6, id: \.self) { i in
+                        Button {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { selected = i }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            VStack(spacing: 4) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: selected == i ? 14 : 6)
+                                        .fill(selected == i
+                                            ? Color(r:0x06,g:0xB6,b:0xD4).opacity(0.2)
+                                            : Color(red:0.12,green:0.12,blue:0.18))
+                                        .frame(width: 34, height: 34)
+                                        .scaleEffect(selected == i ? 1.08 : 1.0)
+                                    Image(systemName: tabDefs[i].icon)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(selected == i
+                                            ? Color(r:0x06,g:0xB6,b:0xD4)
+                                            : Color.onSurfaceMut.opacity(0.5))
+                                }
+                                Text(tabDefs[i].label)
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(selected == i
+                                        ? Color(r:0x06,g:0xB6,b:0xD4)
+                                        : Color.onSurfaceMut.opacity(0.4))
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: selected)
+                    }
+                }
+                .padding(.top, 8).padding(.bottom, 26)
+            }
+        }
+        .frame(height: 66)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Side Rail Bar
+// Вертикальная панель слева — нестандартный layout
+// Используется как overlay поверх контента
+// ─────────────────────────────────────────────────────────────────────
+struct SideRailBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+
+    var body: some View {
+        // Горизонтальная заглушка внизу (занимает место таббара)
+        // Реальный rail рисуется в MainTabView через overlay
+        HStack(spacing: 0) {
+            ForEach(0..<6, id: \.self) { i in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { selected = i }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tabDefs[i].icon)
+                            .font(.system(size: 18))
+                            .foregroundStyle(selected == i
+                                ? Color(r:0xF4,g:0x72,b:0xB6)
+                                : Color.onSurfaceMut.opacity(0.45))
+                        Text(tabDefs[i].label)
+                            .font(.system(size: 8))
+                            .foregroundStyle(selected == i
+                                ? Color(r:0xF4,g:0x72,b:0xB6)
+                                : Color.onSurfaceMut.opacity(0.35))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        selected == i
+                            ? Color(r:0xF4,g:0x72,b:0xB6).opacity(0.1)
+                            : Color.clear
+                    )
+                    .overlay(alignment: .top) {
+                        if selected == i {
+                            Rectangle()
+                                .fill(Color(r:0xF4,g:0x72,b:0xB6))
+                                .frame(height: 2)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected)
+            }
+        }
+        .padding(.bottom, 26)
+        .background(Color(red:0.07,green:0.07,blue:0.12))
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color(r:0xF4,g:0x72,b:0xB6).opacity(0.3)).frame(height: 0.5)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Minimal Top Bar
+// Панель сверху — используется как navigationBar replacement
+// Здесь рендерим как нижний таб для совместимости с MainTabView
+// ─────────────────────────────────────────────────────────────────────
+struct MinimalTopBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var lineOffset: CGFloat = 0
+    @State private var barW: CGFloat = 0
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(0..<6, id: \.self) { i in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) { selected = i }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tabDefs[i].icon)
+                            .font(.system(size: 18))
+                            .foregroundStyle(selected == i
+                                ? Color(r:0xF5,g:0x9E,b:0x0B)
+                                : Color.onSurfaceMut.opacity(0.45))
+                        Text(tabDefs[i].label)
+                            .font(.system(size: 8, weight: selected == i ? .semibold : .regular))
+                            .foregroundStyle(selected == i
+                                ? Color(r:0xF5,g:0x9E,b:0x0B)
+                                : Color.onSurfaceMut.opacity(0.4))
+                        Rectangle()
+                            .fill(selected == i ? Color(r:0xF5,g:0x9E,b:0x0B) : Color.clear)
+                            .frame(height: 2)
+                            .cornerRadius(1)
+                            .scaleEffect(x: selected == i ? 1 : 0)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8).padding(.bottom, 26)
+                }
+                .buttonStyle(.plain)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected)
+            }
+        }
+        .background(Color(red:0.06,green:0.06,blue:0.10))
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.divider).frame(height: 0.5)
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Radial Dock Bar
+// Иконки расположены по полукругу — центральная выше всех
+// ─────────────────────────────────────────────────────────────────────
+struct RadialDockBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+
+    // Позиции по полукругу: угол от 180° до 0° (слева направо)
+    // Для 6 иконок: 180,156,132,108,84,60 градусов (нижняя половина дуги)
+    private func position(index: Int, in size: CGSize) -> CGPoint {
+        let total = 6
+        // Углы от 195° до -15° равномерно
+        let startAngle = 195.0
+        let endAngle   = -15.0
+        let step = (endAngle - startAngle) / Double(total - 1)
+        let angleDeg = startAngle + Double(index) * step
+        let angleRad = angleDeg * Double.pi / 180.0
+        let radius: CGFloat = size.width * 0.38
+        let cx = size.width / 2
+        let cy = size.height + radius * 0.18 // центр дуги ниже видимой области
+        let x = cx + radius * CGFloat(cos(angleRad))
+        let y = cy + radius * CGFloat(sin(angleRad))
+        return CGPoint(x: x, y: y)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                // Фон
+                Color(red:0.07,green:0.07,blue:0.12)
+                // Верхняя граница
+                VStack(spacing:0){Rectangle().fill(Color.divider).frame(height:0.5);Spacer()}
+
+                // Дуга-направляющая
+                Path { p in
+                    let r = geo.size.width * 0.38
+                    let cx = geo.size.width / 2
+                    let cy = geo.size.height + r * 0.18
+                    p.addArc(center: CGPoint(x:cx,y:cy),
+                             radius: r,
+                             startAngle: .degrees(195),
+                             endAngle: .degrees(-15),
+                             clockwise: false)
+                }
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+
+                // Иконки
+                ForEach(0..<6, id: \.self) { i in
+                    let pos = position(index: i, in: geo.size)
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.6)) { selected = i }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 2) {
+                            ZStack {
+                                Circle()
+                                    .fill(selected == i
+                                        ? Color(r:0x10,g:0xB9,b:0x81).opacity(0.2)
+                                        : Color(red:0.12,green:0.12,blue:0.18))
+                                    .frame(width: selected == i ? 38 : 32,
+                                           height: selected == i ? 38 : 32)
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: selected == i ? 17 : 14))
+                                    .foregroundStyle(selected == i
+                                        ? Color(r:0x10,g:0xB9,b:0x81)
+                                        : Color.onSurfaceMut.opacity(0.5))
+                            }
+                            .scaleEffect(selected == i ? 1.1 : 1.0)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.6), value: selected)
+                    .position(pos)
+                }
+            }
+        }
+        .frame(height: 80)
     }
 }

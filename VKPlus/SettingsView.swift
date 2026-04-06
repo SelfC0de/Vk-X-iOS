@@ -800,6 +800,12 @@ struct TabBarStylePicker: View {
         ("neon",    "Neon Glow",      "sun.max.fill",                       "Светящаяся линия под иконкой"),
         ("ticker",  "Ticker Label",   "textformat",                         "Название печатается побуквенно"),
         ("gravity", "Gravity Drop",   "arrow.down.circle.fill",             "Иконка падает и отскакивает"),
+        ("arc",     "Arc Menu",       "moon.fill",                          "Иконки на дуге полукруга"),
+        ("pill",    "Pill Selector",  "capsule.fill",                       "Активная вкладка раскрывается в пилюлю"),
+        ("morph",   "Shape Morph",    "circle.square",                      "Иконка меняет форму при выборе"),
+        ("rail",    "Side Rail",      "sidebar.left",                       "Вертикальная панель слева"),
+        ("mintop",  "Minimal Top",    "line.3.horizontal",                  "Панель сверху с линией-индикатором"),
+        ("radial",  "Radial Dock",    "dot.radiowaves.up.forward",          "Иконки по дуге полукруга"),
     ]
 
     var body: some View {
