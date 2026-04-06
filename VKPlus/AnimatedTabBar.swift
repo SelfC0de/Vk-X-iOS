@@ -843,75 +843,71 @@ struct RadialDockBar: View {
     @Binding var selected: Int
     let tabDefs: [(icon: String, label: String)]
 
-    // Позиции по полукругу: угол от 180° до 0° (слева направо)
-    // Для 6 иконок: 180,156,132,108,84,60 градусов (нижняя половина дуги)
-    private func position(index: Int, in size: CGSize) -> CGPoint {
-        let total = 6
-        // Углы от 195° до -15° равномерно
-        let startAngle = 195.0
-        let endAngle   = -15.0
-        let step = (endAngle - startAngle) / Double(total - 1)
-        let angleDeg = startAngle + Double(index) * step
-        let angleRad = angleDeg * Double.pi / 180.0
-        let radius: CGFloat = size.width * 0.38
+    // Полукруг: углы 180°→0° слева направо (верхняя дуга)
+    // Центр дуги cy = r + topPad, где r = barH - bottomPad - topPad
+    // x_i = cx - r*cos(angle), y_i = cy - r*sin(angle)
+    // sin(180..0) ≥ 0, поэтому y_i ≤ cy — иконки выше центра
+    private func pos(index: Int, in size: CGSize) -> CGPoint {
+        let topPad:    CGFloat = 14
+        let bottomPad: CGFloat = 30
+        let r  = size.height - bottomPad - topPad   // ~60pt
         let cx = size.width / 2
-        let cy = size.height + radius * 0.18 // центр дуги ниже видимой области
-        let x = cx + radius * CGFloat(cos(angleRad))
-        let y = cy + radius * CGFloat(sin(angleRad))
+        let cy = r + topPad                          // центр дуги
+        let angleDeg = 180.0 - Double(index) * 180.0 / 5.0  // 180,144,108,72,36,0
+        let rad = angleDeg * Double.pi / 180.0
+        let x = cx - r * CGFloat(cos(rad))
+        let y = cy - r * CGFloat(sin(rad))
         return CGPoint(x: x, y: y)
     }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Фон
                 Color(red:0.07,green:0.07,blue:0.12)
-                // Верхняя граница
                 VStack(spacing:0){Rectangle().fill(Color.divider).frame(height:0.5);Spacer()}
 
                 // Дуга-направляющая
                 Path { p in
-                    let r = geo.size.width * 0.38
+                    let topPad: CGFloat = 14
+                    let bottomPad: CGFloat = 30
+                    let r = geo.size.height - bottomPad - topPad
                     let cx = geo.size.width / 2
-                    let cy = geo.size.height + r * 0.18
-                    p.addArc(center: CGPoint(x:cx,y:cy),
+                    let cy = r + topPad
+                    p.addArc(center: CGPoint(x: cx, y: cy),
                              radius: r,
-                             startAngle: .degrees(195),
-                             endAngle: .degrees(-15),
-                             clockwise: false)
+                             startAngle: .degrees(0),
+                             endAngle: .degrees(180),
+                             clockwise: true)
                 }
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(Color.white.opacity(0.07), lineWidth: 0.8)
 
-                // Иконки
                 ForEach(0..<6, id: \.self) { i in
-                    let pos = position(index: i, in: geo.size)
+                    let p = pos(index: i, in: geo.size)
                     Button {
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.6)) { selected = i }
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
-                        VStack(spacing: 2) {
-                            ZStack {
-                                Circle()
-                                    .fill(selected == i
-                                        ? Color(r:0x10,g:0xB9,b:0x81).opacity(0.2)
-                                        : Color(red:0.12,green:0.12,blue:0.18))
-                                    .frame(width: selected == i ? 38 : 32,
-                                           height: selected == i ? 38 : 32)
-                                Image(systemName: tabDefs[i].icon)
-                                    .font(.system(size: selected == i ? 17 : 14))
-                                    .foregroundStyle(selected == i
-                                        ? Color(r:0x10,g:0xB9,b:0x81)
-                                        : Color.onSurfaceMut.opacity(0.5))
-                            }
-                            .scaleEffect(selected == i ? 1.1 : 1.0)
+                        ZStack {
+                            Circle()
+                                .fill(selected == i
+                                    ? Color(r:0x10,g:0xB9,b:0x81).opacity(0.22)
+                                    : Color(red:0.12,green:0.12,blue:0.20))
+                                .frame(width: selected == i ? 40 : 32,
+                                       height: selected == i ? 40 : 32)
+                            Image(systemName: tabDefs[i].icon)
+                                .font(.system(size: selected == i ? 17 : 14))
+                                .foregroundStyle(selected == i
+                                    ? Color(r:0x10,g:0xB9,b:0x81)
+                                    : Color.onSurfaceMut.opacity(0.5))
                         }
+                        .scaleEffect(selected == i ? 1.1 : 1.0)
                     }
                     .buttonStyle(.plain)
                     .animation(.spring(response: 0.32, dampingFraction: 0.6), value: selected)
-                    .position(pos)
+                    .position(p)
                 }
             }
         }
-        .frame(height: 80)
+        .frame(height: 104)
     }
 }
