@@ -9,7 +9,14 @@ struct VisualTab: View {
         let parts = [s.weatherGarland ? "Гирлянда" : nil,
                      s.weatherRain    ? "Дождь"    : nil,
                      s.weatherSnow    ? "Снег"     : nil,
-                     s.weatherFog     ? "Туман"    : nil].compactMap { $0 }
+                     s.weatherFog     ? "Туман"    : nil,
+                     s.weatherLeaves  ? "Листопад" : nil,
+                     s.weatherSakura  ? "Сакура"   : nil,
+                     s.weatherAurora  ? "Сияние"   : nil,
+                     s.weatherBubbles ? "Пузыри"   : nil,
+                     s.weatherStars   ? "Звёзды"   : nil,
+                     s.weatherFire    ? "Огни"     : nil,
+                     s.weatherPixels  ? "Пиксели"  : nil].compactMap { $0 }
         return parts.isEmpty ? "Выключено" : parts.joined(separator: ", ")
     }
 
@@ -89,6 +96,34 @@ struct VisualTab: View {
                     SettingsToggle("Туман", icon: "cloud.fog",
                                    subtitle: "Лёгкая дымка поверх интерфейса",
                                    val: $s.weatherFog)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Листопад", icon: "leaf.fill",
+                                   subtitle: "Осенние листья падают по экрану",
+                                   val: $s.weatherLeaves)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Сакура", icon: "leaf",
+                                   subtitle: "Розовые лепестки кружатся",
+                                   val: $s.weatherSakura)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Северное сияние", icon: "rays",
+                                   subtitle: "Волны полярного сияния",
+                                   val: $s.weatherAurora)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Пузыри", icon: "bubbles.and.sparkles",
+                                   subtitle: "Пузыри всплывают снизу",
+                                   val: $s.weatherBubbles)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Звёздный дождь", icon: "sparkles",
+                                   subtitle: "Метеориты со следом",
+                                   val: $s.weatherStars)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Огни", icon: "flame.fill",
+                                   subtitle: "Искры поднимаются снизу",
+                                   val: $s.weatherFire)
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    SettingsToggle("Пиксели", icon: "squareshape.split.2x2",
+                                   subtitle: "Цветные пиксели рассыпаются",
+                                   val: $s.weatherPixels)
                 }
             }
     }

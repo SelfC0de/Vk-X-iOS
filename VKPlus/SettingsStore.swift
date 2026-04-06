@@ -171,9 +171,16 @@ final class SettingsStore: ObservableObject {
 
     // Visual
     @Published var weatherGarland: Bool { didSet { ud.set(weatherGarland, forKey: "weather_garland") } }
-    @Published var weatherRain: Bool { didSet { ud.set(weatherRain, forKey: "weather_rain") } }
-    @Published var weatherSnow: Bool { didSet { ud.set(weatherSnow, forKey: "weather_snow") } }
-    @Published var weatherFog:  Bool { didSet { ud.set(weatherFog,  forKey: "weather_fog")  } }
+    @Published var weatherRain:    Bool { didSet { ud.set(weatherRain,    forKey: "weather_rain")    } }
+    @Published var weatherSnow:    Bool { didSet { ud.set(weatherSnow,    forKey: "weather_snow")    } }
+    @Published var weatherFog:     Bool { didSet { ud.set(weatherFog,     forKey: "weather_fog")     } }
+    @Published var weatherLeaves:  Bool { didSet { ud.set(weatherLeaves,  forKey: "weather_leaves")  } }
+    @Published var weatherSakura:  Bool { didSet { ud.set(weatherSakura,  forKey: "weather_sakura")  } }
+    @Published var weatherAurora:  Bool { didSet { ud.set(weatherAurora,  forKey: "weather_aurora")  } }
+    @Published var weatherBubbles: Bool { didSet { ud.set(weatherBubbles, forKey: "weather_bubbles") } }
+    @Published var weatherStars:   Bool { didSet { ud.set(weatherStars,   forKey: "weather_stars")   } }
+    @Published var weatherFire:    Bool { didSet { ud.set(weatherFire,    forKey: "weather_fire")    } }
+    @Published var weatherPixels:  Bool { didSet { ud.set(weatherPixels,  forKey: "weather_pixels")  } }
     @Published var showPet:        Bool   { didSet { ud.set(showPet,        forKey: "show_pet")         } }
     @Published var petType:        String { didSet { ud.set(petType,        forKey: "pet_type")         } }
     // Avatar shape settings
@@ -260,9 +267,16 @@ final class SettingsStore: ObservableObject {
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
         liquidGlass      = ud.bool(forKey: "liquid_glass")
         weatherGarland   = ud.bool(forKey: "weather_garland")
-        weatherRain      = ud.bool(forKey: "weather_rain")
-        weatherSnow      = ud.bool(forKey: "weather_snow")
-        weatherFog       = ud.bool(forKey: "weather_fog")
+        weatherRain    = ud.bool(forKey: "weather_rain")
+        weatherSnow    = ud.bool(forKey: "weather_snow")
+        weatherFog     = ud.bool(forKey: "weather_fog")
+        weatherLeaves  = ud.bool(forKey: "weather_leaves")
+        weatherSakura  = ud.bool(forKey: "weather_sakura")
+        weatherAurora  = ud.bool(forKey: "weather_aurora")
+        weatherBubbles = ud.bool(forKey: "weather_bubbles")
+        weatherStars   = ud.bool(forKey: "weather_stars")
+        weatherFire    = ud.bool(forKey: "weather_fire")
+        weatherPixels  = ud.bool(forKey: "weather_pixels")
         showPet          = ud.bool(forKey: "show_pet")
         petType          = ud.string(forKey: "pet_type")         ?? "cat"
         avatarShape         = ud.string(forKey: "avatar_shape")          ?? "circle"
