@@ -107,101 +107,81 @@ struct AnimatedTabBar: View {
         ("building.columns.fill",             "Сообщества"),
     ]
 
-    @State private var tabOrder:    [Int]    = loadTabOrder()
-    @State private var dragPos:     Int?     = nil   // which position is being dragged
-    @State private var dragX:       CGFloat  = 0     // current finger X in bar coords
-    @State private var tabBarWidth: CGFloat  = 0
-
+    @State private var tabOrder:   [Int]   = loadTabOrder()
+    @State private var dragPos:    Int?    = nil
+    @State private var dragX:      CGFloat = 0
+    @State private var tabBarWidth: CGFloat = 0
     private var tabW: CGFloat { tabBarWidth / 6 }
 
     var body: some View {
+        Group {
+            switch store.tabBarStyle {
+            case "liquid":  LiquidMorphingBar(selected: $selected, tabDefs: tabDefs)
+            case "island":  FloatingIslandBar(selected: $selected, tabDefs: tabDefs)
+            case "neon":    NeonGlowBar(selected: $selected, tabDefs: tabDefs)
+            case "ticker":  TickerLabelBar(selected: $selected, tabDefs: tabDefs)
+            case "gravity": GravityDropBar(selected: $selected, tabDefs: tabDefs)
+            default:        defaultBar
+            }
+        }
+    }
+
+    // ── Default (bracket) ────────────────────────────────────────────
+    @ViewBuilder private var defaultBar: some View {
         ZStack {
-            // ── Static items ──────────────────────────────────────────
             HStack(spacing: 0) {
                 ForEach(0..<6, id: \.self) { pos in
                     let tabIdx = tabOrder[pos]
-                    let isGhost = dragPos == pos   // hide while floating
-
-                    AnimatedTabItem(
-                        icon:       tabDefs[tabIdx].icon,
-                        label:      tabDefs[tabIdx].label,
-                        isSelected: selected == tabIdx && dragPos == nil,
-                        badgeCount: 0,
-                        tabIndex:   tabIdx
-                    )
-                    .frame(maxWidth: .infinity)
-                    .opacity(isGhost ? 0 : 1)
-                    // Normal tap — only when NOT dragging
-                    .onTapGesture {
-                        guard dragPos == nil else { return }
-                        selected = tabIdx
-                    }
-                    // Long press starts drag
-                    .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 10) {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        dragPos = pos
-                        dragX   = tabW * CGFloat(pos) + tabW / 2
-                    }
+                    let isGhost = dragPos == pos
+                    AnimatedTabItem(icon: tabDefs[tabIdx].icon, label: tabDefs[tabIdx].label,
+                                    isSelected: selected == tabIdx && dragPos == nil,
+                                    badgeCount: 0, tabIndex: tabIdx)
+                        .frame(maxWidth: .infinity)
+                        .opacity(isGhost ? 0 : 1)
+                        .onTapGesture { guard dragPos == nil else { return }; selected = tabIdx }
+                        .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 10) {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            dragPos = pos; dragX = tabW * CGFloat(pos) + tabW / 2
+                        }
                 }
             }
-
-            // ── Floating dragged item ─────────────────────────────────
             if let dp = dragPos {
                 let tabIdx = tabOrder[dp]
-                AnimatedTabItem(
-                    icon:       tabDefs[tabIdx].icon,
-                    label:      tabDefs[tabIdx].label,
-                    isSelected: selected == tabIdx,
-                    badgeCount: 0,
-                    tabIndex:   tabIdx
-                )
-                .frame(width: tabW)
-                .scaleEffect(1.15)
-                .shadow(color: Color.cyberBlue.opacity(0.5), radius: 14)
-                .position(x: dragX, y: 30)  // fixed Y center in bar
-                .gesture(
-                    DragGesture(minimumDistance: 0, coordinateSpace: .named("tabbar"))
+                AnimatedTabItem(icon: tabDefs[tabIdx].icon, label: tabDefs[tabIdx].label,
+                                isSelected: selected == tabIdx, badgeCount: 0, tabIndex: tabIdx)
+                    .frame(width: tabW).scaleEffect(1.15)
+                    .shadow(color: Color.cyberBlue.opacity(0.5), radius: 14)
+                    .position(x: dragX, y: 30)
+                    .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("tabbar"))
                         .onChanged { val in
                             dragX = max(tabW/2, min(tabBarWidth - tabW/2, val.location.x))
-                            // Swap logic
                             let targetPos = min(5, max(0, Int(dragX / tabW)))
                             if targetPos != dp {
                                 withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
                                     var order = tabOrder
-                                    order.remove(at: dp)
-                                    order.insert(tabIdx, at: targetPos)
-                                    tabOrder = order
-                                    dragPos  = targetPos
+                                    order.remove(at: dp); order.insert(tabIdx, at: targetPos)
+                                    tabOrder = order; dragPos = targetPos
                                 }
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             }
                         }
                         .onEnded { _ in
-                            withAnimation(.spring(response: 0.3)) {
-                                dragPos = nil
-                                dragX   = 0
-                            }
+                            withAnimation(.spring(response: 0.3)) { dragPos = nil; dragX = 0 }
                             saveTabOrder(tabOrder)
-                        }
-                )
-                .zIndex(10)
+                        })
+                    .zIndex(10)
             }
         }
         .coordinateSpace(name: "tabbar")
-        // Measure bar width once
-        .background(
-            GeometryReader { g in
-                Color.clear.onAppear { tabBarWidth = g.size.width }
-                    .onChange(of: g.size.width) { _, w in tabBarWidth = w }
-            }
-        )
-        .frame(height: 60)
-        .padding(.top, 6)
-        .padding(.bottom, 26)
-        .background(barBackground)
+        .background(GeometryReader { g in
+            Color.clear.onAppear { tabBarWidth = g.size.width }
+                .onChange(of: g.size.width) { _, w in tabBarWidth = w }
+        })
+        .frame(height: 60).padding(.top, 6).padding(.bottom, 26)
+        .background(barBg)
     }
 
-    @ViewBuilder private var barBackground: some View {
+    @ViewBuilder private var barBg: some View {
         ZStack {
             if store.liquidGlass {
                 Rectangle().fill(.ultraThinMaterial)
@@ -209,6 +189,307 @@ struct AnimatedTabBar: View {
                 Color.cyberBlue.opacity(0.03)
             } else { Color.surface }
             VStack{Rectangle().fill(LinearGradient(colors:[Color.white.opacity(store.liquidGlass ? 0.20:0),Color.cyberBlue.opacity(0.30),Color.clear],startPoint:.leading,endPoint:.trailing)).frame(height:0.5);Spacer()}
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Liquid Morphing Bar
+// ─────────────────────────────────────────────────────────────────────
+struct LiquidMorphingBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var blobX: CGFloat = 0
+    @State private var tabBarW: CGFloat = 0
+    private var tabW: CGFloat { tabBarW / 6 }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Blob
+            if tabBarW > 0 {
+                Ellipse()
+                    .fill(Color.cyberBlue.opacity(0.18))
+                    .frame(width: 52, height: 32)
+                    .blur(radius: 6)
+                    .offset(x: blobX - tabBarW / 2, y: 0)
+                    .animation(.spring(response: 0.38, dampingFraction: 0.7), value: blobX)
+            }
+            HStack(spacing: 0) {
+                ForEach(0..<6, id: \.self) { i in
+                    Button {
+                        selected = i
+                        withAnimation(.spring(response: 0.38, dampingFraction: 0.7)) {
+                            blobX = tabW * CGFloat(i) + tabW / 2
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tabDefs[i].icon)
+                                .font(.system(size: 20))
+                                .foregroundStyle(selected == i ? Color.cyberBlue : Color.onSurfaceMut.opacity(0.6))
+                                .scaleEffect(selected == i ? 1.1 : 1.0)
+                            Circle()
+                                .fill(selected == i ? Color.cyberBlue : Color.clear)
+                                .frame(width: 4, height: 4)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.6), value: selected)
+                }
+            }
+        }
+        .frame(height: 60).padding(.top, 6).padding(.bottom, 26)
+        .background(Color.surface)
+        .background(GeometryReader { g in
+            Color.clear.onAppear {
+                tabBarW = g.size.width
+                blobX = tabW * CGFloat(selected) + tabW / 2
+            }
+        })
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Floating Island Bar
+// ─────────────────────────────────────────────────────────────────────
+struct FloatingIslandBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var tilt: Double = 0
+
+    var body: some View {
+        ZStack {
+            Color.surface
+            VStack(spacing: 0) {
+                Divider().background(Color.divider)
+                Spacer()
+            }
+            HStack(spacing: 4) {
+                ForEach(0..<6, id: \.self) { i in
+                    Button {
+                        let prev = selected
+                        selected = i
+                        let dir = Double(i - prev)
+                        withAnimation(.easeOut(duration: 0.15)) { tilt = dir * 3 }
+                        withAnimation(.easeOut(duration: 0.25).delay(0.15)) { tilt = 0 }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: tabDefs[i].icon)
+                                .font(.system(size: selected == i ? 22 : 18))
+                                .foregroundStyle(selected == i ? Color(r:0xA7,g:0x8B,b:0xFA) : Color.onSurfaceMut.opacity(0.55))
+                                .offset(y: selected == i ? -6 : 0)
+                            if selected == i {
+                                Text(tabDefs[i].label)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(Color(r:0xA7,g:0x8B,b:0xFA))
+                                    .transition(.opacity.combined(with: .scale))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.65), value: selected)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color(red:0.10,green:0.11,blue:0.18))
+                    .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+            )
+            .padding(.horizontal, 16)
+            .rotation3DEffect(.degrees(tilt), axis: (x:0,y:0,z:1))
+            .animation(.easeInOut(duration: 0.25), value: tilt)
+            .padding(.bottom, 20)
+        }
+        .frame(height: 86)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Neon Glow Bar
+// ─────────────────────────────────────────────────────────────────────
+struct NeonGlowBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var lineX: CGFloat = 0
+    @State private var tabBarW: CGFloat = 0
+    @State private var pulse = false
+    private var tabW: CGFloat { tabBarW / 6 }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.surface
+            // Top border
+            VStack(spacing:0){Rectangle().fill(LinearGradient(colors:[Color.white.opacity(0),Color(r:0x00,g:0xF5,b:0xFF).opacity(0.4),Color.white.opacity(0)],startPoint:.leading,endPoint:.trailing)).frame(height:0.5);Spacer()}
+
+            // Sliding neon line
+            if tabBarW > 0 {
+                Capsule()
+                    .fill(Color(r:0x00,g:0xF5,b:0xFF))
+                    .frame(width: 28, height: 2)
+                    .shadow(color: Color(r:0x00,g:0xF5,b:0xFF).opacity(0.8), radius: 6)
+                    .offset(x: lineX - tabBarW / 2, y: -4)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.75), value: lineX)
+            }
+
+            HStack(spacing: 0) {
+                ForEach(0..<6, id: \.self) { i in
+                    Button {
+                        selected = i
+                        withAnimation { lineX = tabW * CGFloat(i) + tabW / 2 }
+                        pulse = false
+                        withAnimation(.easeOut(duration: 0.1)) { pulse = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { pulse = false }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tabDefs[i].icon)
+                                .font(.system(size: 20))
+                                .foregroundStyle(selected == i ? Color(r:0x00,g:0xF5,b:0xFF) : Color.onSurfaceMut.opacity(0.5))
+                                .shadow(color: selected == i ? Color(r:0x00,g:0xF5,b:0xFF).opacity(pulse && selected == i ? 0.9 : 0.4) : .clear, radius: 8)
+                            Text(tabDefs[i].label)
+                                .font(.system(size: 8))
+                                .foregroundStyle(selected == i ? Color(r:0x00,g:0xF5,b:0xFF).opacity(0.8) : Color.onSurfaceMut.opacity(0.4))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.easeOut(duration: 0.2), value: selected)
+                }
+            }
+            .padding(.bottom, 26)
+            .background(GeometryReader { g in
+                Color.clear.onAppear {
+                    tabBarW = g.size.width
+                    lineX = tabW * CGFloat(selected) + tabW / 2
+                }
+            })
+        }
+        .frame(height: 66)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Ticker Label Bar
+// ─────────────────────────────────────────────────────────────────────
+struct TickerLabelBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var displayedLabel: String = ""
+    @State private var tickerTask: Task<Void, Never>? = nil
+
+    var body: some View {
+        ZStack {
+            Color.surface
+            VStack(spacing: 0) {
+                Divider().background(Color.divider)
+                HStack(spacing: 0) {
+                    ForEach(0..<6, id: \.self) { i in
+                        Button {
+                            guard selected != i else { return }
+                            selected = i
+                            startTicker(for: tabDefs[i].label)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            VStack(spacing: 2) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(selected == i ? Color(r:0xFF,g:0xB8,b:0x00) : Color.onSurfaceMut.opacity(0.55))
+                                    .scaleEffect(selected == i ? 1.12 : 1.0)
+                                if selected == i {
+                                    Text(displayedLabel)
+                                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(Color(r:0xFF,g:0xB8,b:0x00))
+                                        .frame(height: 12)
+                                        .transition(.opacity)
+                                } else {
+                                    Color.clear.frame(height: 12)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.28, dampingFraction: 0.7), value: selected)
+                    }
+                }
+                .padding(.top, 6).padding(.bottom, 26)
+            }
+        }
+        .frame(height: 66)
+        .onAppear { displayedLabel = tabDefs[selected].label }
+    }
+
+    private func startTicker(for text: String) {
+        tickerTask?.cancel()
+        displayedLabel = ""
+        tickerTask = Task {
+            for char in text {
+                if Task.isCancelled { break }
+                await MainActor.run { displayedLabel += String(char) }
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MARK: - Gravity Drop Bar
+// ─────────────────────────────────────────────────────────────────────
+struct GravityDropBar: View {
+    @Binding var selected: Int
+    let tabDefs: [(icon: String, label: String)]
+    @State private var droppingIdx: Int? = nil
+    @State private var dropPhase: CGFloat = 0 // 0=normal, 1=down, 2=bounce back
+
+    var body: some View {
+        ZStack {
+            Color.surface
+            VStack(spacing: 0) {
+                Divider().background(Color.divider)
+                HStack(spacing: 0) {
+                    ForEach(0..<6, id: \.self) { i in
+                        Button {
+                            selected = i
+                            triggerDrop(for: i)
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(selected == i ? Color(r:0x34,g:0xD3,b:0x99) : Color.onSurfaceMut.opacity(0.55))
+                                    .offset(y: droppingIdx == i ? dropPhase * 24 : 0)
+                                    .animation(droppingIdx == i && dropPhase > 0
+                                        ? .easeIn(duration: 0.12)
+                                        : .spring(response: 0.4, dampingFraction: 0.45),
+                                               value: dropPhase)
+                                Text(tabDefs[i].label)
+                                    .font(.system(size: 8.5))
+                                    .foregroundStyle(selected == i ? Color(r:0x34,g:0xD3,b:0x99) : Color.onSurfaceMut.opacity(0.4))
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 6).padding(.bottom, 26)
+            }
+        }
+        .frame(height: 66)
+    }
+
+    private func triggerDrop(for i: Int) {
+        droppingIdx = i
+        dropPhase = 0
+        withAnimation(.easeIn(duration: 0.12)) { dropPhase = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            dropPhase = 0  // spring bounce back
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            if droppingIdx == i { droppingIdx = nil }
         }
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
-private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Прокси", "О нас"]
-private let tabIcons = ["lock.shield.fill", "cpu.fill", "iphone", "paintbrush.fill", "network", "info.circle.fill"]
+private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Интерфейс", "Прокси", "О нас"]
+private let tabIcons = ["lock.shield.fill", "cpu.fill", "iphone", "paintbrush.fill", "square.3.layers.3d", "network", "info.circle.fill"]
 
 struct SettingsView: View {
     @State private var selectedTab = 0
@@ -20,7 +20,8 @@ struct SettingsView: View {
                         case 1: EngineTab()
                         case 2: DeviceTab()
                         case 3: VisualTab()
-                        case 4: ProxyTabView()
+                        case 4: InterfaceTab()
+                        case 5: ProxyTabView()
                         default: AboutInlineView()
                         }
                     }
@@ -770,6 +771,85 @@ struct NotifyStylePicker: View {
                 }
             }
             .padding(.horizontal, 14).padding(.bottom, 10)
+        }
+    }
+}
+
+// MARK: - Interface Tab
+struct InterfaceTab: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            SettingsSectionCard(title: "Меню навигации",
+                                subtitle: "Стиль нижней панели",
+                                icon: "square.3.layers.3d",
+                                iconColor: Color(r:0x9C,g:0x27,b:0xB0)) {
+                TabBarStylePicker()
+            }
+        }
+    }
+}
+
+// MARK: - TabBar Style Picker
+struct TabBarStylePicker: View {
+    @ObservedObject private var s = SettingsStore.shared
+
+    private let styles: [(id: String, label: String, icon: String, desc: String)] = [
+        ("default", "Default",        "rectangle.bottomthird.inset.filled", "Текущий стиль с bracket"),
+        ("liquid",  "Liquid Morphing","drop.fill",                          "Жидкий blob скользит между иконками"),
+        ("island",  "Floating Island","oval.fill",                          "Капсула парит над контентом"),
+        ("neon",    "Neon Glow",      "sun.max.fill",                       "Светящаяся линия под иконкой"),
+        ("ticker",  "Ticker Label",   "textformat",                         "Название печатается побуквенно"),
+        ("gravity", "Gravity Drop",   "arrow.down.circle.fill",             "Иконка падает и отскакивает"),
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(styles, id: \.id) { style in
+                Button {
+                    withAnimation(.spring(response: 0.28)) {
+                        s.tabBarStyle = style.id
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(s.tabBarStyle == style.id
+                                    ? Color(r:0x9C,g:0x27,b:0xB0).opacity(0.18)
+                                    : Color(red:0.08,green:0.09,blue:0.14))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: style.icon)
+                                .font(.system(size: 16))
+                                .foregroundStyle(s.tabBarStyle == style.id
+                                    ? Color(r:0x9C,g:0x27,b:0xB0)
+                                    : Color.onSurfaceMut)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(style.label)
+                                .font(.system(size: 14, weight: s.tabBarStyle == style.id ? .semibold : .regular))
+                                .foregroundStyle(s.tabBarStyle == style.id
+                                    ? Color(r:0x9C,g:0x27,b:0xB0)
+                                    : Color.onSurface)
+                            Text(style.desc)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.onSurfaceMut)
+                        }
+                        Spacer()
+                        if s.tabBarStyle == style.id {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Color(r:0x9C,g:0x27,b:0xB0))
+                                .font(.system(size: 18))
+                        }
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(s.tabBarStyle == style.id
+                        ? Color(r:0x9C,g:0x27,b:0xB0).opacity(0.06)
+                        : Color.clear)
+                }
+                .buttonStyle(.plain)
+                if style.id != styles.last?.id {
+                    Divider().background(Color.divider).padding(.leading, 62)
+                }
+            }
         }
     }
 }

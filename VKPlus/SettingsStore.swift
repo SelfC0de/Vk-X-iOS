@@ -156,6 +156,7 @@ final class SettingsStore: ObservableObject {
     // Notifications
     @Published var typePush:             Bool   { didSet { ud.set(typePush,             forKey: "type_push")             } }
     @Published var notifyStyle:          String { didSet { ud.set(notifyStyle,          forKey: "notify_style")           } } // "default" | "center" | "slide"
+    @Published var tabBarStyle:          String { didSet { ud.set(tabBarStyle,          forKey: "tab_bar_style")          } } // "default" | "liquid" | "island" | "neon" | "ticker" | "gravity"
     // Predict Push System — filter settings
     @Published var predictFilterGroups:  Bool   { didSet { ud.set(predictFilterGroups,  forKey: "predict_filter_groups")  } } // ignore group chats
     @Published var predictMinGroupSize:  Int    { didSet { ud.set(predictMinGroupSize,  forKey: "predict_min_group_size") } } // ignore groups with N+ members
@@ -256,6 +257,7 @@ final class SettingsStore: ObservableObject {
         bypassCopy       = ud.object(forKey: "bypass_copy")    == nil ? true  : ud.bool(forKey: "bypass_copy")
         typePush             = ud.bool(forKey: "type_push")
         notifyStyle          = ud.string(forKey: "notify_style") ?? "default"
+        tabBarStyle          = ud.string(forKey: "tab_bar_style") ?? "default"
         predictFilterGroups  = ud.object(forKey: "predict_filter_groups")  == nil ? true : ud.bool(forKey: "predict_filter_groups")
         predictMinGroupSize  = ud.object(forKey: "predict_min_group_size") == nil ? 5    : ud.integer(forKey: "predict_min_group_size")
         predictOnlyDMs       = ud.bool(forKey: "predict_only_dms")
