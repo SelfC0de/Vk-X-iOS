@@ -147,7 +147,7 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
         if let cached = memberCountCache[peerId] { return cached }
         // peerId for group chats is > 2_000_000_000
         // For group chat: use messages.getConversationsById
-        let chatId = peerId > 2_000_000_000 ? peerId - 2_000_000_000 : peerId
+        let _ = peerId > 2_000_000_000 ? peerId - 2_000_000_000 : peerId
         let json = try? await VKAPIClient.shared.rawCall("messages.getConversationsById",
             params: ["peer_ids": "\(peerId)", "extended": "0"])
         let items = (json?["response"] as? [String: Any])?["items"] as? [[String: Any]] ?? []

@@ -32,116 +32,10 @@ struct WeatherOverlayView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // ── Fog (drifting layers) ─────────────────────────────
-                if s.weatherFog { fogLayer }
-
-                // ── Aurora ────────────────────────────────────────────
+                if s.weatherFog    { fogLayer }
                 if s.weatherAurora { AuroraView(ticker: ticker) }
-
-                // ── Rain ──────────────────────────────────────────────
-                if s.weatherRain {
-                    ForEach(rain) { p in
-                        RainDrop()
-                            .stroke(Color(red:0.6,green:0.75,blue:0.95).opacity(Double(p.opacity)), lineWidth: 1.2)
-                            .frame(width: 2, height: p.size)
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Snow ──────────────────────────────────────────────
-                if s.weatherSnow {
-                    ForEach(snow) { p in
-                        Text("❄")
-                            .font(.system(size: p.size))
-                            .opacity(Double(p.opacity))
-                            .rotationEffect(.degrees(Double(p.rotation)))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Leaves ────────────────────────────────────────────
-                if s.weatherLeaves {
-                    ForEach(leaves) { p in
-                        LeafShape()
-                            .fill(Color(hue: Double(p.hue), saturation: 0.85, brightness: 0.75))
-                            .frame(width: p.size, height: p.size * 0.7)
-                            .opacity(Double(p.opacity))
-                            .rotationEffect(.degrees(Double(p.rotation)))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Sakura ────────────────────────────────────────────
-                if s.weatherSakura {
-                    ForEach(sakura) { p in
-                        PetalShape()
-                            .fill(Color(hue: 0.94, saturation: 0.35 + Double(p.hue)*0.2, brightness: 0.97))
-                            .frame(width: p.size, height: p.size * 0.6)
-                            .opacity(Double(p.opacity))
-                            .rotationEffect(.degrees(Double(p.rotation)))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Bubbles ───────────────────────────────────────────
-                if s.weatherBubbles {
-                    ForEach(bubbles) { p in
-                        Circle()
-                            .stroke(
-                                LinearGradient(colors: [
-                                    Color(hue: Double(p.hue), saturation: 0.6, brightness: 1.0).opacity(0.7),
-                                    Color.white.opacity(0.2)
-                                ], startPoint: .topLeading, endPoint: .bottomTrailing),
-                                lineWidth: 1.5
-                            )
-                            .background(Circle().fill(Color.white.opacity(0.05)))
-                            .frame(width: p.size, height: p.size)
-                            .opacity(Double(p.opacity))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Star rain / Meteors ───────────────────────────────
-                if s.weatherStars {
-                    ForEach(stars) { p in
-                        MeteorShape()
-                            .stroke(
-                                LinearGradient(colors: [
-                                    Color.white.opacity(Double(p.opacity)),
-                                    Color.white.opacity(0)
-                                ], startPoint: .leading, endPoint: .trailing),
-                                lineWidth: 1.5
-                            )
-                            .frame(width: p.size * 4, height: 2)
-                            .opacity(Double(p.opacity))
-                            .rotationEffect(.degrees(Double(p.rotation)))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Fire sparks ───────────────────────────────────────
-                if s.weatherFire {
-                    ForEach(fire) { p in
-                        Circle()
-                            .fill(Color(hue: Double(p.hue) * 0.08, saturation: 1, brightness: 1))
-                            .frame(width: p.size, height: p.size)
-                            .opacity(Double(p.opacity * p.life))
-                            .blur(radius: p.size * 0.3)
-                            .position(x: p.x, y: p.y)
-                    }
-                }
-
-                // ── Pixels ────────────────────────────────────────────
-                if s.weatherPixels {
-                    ForEach(pixels) { p in
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color(hue: Double(p.hue), saturation: 0.9, brightness: 0.95))
-                            .frame(width: p.size, height: p.size)
-                            .opacity(Double(p.opacity * p.life))
-                            .rotationEffect(.degrees(Double(p.rotation)))
-                            .position(x: p.x, y: p.y)
-                    }
-                }
+                layer1
+                layer2
             }
             .onAppear {
                 W = geo.size.width; H = geo.size.height
@@ -174,6 +68,74 @@ struct WeatherOverlayView: View {
             FogLayer(index:4, speed:20, yFrac:0.92, opacity:0.12, widthFrac:1.5, height:170)
             Color.white.opacity(0.04).ignoresSafeArea()
         }.ignoresSafeArea().allowsHitTesting(false)
+    }
+
+
+    // Split rendering into layers to avoid type-checker timeout
+    @ViewBuilder private var layer1: some View {
+        ZStack {
+            if s.weatherRain {
+                ForEach(rain) { p in
+                    RainDrop().stroke(Color(red:0.6,green:0.75,blue:0.95).opacity(Double(p.opacity)), lineWidth:1.2)
+                        .frame(width:2, height:p.size).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherSnow {
+                ForEach(snow) { p in
+                    Text("❄").font(.system(size:p.size)).opacity(Double(p.opacity))
+                        .rotationEffect(.degrees(Double(p.rotation))).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherLeaves {
+                ForEach(leaves) { p in
+                    LeafShape().fill(Color(hue:Double(p.hue), saturation:0.85, brightness:0.75))
+                        .frame(width:p.size, height:p.size*0.7).opacity(Double(p.opacity))
+                        .rotationEffect(.degrees(Double(p.rotation))).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherSakura {
+                ForEach(sakura) { p in
+                    PetalShape().fill(Color(hue:0.94, saturation:0.35+Double(p.hue)*0.2, brightness:0.97))
+                        .frame(width:p.size, height:p.size*0.6).opacity(Double(p.opacity))
+                        .rotationEffect(.degrees(Double(p.rotation))).position(x:p.x, y:p.y)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var layer2: some View {
+        ZStack {
+            if s.weatherBubbles {
+                ForEach(bubbles) { p in
+                    Circle()
+                        .stroke(LinearGradient(colors:[Color(hue:Double(p.hue),saturation:0.6,brightness:1).opacity(0.7),Color.white.opacity(0.2)],startPoint:.topLeading,endPoint:.bottomTrailing), lineWidth:1.5)
+                        .background(Circle().fill(Color.white.opacity(0.05)))
+                        .frame(width:p.size, height:p.size).opacity(Double(p.opacity)).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherStars {
+                ForEach(stars) { p in
+                    MeteorShape()
+                        .stroke(LinearGradient(colors:[Color.white.opacity(Double(p.opacity)),Color.white.opacity(0)],startPoint:.leading,endPoint:.trailing), lineWidth:1.5)
+                        .frame(width:p.size*4, height:2).opacity(Double(p.opacity))
+                        .rotationEffect(.degrees(Double(p.rotation))).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherFire {
+                ForEach(fire) { p in
+                    Circle().fill(Color(hue:Double(p.hue)*0.08, saturation:1, brightness:1))
+                        .frame(width:p.size, height:p.size).opacity(Double(p.opacity*p.life))
+                        .blur(radius:p.size*0.3).position(x:p.x, y:p.y)
+                }
+            }
+            if s.weatherPixels {
+                ForEach(pixels) { p in
+                    RoundedRectangle(cornerRadius:2).fill(Color(hue:Double(p.hue), saturation:0.9, brightness:0.95))
+                        .frame(width:p.size, height:p.size).opacity(Double(p.opacity*p.life))
+                        .rotationEffect(.degrees(Double(p.rotation))).position(x:p.x, y:p.y)
+                }
+            }
+        }
     }
 
     // ── Spawn all active ─────────────────────────────────────────────
@@ -230,8 +192,8 @@ struct WeatherOverlayView: View {
                  speed: .random(in:0.8...2.5), drift: .random(in:-0.8...0.8),
                  opacity: .random(in:0.4...0.8), size: .random(in:12...40),
                  rotation: 0, rotSpeed: 0,
-                 phase: .random(in:0...6.28),
-                 hue: .random(in:0...1))
+                 hue: .random(in:0...1),
+                 phase: .random(in:0...6.28))
     }
     private func makeStar(_ w: CGFloat, _ h: CGFloat) -> Particle {
         Particle(x: .random(in:0...w), y: .random(in:0...h*0.5),
