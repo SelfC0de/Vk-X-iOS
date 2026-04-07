@@ -453,4 +453,21 @@ final class SettingsStore: ObservableObject {
         h.insert(id, at: 0)
         profileHistory = Array(h.prefix(50))
     }
+    // MARK: - Deleted message cache
+    func markDeleted(_ msgId: Int, peerId: Int) {
+        var arr = UserDefaults.standard.array(forKey: "deleted_msgs_\(peerId)") as? [Int] ?? []
+        guard !arr.contains(msgId) else { return }
+        arr.append(msgId)
+        if arr.count > 500 { arr = Array(arr.suffix(500)) }
+        UserDefaults.standard.set(arr, forKey: "deleted_msgs_\(peerId)")
+    }
+
+    func deletedIds(for peerId: Int) -> Set<Int> {
+        Set(UserDefaults.standard.array(forKey: "deleted_msgs_\(peerId)") as? [Int] ?? [])
+    }
+
+    func isDeleted(_ msgId: Int, peerId: Int) -> Bool {
+        (UserDefaults.standard.array(forKey: "deleted_msgs_\(peerId)") as? [Int] ?? []).contains(msgId)
+    }
+
 }

@@ -287,29 +287,31 @@ final class ID3MetadataReader: ObservableObject {
             let asset = AVURLAsset(url: url)
             do {
                 let meta = try await asset.load(.commonMetadata)
-                var t: String? = nil
-                var a: String? = nil
+                var titleVal: String? = nil
+                var artistVal: String? = nil
                 for item in meta {
                     guard let key = item.commonKey else { continue }
-                    if key == .commonKeyTitle, t == nil {
-                        t = try? await item.load(.stringValue)
+                    if key == .commonKeyTitle, titleVal == nil {
+                        titleVal = try? await item.load(.stringValue)
                     }
-                    if key == .commonKeyArtist, a == nil {
-                        a = try? await item.load(.stringValue)
+                    if key == .commonKeyArtist, artistVal == nil {
+                        artistVal = try? await item.load(.stringValue)
                     }
                 }
-                // Fallback: try filename decomposition "Artist - Title.mp3"
-                if t == nil, a == nil {
+                // Fallback: filename decomposition "Artist - Title.mp3"
+                if titleVal == nil, artistVal == nil {
                     let name = url.deletingPathExtension().lastPathComponent
                     let parts = name.components(separatedBy: " - ")
                     if parts.count >= 2 {
-                        a = parts[0].trimmingCharacters(in: .whitespaces)
-                        t = parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
+                        artistVal = parts[0].trimmingCharacters(in: .whitespaces)
+                        titleVal  = parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
                     }
                 }
+                let finalTitle  = titleVal
+                let finalArtist = artistVal
                 await MainActor.run {
-                    self.title  = t
-                    self.artist = a
+                    self.title  = finalTitle
+                    self.artist = finalArtist
                 }
             } catch {}
         }
