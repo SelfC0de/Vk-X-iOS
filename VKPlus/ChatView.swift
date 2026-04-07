@@ -739,37 +739,56 @@ struct ChatView: View {
 
 
     private func startRecording() {
-        AVAudioApplication.requestRecordPermission { granted in
-            DispatchQueue.main.async {
-                guard granted else {
-                    ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
-                    return
+        // Use AVAudioSession permission check — works on iOS 14+
+        let session = AVAudioSession.sharedInstance()
+        switch session.recordPermission {
+        case .granted:
+            beginRecording()
+        case .denied:
+            ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
+        case .undetermined:
+            session.requestRecordPermission { granted in
+                DispatchQueue.main.async {
+                    if granted { self.beginRecording() }
+                    else { ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning) }
                 }
-                self.beginRecording()
             }
+        @unknown default:
+            beginRecording()
         }
     }
 
     private func beginRecording() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            // Deactivate first to reset any conflicting state
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
+            try session.setCategory(.playAndRecord, mode: .default,
+                                    options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
+
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("vkplus_voice_\(Int(Date().timeIntervalSince1970)).m4a")
+
+            // Use safe settings — AAC 44100 is universally supported
             let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 12000,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
+                AVFormatIDKey:            Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey:          44100.0,
+                AVNumberOfChannelsKey:    1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+                AVEncoderBitRateKey:      64000
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder.record()
+            recorder.prepareToRecord()
+            guard recorder.record() else {
+                ToastManager.shared.show("Не удалось начать запись", icon: "mic.slash.fill", style: .warning)
+                return
+            }
             audioRecorder = recorder
-            recordedURL = url
-            isRecording = true
+            recordedURL   = url
+            isRecording   = true
         } catch {
-            ToastManager.shared.show("Ошибка микрофона", icon: "mic.slash.fill", style: .warning)
+            ToastManager.shared.show("Ошибка микрофона: \(error.localizedDescription)", icon: "mic.slash.fill", style: .warning)
         }
     }
 
