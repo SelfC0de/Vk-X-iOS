@@ -785,6 +785,27 @@ final class VKAPIClient {
 
 
 
+
+    // MARK: - Poll voting
+    func addPollVote(pollId: Int, ownerId: Int, answerIds: [Int]) async throws -> Bool {
+        let ids = answerIds.map { String($0) }.joined(separator: ",")
+        let json = try await rawCall("polls.addVote", params: [
+            "poll_id":    "\(pollId)",
+            "owner_id":   "\(ownerId)",
+            "answer_ids": ids
+        ])
+        return (json["response"] as? Int) == 1
+    }
+
+    func deletePollVote(pollId: Int, ownerId: Int, answerId: Int) async throws -> Bool {
+        let json = try await rawCall("polls.deleteVote", params: [
+            "poll_id":   "\(pollId)",
+            "owner_id":  "\(ownerId)",
+            "answer_id": "\(answerId)"
+        ])
+        return (json["response"] as? Int) == 1
+    }
+
     // MARK: - Last Activity (точное время, не округлённое)
     func getLastActivity(userId: Int) async throws -> String {
         let json = try await rawCall("messages.getLastActivity", params: ["user_id": "\(userId)"])

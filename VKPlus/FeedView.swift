@@ -990,123 +990,268 @@ struct MediaForwardSheet: View {
     }
 }
 
-// MARK: - Poll View
+// MARK: - Poll View (VK-style)
 struct PollView: View {
     let poll:    VKPoll
     let ownerId: Int
-    @ObservedObject private var s = SettingsStore.shared
-    @State private var fullPoll:  VKPoll? = nil
-    @State private var loading = false
 
-    private var displayed: VKPoll { fullPoll ?? poll }
-    private var hasResults: Bool { displayed.answers.contains { $0.votes > 0 } }
-    private var totalVotes: Int { displayed.votes }
+    @State private var currentPoll: VKPoll? = nil   // refreshed after voting / on load
+    @State private var loading      = false
+    @State private var voting       = false
+    @State private var selectedIds: Set<Int> = []   // for multiple-choice staging
+    @State private var voteError    = ""
+
+    private var displayed: VKPoll  { currentPoll ?? poll }
+    private var totalVotes: Int    { displayed.votes }
+    private var hasVoted:   Bool   { !displayed.userVotedIds.isEmpty }
+    private var showBars:   Bool   { hasVoted || displayed.isClosed }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header
+        VStack(alignment: .leading, spacing: 0) {
+
+            // ── Header ─────────────────────────────────────────────────────
             HStack(spacing: 6) {
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(Color.cyberBlue)
-                Text("Опрос")
+                Text(displayed.isClosed ? "Опрос завершён" : "Опрос")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.cyberBlue)
+                    .foregroundStyle(displayed.isClosed ? Color.onSurfaceMut : Color.cyberBlue)
                 if displayed.anonymous == 1 {
                     Text("· анонимный")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.onSurfaceMut)
                 }
+                if displayed.isMultiple {
+                    Text("· множественный")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.onSurfaceMut)
+                }
                 Spacer()
-                Text("\(totalVotes) гол.")
+                Text(votesLabel(totalVotes))
                     .font(.system(size: 11))
                     .foregroundStyle(Color.onSurfaceMut)
             }
+            .padding(.bottom, 8)
 
+            // ── Question ───────────────────────────────────────────────────
             Text(displayed.question)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.onSurface)
+                .padding(.bottom, 12)
 
-            if s.showPollResults && hasResults {
-                // Show results
-                VStack(spacing: 6) {
-                    ForEach(displayed.answers) { answer in
-                        PollAnswerRow(answer: answer, total: totalVotes)
-                    }
-                }
-            } else if s.showPollResults && !loading {
-                // Fetch results
-                Button {
-                    Task { await loadResults() }
-                } label: {
-                    Text(loading ? "Загрузка..." : "Показать результаты")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.cyberBlue)
-                }
-                .buttonStyle(.plain)
-                .task { await loadResults() }
-            } else {
-                // Just show answer options without results
-                VStack(spacing: 5) {
-                    ForEach(displayed.answers) { answer in
-                        HStack(spacing: 8) {
-                            Circle()
-                                .stroke(Color.divider, lineWidth: 1.5)
-                                .frame(width: 16, height: 16)
-                            Text(answer.text)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color.onSurface)
-                        }
+            // ── Answers ────────────────────────────────────────────────────
+            VStack(spacing: 7) {
+                ForEach(displayed.answers) { answer in
+                    if showBars {
+                        PollResultRow(
+                            answer:      answer,
+                            total:       totalVotes,
+                            isVotedFor:  displayed.userVotedIds.contains(answer.id)
+                        )
+                    } else {
+                        PollChoiceRow(
+                            answer:      answer,
+                            isMultiple:  displayed.isMultiple,
+                            isSelected:  selectedIds.contains(answer.id),
+                            onTap: {
+                                guard !voting else { return }
+                                if displayed.isMultiple {
+                                    if selectedIds.contains(answer.id) {
+                                        selectedIds.remove(answer.id)
+                                    } else {
+                                        selectedIds.insert(answer.id)
+                                    }
+                                } else {
+                                    // Single choice — vote immediately
+                                    Task { await castVote(answerIds: [answer.id]) }
+                                }
+                            }
+                        )
                     }
                 }
             }
+
+            // ── Vote button (multiple choice) ──────────────────────────────
+            if !showBars && displayed.isMultiple && !selectedIds.isEmpty {
+                Button {
+                    Task { await castVote(answerIds: Array(selectedIds)) }
+                } label: {
+                    HStack(spacing: 6) {
+                        if voting {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        }
+                        Text(voting ? "Голосуем..." : "Проголосовать")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(Color.cyberBlue)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+                .disabled(voting)
+            }
+
+            // ── Loading spinner for single-choice vote ─────────────────────
+            if voting && !displayed.isMultiple {
+                HStack { Spacer(); ProgressView().tint(.cyberBlue).scaleEffect(0.9); Spacer() }
+                    .padding(.top, 8)
+            }
+
+            // ── Error ──────────────────────────────────────────────────────
+            if !voteError.isEmpty {
+                Text(voteError)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.errorRed)
+                    .padding(.top, 4)
+            }
         }
-        .padding(12)
+        .padding(14)
         .background(Color(red:0.07,green:0.08,blue:0.13))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider, lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.divider.opacity(0.6), lineWidth: 0.5))
+        .task { await refresh() }
     }
 
-    private func loadResults() async {
-        guard fullPoll == nil && !loading else { return }
+    // ── helpers ─────────────────────────────────────────────────────────
+    private func refresh() async {
+        guard currentPoll == nil && !loading else { return }
         loading = true
-        fullPoll = try? await VKAPIClient.shared.getPoll(pollId: poll.id, ownerId: ownerId)
+        currentPoll = try? await VKAPIClient.shared.getPoll(pollId: poll.id, ownerId: ownerId)
         loading = false
+    }
+
+    private func castVote(answerIds: [Int]) async {
+        voting = true; voteError = ""
+        do {
+            let ok = try await VKAPIClient.shared.addPollVote(
+                pollId:    displayed.id,
+                ownerId:   ownerId,
+                answerIds: answerIds
+            )
+            if ok {
+                // Refresh poll to get updated counts
+                currentPoll = try? await VKAPIClient.shared.getPoll(
+                    pollId: displayed.id, ownerId: ownerId)
+                selectedIds = []
+            } else {
+                voteError = "Не удалось проголосовать"
+            }
+        } catch {
+            voteError = "Ошибка: \(error.localizedDescription)"
+        }
+        voting = false
+    }
+
+    private func votesLabel(_ n: Int) -> String {
+        let mod10 = n % 10; let mod100 = n % 100
+        if mod100 >= 11 && mod100 <= 14 { return "\(n) голосов" }
+        switch mod10 {
+        case 1: return "\(n) голос"
+        case 2,3,4: return "\(n) голоса"
+        default: return "\(n) голосов"
+        }
     }
 }
 
-private struct PollAnswerRow: View {
-    let answer: VKPollAnswer
-    let total:  Int
+// ── Result row (after voting / closed) ────────────────────────────────────
+private struct PollResultRow: View {
+    let answer:     VKPollAnswer
+    let total:      Int
+    let isVotedFor: Bool
 
-    var pct: Double { total > 0 ? answer.rate : 0 }
+    private var pct: Double { total > 0 ? answer.rate : 0 }
+    private var accent: Color { isVotedFor ? Color.cyberBlue : Color(red:0.35,green:0.45,blue:0.65) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if isVotedFor {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.cyberBlue)
+                }
                 Text(answer.text)
-                    .font(.system(size: 13))
+                    .font(.system(size: 13, weight: isVotedFor ? .semibold : .regular))
                     .foregroundStyle(Color.onSurface)
+                    .lineLimit(3)
                 Spacer()
                 Text("\(Int(pct.rounded()))%")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.cyberBlue)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(accent)
+                    .monospacedDigit()
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.divider)
-                        .frame(height: 4)
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.cyberBlue)
-                        .frame(width: geo.size.width * CGFloat(pct / 100), height: 4)
+                    Capsule()
+                        .fill(Color.white.opacity(0.07))
+                        .frame(height: 6)
+                    Capsule()
+                        .fill(isVotedFor
+                              ? LinearGradient(colors: [Color.cyberBlue, Color(r:0x63,g:0x66,b:0xF1)],
+                                               startPoint: .leading, endPoint: .trailing)
+                              : LinearGradient(colors: [accent, accent],
+                                               startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(6, geo.size.width * CGFloat(pct / 100)), height: 6)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: pct)
                 }
             }
-            .frame(height: 4)
-            Text("\(answer.votes) гол.")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.onSurfaceMut)
+            .frame(height: 6)
         }
+    }
+}
+
+// ── Choice row (before voting) ─────────────────────────────────────────────
+private struct PollChoiceRow: View {
+    let answer:     VKPollAnswer
+    let isMultiple: Bool
+    let isSelected: Bool
+    let onTap:      () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                ZStack {
+                    if isMultiple {
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(isSelected ? Color.cyberBlue : Color.divider, lineWidth: 1.5)
+                            .frame(width: 18, height: 18)
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.cyberBlue)
+                                .frame(width: 18, height: 18)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    } else {
+                        Circle()
+                            .stroke(isSelected ? Color.cyberBlue : Color.divider, lineWidth: 1.5)
+                            .frame(width: 18, height: 18)
+                        if isSelected {
+                            Circle()
+                                .fill(Color.cyberBlue)
+                                .frame(width: 10, height: 10)
+                        }
+                    }
+                }
+                Text(answer.text)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.onSurface)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .background(isSelected ? Color.cyberBlue.opacity(0.08) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
     }
 }
 

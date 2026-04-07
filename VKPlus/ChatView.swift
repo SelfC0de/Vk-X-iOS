@@ -1480,6 +1480,12 @@ private struct BubbleView: View {
                     .buttonStyle(.plain)
                 }
 
+            case "poll":
+                if let p = a.poll {
+                    PollView(poll: p, ownerId: peerId)
+                        .frame(maxWidth: min(maxW, 280))
+                }
+
             default:
                 EmptyView()
             }

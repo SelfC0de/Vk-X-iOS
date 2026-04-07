@@ -14,18 +14,6 @@ struct AppLockGate<Content: View>: View {
             content
         } else {
             AppLockView(onUnlock: { unlocked = true })
-                .onAppear { tryBiometric() }
-        }
-    }
-
-    private func tryBiometric() {
-        guard s.appLockBiometric else { return }
-        let ctx = LAContext()
-        var err: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err) else { return }
-        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                           localizedReason: "Подтвердите вход в VK+") { ok, _ in
-            if ok { DispatchQueue.main.async { unlocked = true } }
         }
     }
 }
@@ -34,9 +22,10 @@ struct AppLockGate<Content: View>: View {
 struct AppLockView: View {
     let onUnlock: () -> Void
     @ObservedObject private var s = SettingsStore.shared
-    @State private var entered = ""
-    @State private var shake   = false
-    @State private var error   = false
+    @State private var entered    = ""
+    @State private var shake      = false
+    @State private var showError  = false
+    @State private var bioError   = ""   // human-readable biometric error
 
     private let digits = [
         ["1","2","3"],
@@ -45,19 +34,38 @@ struct AppLockView: View {
         ["⌫","0","✓"]
     ]
 
+    // ── biometric helpers ──────────────────────────────────────────────────
+    private var ctx: LAContext { LAContext() }
+
+    private var biometricAvailable: Bool {
+        var err: NSError?
+        return ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err)
+    }
+
+    private var biometricType: LABiometryType { ctx.biometryType }
+
+    private var biometricIcon: String {
+        biometricType == .faceID ? "faceid" : "touchid"
+    }
+    private var biometricLabel: String {
+        biometricType == .faceID ? "Face ID" : "Touch ID"
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     var body: some View {
         ZStack {
             Color(red:0.04,green:0.04,blue:0.09).ignoresSafeArea()
 
-            VStack(spacing: 32) {
+            VStack(spacing: 0) {
                 Spacer()
 
-                // Logo + title
+                // Logo
                 VStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(LinearGradient(colors: [Color.cyberBlue, Color(r:0x63,g:0x66,b:0xF1)],
-                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(LinearGradient(
+                                colors: [Color.cyberBlue, Color(r:0x63,g:0x66,b:0xF1)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 72, height: 72)
                         Text("VK+")
                             .font(.system(size: 26, weight: .black, design: .rounded))
@@ -67,6 +75,8 @@ struct AppLockView: View {
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(Color.onSurface)
                 }
+
+                Spacer().frame(height: 36)
 
                 // PIN dots
                 HStack(spacing: 16) {
@@ -81,12 +91,28 @@ struct AppLockView: View {
                 .offset(x: shake ? -10 : 0)
                 .animation(shake ? .easeInOut(duration: 0.06).repeatCount(5, autoreverses: true) : .default, value: shake)
 
-                if error {
-                    Text("Неверный PIN")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.errorRed)
-                        .transition(.opacity)
+                Spacer().frame(height: 14)
+
+                // Error text
+                ZStack {
+                    if showError {
+                        Text("Неверный PIN")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.errorRed)
+                            .transition(.opacity)
+                    } else if !bioError.isEmpty {
+                        Text(bioError)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.onSurfaceMut)
+                            .multilineTextAlignment(.center)
+                            .transition(.opacity)
+                    }
                 }
+                .frame(height: 20)
+                .animation(.easeInOut(duration: 0.2), value: showError)
+                .animation(.easeInOut(duration: 0.2), value: bioError)
+
+                Spacer().frame(height: 24)
 
                 // Numpad
                 VStack(spacing: 14) {
@@ -99,36 +125,41 @@ struct AppLockView: View {
                     }
                 }
 
-                // Biometric button
-                if s.appLockBiometric {
+                Spacer().frame(height: 24)
+
+                // Biometric button — show if enabled AND available
+                if s.appLockBiometric && biometricAvailable {
                     Button { tryBiometric() } label: {
-                        HStack(spacing: 6) {
+                        VStack(spacing: 6) {
                             Image(systemName: biometricIcon)
-                                .font(.system(size: 18))
+                                .font(.system(size: 32))
+                                .foregroundStyle(Color.cyberBlue)
                             Text(biometricLabel)
-                                .font(.system(size: 14))
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.cyberBlue)
                         }
-                        .foregroundStyle(Color.cyberBlue)
+                        .frame(width: 72, height: 72)
                     }
                     .buttonStyle(.plain)
+                } else {
+                    // Placeholder to keep layout stable
+                    Color.clear.frame(width: 72, height: 72)
                 }
 
                 Spacer()
             }
             .padding(.horizontal, 24)
         }
+        .onAppear {
+            // Auto-trigger biometric on appear
+            if s.appLockBiometric { tryBiometric() }
+        }
     }
 
-    private var biometricIcon: String {
-        LAContext().biometryType == .faceID ? "faceid" : "touchid"
-    }
-    private var biometricLabel: String {
-        LAContext().biometryType == .faceID ? "Face ID" : "Touch ID"
-    }
-
+    // ── actions ────────────────────────────────────────────────────────────
     private func tap(_ key: String) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        withAnimation { error = false }
+        withAnimation { showError = false; bioError = "" }
         switch key {
         case "⌫": if !entered.isEmpty { entered.removeLast() }
         case "✓": verify()
@@ -144,20 +175,52 @@ struct AppLockView: View {
             onUnlock()
         } else {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-            withAnimation { shake = true; error = true }
+            withAnimation { shake = true; showError = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 shake = false; entered = ""
             }
         }
     }
 
-    private func tryBiometric() {
-        let ctx = LAContext()
-        var err: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err) else { return }
-        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                           localizedReason: "Подтвердите вход в VK+") { ok, _ in
-            if ok { DispatchQueue.main.async { onUnlock() } }
+    func tryBiometric() {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+            if let e = error {
+                DispatchQueue.main.async {
+                    switch LAError.Code(rawValue: e.code) {
+                    case .biometryNotEnrolled:
+                        bioError = "Face ID не настроен в настройках телефона"
+                    case .biometryNotAvailable:
+                        bioError = "Face ID недоступен на этом устройстве"
+                    default:
+                        bioError = ""
+                    }
+                }
+            }
+            return
+        }
+        context.evaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics,
+            localizedReason: "Войдите в VK+"
+        ) { success, evalError in
+            DispatchQueue.main.async {
+                if success {
+                    onUnlock()
+                } else if let e = evalError as? LAError {
+                    switch e.code {
+                    case .userFallback:
+                        // User tapped "Enter password" — just show PIN
+                        bioError = ""
+                    case .userCancel, .systemCancel, .appCancel:
+                        bioError = ""
+                    case .biometryLockout:
+                        bioError = "Face ID заблокирован. Введите PIN"
+                    default:
+                        bioError = ""
+                    }
+                }
+            }
         }
     }
 }
@@ -166,7 +229,7 @@ struct AppLockView: View {
 struct PinSetupView: View {
     @ObservedObject private var s = SettingsStore.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var step    = 0   // 0=enter, 1=confirm
+    @State private var step    = 0
     @State private var first   = ""
     @State private var entered = ""
     @State private var error   = ""

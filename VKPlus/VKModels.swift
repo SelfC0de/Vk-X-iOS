@@ -95,18 +95,28 @@ struct VKPoll: Decodable {
     let anonymous: Int?
     let multiple:  Int?
     let closed:    Int?
+    let endDate:   Int?       // unix timestamp when poll ends, 0 = no end
+    let answerIds: [Int]?     // IDs the current user voted for
+    let canVote:   Int?       // 1 = user can vote
 
     enum CodingKeys: String, CodingKey {
         case id, question, votes, answers, anonymous, multiple, closed
-        case ownerId = "owner_id"
+        case ownerId   = "owner_id"
+        case endDate   = "end_date"
+        case answerIds = "answer_ids"
+        case canVote   = "can_vote"
     }
+
+    var isMultiple: Bool { (multiple ?? 0) == 1 }
+    var isClosed:   Bool { (closed   ?? 0) == 1 }
+    var userVotedIds: Set<Int> { Set(answerIds ?? []) }
 }
 
 struct VKPollAnswer: Decodable, Identifiable {
-    let id:   Int
-    let text: String
+    let id:    Int
+    let text:  String
     let votes: Int
-    let rate:  Double  // percentage
+    let rate:  Double  // percentage 0-100
 }
 
 
