@@ -128,7 +128,6 @@ struct VideoCard: View {
     private var playableURL: URL? { directVideoURL ?? embedVideoURL }
 
     private func downloadVideo() async {
-        guard !downloading else { return }
         ToastManager.shared.show("Получаем ссылку...", icon: "arrow.down.circle", style: .info)
 
         // Resolve direct URL
@@ -175,9 +174,9 @@ struct VideoCard: View {
         case .notDetermined:
             let granted = await PHPhotoLibrary.requestAuthorization(for: .addOnly) == .authorized
             if granted { await performSave(url: url) }
-            else { await MainActor.run { downloading = false; ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning) } }
+            else { ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning) }
         default:
-            await MainActor.run { downloading = false; ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning) }
+            ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning)
         }
     }
 
