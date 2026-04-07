@@ -730,20 +730,33 @@ struct ChatView: View {
 
     // MARK: - Download video
     private func downloadVideo(_ vid: VKVideoAttachment) async {
-        // First try direct URL already in model
-        if let directUrl = vid._directUrl ?? vid.player.flatMap({ _ in nil }),
-           let url = URL(string: directUrl) {
-            await saveVideoFromUrl(url)
-            return
+        var urlStr = vid._directUrl
+        if urlStr == nil {
+            if let full = try? await VKAPIClient.shared.getVideo(ownerId: vid.ownerId, videoId: vid.id) {
+                urlStr = full._directUrl
+            }
         }
-        // Fetch via video.get to get direct file URLs
-        guard let full = try? await VKAPIClient.shared.getVideo(ownerId: vid.ownerId, videoId: vid.id),
-              let urlStr = full._directUrl,
-              let url = URL(string: urlStr) else {
+        guard let str = urlStr, let url = URL(string: str) else {
             ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
             return
         }
-        await saveVideoFromUrl(url)
+        ToastManager.shared.show("Загрузка видео...", icon: "arrow.down.circle", style: .info)
+        do {
+            let (tmpUrl, _) = try await URLSession.shared.download(from: url)
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("video_\(Int(Date().timeIntervalSince1970)).mp4")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tmpUrl, to: dest)
+            await MainActor.run {
+                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
+        } catch {
+            ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
+        }
     }
 
 
