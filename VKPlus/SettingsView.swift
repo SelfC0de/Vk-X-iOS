@@ -314,6 +314,45 @@ private struct DeviceTab: View {
                                val: $s.bypassCopy)
             }
 
+            // Anti-Link Preview
+            SettingsSectionCard(title: "Anti-Link Preview",
+                                subtitle: "Блокировка утечки IP через превью ссылок",
+                                icon: "link.badge.plus", iconColor: Color(r:0xE9,g:0x1E,b:0x63)) {
+                SettingsToggle("Anti-Link Preview", icon: "link.badge.plus",
+                               subtitle: "Блокировать getLinkStats — VK не узнает твой IP при отправке ссылок",
+                               val: $s.antiLinkPreview)
+            }
+
+            // Ghost Forward
+            SettingsSectionCard(title: "Ghost Forward",
+                                subtitle: "Очистка метаданных при пересылке",
+                                icon: "arrowshape.turn.up.right.fill", iconColor: Color(r:0x9C,g:0x27,b:0xB0)) {
+                SettingsToggle("Ghost Forward", icon: "arrowshape.turn.up.right.fill",
+                               subtitle: "Удалять forward_messages и reply_to при пересылке сообщений",
+                               val: $s.ghostForward)
+            }
+
+            // Spoof Device Model
+            SettingsSectionCard(title: "Spoof Device Model",
+                                subtitle: "Подмена модели iPhone в запросах",
+                                icon: "cpu.fill", iconColor: Color(r:0x00,g:0xBC,b:0xD4)) {
+                VStack(spacing: 0) {
+                    SettingsToggle("Spoof Device Model", icon: "cpu.fill",
+                                   subtitle: "Случайный iPhone из пула при каждом запуске",
+                                   val: $s.spoofDeviceModel)
+                    if s.spoofDeviceModel {
+                        Divider().background(Color.divider).padding(.leading, 50)
+                        HStack(spacing: 10) {
+                            Image(systemName: "info.circle").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
+                            Text("iPhone 13–16 Pro/Max · iOS 17–18 · новый при каждом запуске")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.onSurfaceMut)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                    }
+                }
+            }
+
             // Current spoof preview (if active)
             if s.hardwareSpoof {
                 spoofPreview

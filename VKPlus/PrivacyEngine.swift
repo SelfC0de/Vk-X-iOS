@@ -34,6 +34,36 @@ private func getFakeCarrier() -> String {
 private let WIFI_FIELDS  = ["wifi_list", "wifi_stealth", "bssid_list", "wifi_scan", "nearby_wifi"]
 private let ADID_FIELDS  = ["ads_device_id", "advertising_id", "ad_id", "idfa", "device_id"]
 private let CARRIER_FIELDS = ["carrier", "operator", "network_operator", "sim_operator"]
+// iPhone model pool for Spoof Device Model
+private let IPHONE_MODELS: [(model: String, name: String)] = [
+    ("iPhone14,2", "iPhone 13 Pro"),
+    ("iPhone14,3", "iPhone 13 Pro Max"),
+    ("iPhone15,2", "iPhone 14 Pro"),
+    ("iPhone15,3", "iPhone 14 Pro Max"),
+    ("iPhone16,1", "iPhone 15 Pro"),
+    ("iPhone16,2", "iPhone 15 Pro Max"),
+    ("iPhone17,1", "iPhone 16 Pro"),
+    ("iPhone17,2", "iPhone 16 Pro Max"),
+]
+private let IOS_VERSIONS = ["17.0", "17.1", "17.2", "17.3", "17.4", "17.5", "18.0", "18.1", "18.2", "18.3"]
+
+private var _spoofedModel: String = ""
+private var _spoofedIos: String   = ""
+private func getSpoofedModel() -> String {
+    if _spoofedModel.isEmpty {
+        _spoofedModel = IPHONE_MODELS.randomElement()?.model ?? "iPhone16,1"
+        _spoofedIos   = IOS_VERSIONS.randomElement() ?? "17.5"
+    }
+    return _spoofedModel
+}
+private func getSpoofedIos() -> String {
+    _ = getSpoofedModel(); return _spoofedIos
+}
+
+
+
+private let MODEL_FIELDS = ["device", "device_model", "device_id", "model", "hardware_model"]
+private let IOS_FIELDS   = ["os_version", "system_version", "ios_version", "os"]
 
 final class PrivacyURLProtocol: URLProtocol {
 
@@ -88,6 +118,19 @@ final class PrivacyURLProtocol: URLProtocol {
             fakeOK("{\"response\":1}"); return
         }
 
+
+        // Anti-Link Preview — block getLinkStats (would leak user IP via VK preview server)
+        if s.antiLinkPreview && (method == "messages.getLinkStats" || method == "links.getStats") {
+            fakeOK("{\"response\":{\"stats\":[]}}"); return
+        }
+        // Ghost Forward — strip forward metadata from sendMessage
+        if s.ghostForward && method == "messages.send" {
+            newRequest = stripForwardMeta(newRequest)
+        }
+        // Spoof Device Model — replace device/os fields
+        if s.spoofDeviceModel {
+            newRequest = spoofDevice(newRequest)
+        }
         // Build modified request
         var newRequest = newRequest2
         newRequest.url = buildModifiedURL(original: newRequest2.url ?? request.url!, method: method, antiBan: s.antiBan)
@@ -166,6 +209,52 @@ final class PrivacyURLProtocol: URLProtocol {
             return pair
         }
         return pairs.joined(separator: "&").data(using: .utf8) ?? data
+    }
+
+
+    // MARK: - Ghost Forward: strip forward_messages / reply_id metadata
+    private func stripForwardMeta(_ req: URLRequest) -> URLRequest {
+        var r = req
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.filter {
+                !["forward_messages", "forward", "reply_to"].contains($0.name)
+            }
+            r.url = comps.url
+        }
+        if let body = r.httpBody, let str = String(data: body, encoding: .utf8) {
+            let cleaned = str.components(separatedBy: "&").filter {
+                let key = $0.components(separatedBy: "=").first ?? ""
+                return !["forward_messages", "forward", "reply_to"].contains(key)
+            }.joined(separator: "&")
+            r.httpBody = cleaned.data(using: .utf8)
+        }
+        return r
+    }
+
+    // MARK: - Spoof Device Model: replace device/os fields
+    private func spoofDevice(_ req: URLRequest) -> URLRequest {
+        var r = req
+        let model = getSpoofedModel()
+        let ios   = getSpoofedIos()
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.map { item in
+                if MODEL_FIELDS.contains(item.name) { return URLQueryItem(name: item.name, value: model) }
+                if IOS_FIELDS.contains(item.name)   { return URLQueryItem(name: item.name, value: ios)   }
+                return item
+            }
+            r.url = comps.url
+        }
+        if let body = r.httpBody, let str = String(data: body, encoding: .utf8) {
+            let pairs = str.components(separatedBy: "&").map { pair -> String in
+                let kv  = pair.components(separatedBy: "=")
+                let key = kv.first ?? ""
+                if MODEL_FIELDS.contains(key) { return "\(key)=\(model.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? model)" }
+                if IOS_FIELDS.contains(key)   { return "\(key)=\(ios)" }
+                return pair
+            }
+            r.httpBody = pairs.joined(separator: "&").data(using: .utf8)
+        }
+        return r
     }
 
     private func buildModifiedURL(original: URL, method: String, antiBan: Bool) -> URL {

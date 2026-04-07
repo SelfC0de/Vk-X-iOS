@@ -146,7 +146,10 @@ final class SettingsStore: ObservableObject {
     @Published var blurScreen:      Bool { didSet { ud.set(blurScreen,      forKey: "blur_screen")      } }
     @Published var spoofAdId:        Bool { didSet { ud.set(spoofAdId,        forKey: "spoof_ad_id")      } }
     @Published var blockWifi:        Bool { didSet { ud.set(blockWifi,        forKey: "block_wifi")       } }
-    @Published var spoofCarrier:     Bool { didSet { ud.set(spoofCarrier,     forKey: "spoof_carrier")    } }
+    @Published var spoofCarrier:       Bool { didSet { ud.set(spoofCarrier,       forKey: "spoof_carrier")      } }
+    @Published var antiLinkPreview:    Bool { didSet { ud.set(antiLinkPreview,    forKey: "anti_link_preview") } }
+    @Published var ghostForward:       Bool { didSet { ud.set(ghostForward,       forKey: "ghost_forward")     } }
+    @Published var spoofDeviceModel:   Bool { didSet { ud.set(spoofDeviceModel,   forKey: "spoof_device_model") } }
 
     // Profile history (stored as JSON array of ids)
     @Published var profileHistory:  [Int] { didSet {
@@ -310,7 +313,10 @@ final class SettingsStore: ObservableObject {
         blurScreen       = ud.bool(forKey: "blur_screen")
         spoofAdId        = ud.object(forKey: "spoof_ad_id")   == nil ? true : ud.bool(forKey: "spoof_ad_id")
         blockWifi        = ud.object(forKey: "block_wifi")    == nil ? true : ud.bool(forKey: "block_wifi")
-        spoofCarrier     = ud.bool(forKey: "spoof_carrier")
+        spoofCarrier       = ud.bool(forKey: "spoof_carrier")
+        antiLinkPreview    = ud.bool(forKey: "anti_link_preview")
+        ghostForward       = ud.bool(forKey: "ghost_forward")
+        spoofDeviceModel   = ud.bool(forKey: "spoof_device_model")
         if let d = ud.data(forKey: "profile_history"),
            let arr = try? JSONDecoder().decode([Int].self, from: d) {
             profileHistory = arr
