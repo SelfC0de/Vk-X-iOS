@@ -413,31 +413,70 @@ final class VKAPIClient {
 
     // MARK: - Upload doc (video/audio/file) to messages
     func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
-        // 1. Get upload URL
-        // audio/mpeg, audio/m4a etc → use "doc" so VK treats it as a file, not voice
-        // "audio_message" is only for actual voice recordings (uploaded via uploadVoiceMessage)
-        let type = mimeType.hasPrefix("video") ? "video" : "doc"
-        let urlJson = try await rawCall("docs.getMessagesUploadServer", params: ["peer_id": "\(peerId)", "type": type])
-        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
-            throw VKError.api(0, "No upload URL")
+        // 1. Get upload URL — always "doc" for audio files (not "audio_message")
+        let uploadType = mimeType.hasPrefix("video") ? "video" : "doc"
+        let urlJson = try await rawCall("docs.getMessagesUploadServer",
+                                        params: ["peer_id": "\(peerId)", "type": uploadType])
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String,
+              !uploadUrl.isEmpty else {
+            let msg = (urlJson["error"] as? [String: Any])?["error_msg"] as? String ?? "No upload URL"
+            throw VKError.api(0, msg)
         }
-        // 2. Upload
-        let uploaded = try await uploadMultipart(url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
-        guard let file = uploaded["file"] else { throw VKError.api(0, "Upload failed") }
-        // 3. Save
-        let saveJson = try await rawCall("docs.save", params: ["file": file, "title": filename])
-        // Response can be {type: "doc"/"audio_message", doc/audio_message: {...}}
-        guard let response = saveJson["response"] as? [String: Any] else { throw VKError.api(0, "Save failed") }
+
+        // 2. Upload multipart
+        let fileToken = try await uploadMultipartRaw(
+            url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
+
+        // 3. Save — title without extension for cleaner display
+        let titleNoExt = (filename as NSString).deletingPathExtension
+        let saveJson   = try await rawCall("docs.save", params: ["file": fileToken, "title": titleNoExt])
+
+        // docs.save response: {"response": {"type": "doc", "doc": {...}}}
+        //                  or {"response": [{"type": "doc", "doc": {...}}]}  (legacy)
+        let responseVal = saveJson["response"]
+        let responseDict: [String: Any]?
+        if let dict = responseVal as? [String: Any] {
+            responseDict = dict
+        } else if let arr = responseVal as? [[String: Any]] {
+            responseDict = arr.first
+        } else {
+            responseDict = nil
+        }
+        guard let response = responseDict else {
+            let msg = (saveJson["error"] as? [String: Any])?["error_msg"] as? String ?? "Save failed"
+            throw VKError.api(0, msg)
+        }
         let docType = response["type"] as? String ?? "doc"
-        if let obj = response[docType] as? [String: Any],
-           let docId = obj["id"] as? Int,
-           let ownerId = obj["owner_id"] as? Int {
+        if let obj      = response[docType] as? [String: Any],
+           let docId    = obj["id"]       as? Int,
+           let ownerId  = obj["owner_id"] as? Int {
             return "\(docType)\(ownerId)_\(docId)"
         }
-        throw VKError.api(0, "Save parse failed")
+        throw VKError.api(0, "Save parse failed: \(response)")
     }
 
-    // MARK: - Multipart uploader
+    // MARK: - Multipart uploader — returns "file" token string from VK upload server
+    private func uploadMultipartRaw(url: String, data: Data, name: String, filename: String, mimeType: String) async throws -> String {
+        guard let uploadUrl = URL(string: url) else { throw VKError.api(0, "Bad URL") }
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        var req = URLRequest(url: uploadUrl)
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        let (respData, _) = try await URLSession.shared.data(for: req)
+        let json = try JSONSerialization.jsonObject(with: respData) as? [String: Any] ?? [:]
+        // VK upload server returns {"file": "<token>"} or {"file_id": ...}
+        if let file = json["file"] as? String, !file.isEmpty { return file }
+        throw VKError.api(0, "Upload server error: \(json)")
+    }
+
+    // Legacy wrapper kept for voice message uploader
     private func uploadMultipart(url: String, data: Data, name: String, filename: String, mimeType: String) async throws -> [String: String] {
         guard let uploadUrl = URL(string: url) else { throw VKError.api(0, "Bad URL") }
         let boundary = "Boundary-\(UUID().uuidString)"
@@ -454,7 +493,7 @@ final class VKAPIClient {
         let (respData, _) = try await URLSession.shared.data(for: req)
         let json = try JSONSerialization.jsonObject(with: respData) as? [String: Any] ?? [:]
         var result: [String: String] = [:]
-        for (k, v) in json { result[k] = "\(v)" }
+        for (k, v) in json { if let s = v as? String { result[k] = s } else { result[k] = "\(v)" } }
         return result
     }
 

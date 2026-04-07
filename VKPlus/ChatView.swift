@@ -1414,27 +1414,57 @@ private struct BubbleView: View {
 
             case "doc":
                 if let doc = a.doc {
-                    let docUrl = doc.url.flatMap(URL.init)
-                    Button {
-                        if let u = docUrl { UIApplication.shared.open(u) }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: docIcon(doc.ext)).foregroundStyle(Color.cyberBlue).font(.system(size: 16))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(doc.title).font(.system(size: 13)).foregroundStyle(fg).lineLimit(1)
-                                if let ext = doc.ext {
-                                    Text(ext.uppercased()).font(.system(size: 10)).foregroundStyle(Color.cyberBlue.opacity(0.8))
+                    let isAudio = ["mp3","ogg","aac","flac","wav","m4a"].contains(doc.ext?.lowercased() ?? "")
+                    if isAudio, let urlStr = doc.url {
+                        // Parse "Artist - Title" from doc title
+                        let parts  = doc.title.components(separatedBy: " - ")
+                        let artist = parts.count >= 2 ? parts[0].trimmingCharacters(in: .whitespaces) : nil
+                        let title  = parts.count >= 2
+                            ? parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
+                            : doc.title
+                        HStack(spacing: 6) {
+                            AudioPlayerView(
+                                url:      urlStr,
+                                duration: 0,
+                                isVoice:  false,
+                                artist:   artist,
+                                title:    title
+                            )
+                            .frame(maxWidth: min(maxW - 36, 240))
+                            .background(bg)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .id(urlStr)
+                            CircularDownloadButton(urlStr: urlStr, size: 30, iconColor: Color.cyberBlue) {
+                                Task {
+                                    let name = artist.map { "\($0) - \(title)" } ?? title
+                                    await DownloadManager.shared.downloadAudio(from: urlStr, filename: name, isVoice: false)
                                 }
                             }
-                            Spacer()
-                            Image(systemName: "arrow.down.circle").foregroundStyle(Color.cyberBlue.opacity(0.7)).font(.system(size: 14))
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 8)
-                        .frame(maxWidth: min(maxW, 240))
-                        .background(bg)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        // Non-audio doc — standard file bubble
+                        let docUrl = doc.url.flatMap(URL.init)
+                        Button {
+                            if let u = docUrl { UIApplication.shared.open(u) }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: docIcon(doc.ext)).foregroundStyle(Color.cyberBlue).font(.system(size: 16))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(doc.title).font(.system(size: 13)).foregroundStyle(fg).lineLimit(1)
+                                    if let ext = doc.ext {
+                                        Text(ext.uppercased()).font(.system(size: 10)).foregroundStyle(Color.cyberBlue.opacity(0.8))
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.down.circle").foregroundStyle(Color.cyberBlue.opacity(0.7)).font(.system(size: 14))
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .frame(maxWidth: min(maxW, 240))
+                            .background(bg)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
 
             case "poll":
