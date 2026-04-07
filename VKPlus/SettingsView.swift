@@ -883,6 +883,7 @@ struct NotifyStylePicker: View {
 
 // MARK: - Interface Tab
 struct InterfaceTab: View {
+    @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
             SettingsSectionCard(title: "Меню навигации",
@@ -890,6 +891,44 @@ struct InterfaceTab: View {
                                 icon: "square.3.layers.3d",
                                 iconColor: Color(r:0x9C,g:0x27,b:0xB0)) {
                 TabBarStylePicker()
+            }
+            SettingsSectionCard(title: "Аватар",
+                                subtitle: "Форма и эффекты аватара",
+                                icon: "person.crop.circle.fill",
+                                iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
+                AvatarShapeCard()
+            }
+            SettingsSectionCard(title: "Часы",
+                                subtitle: s.showClock ? (s.clockSeconds ? "С секундами" : "Без секунд") : "Выключены",
+                                icon: "clock.fill",
+                                iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
+                clockCardContent
+            }
+            SettingsSectionCard(title: "Status Changer",
+                                subtitle: "Изменение статуса ВКонтакте",
+                                icon: "text.bubble.fill",
+                                iconColor: Color(r:0x34,g:0xC7,b:0x59)) {
+                StatusChangerCard()
+            }
+        }
+    }
+
+    @ViewBuilder private var clockCardContent: some View {
+        VStack(spacing: 0) {
+            SettingsToggle("Показывать часы", icon: "clock",
+                           subtitle: "Отображать время в шапке всех вкладок",
+                           val: $s.showClock)
+            if s.showClock {
+                Divider().background(Color.divider).padding(.leading, 50)
+                ClockStylePicker(selected: $s.clockStyle, ampm: s.clockAmPm, sec: s.clockSeconds, colorHex: s.clockColorHex)
+                Divider().background(Color.divider).padding(.leading, 14)
+                SettingsToggle("AM/PM формат", icon: "clock.badge",
+                               subtitle: "12-часовой формат вместо 24-часового",
+                               val: $s.clockAmPm)
+                Divider().background(Color.divider).padding(.leading, 50)
+                SettingsToggle("Секунды", icon: "timer",
+                               subtitle: "Показывать секунды",
+                               val: $s.clockSeconds)
             }
         }
     }

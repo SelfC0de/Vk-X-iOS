@@ -32,7 +32,6 @@ struct VisualTab: View {
         VStack(spacing: 14) {
             petCard
             weatherCard
-            clockCard
             liquidGlassCard
             themeCard
             bubbleCard
@@ -47,14 +46,6 @@ struct VisualTab: View {
     private var petSubtitle: String { s.showPet ? (PetSpecies(rawValue: s.petType)?.label ?? "Кот") : "Выключен" }
 
     @ViewBuilder private var petCard: some View {
-            // ── Аватар ──────────────────────────────────────────────────
-            SettingsSectionCard(title: "Аватар",
-                                subtitle: "Форма и эффекты аватара",
-                                icon: "person.crop.circle.fill",
-                                iconColor: Color(r:0x8B,g:0x5C,b:0xF6)) {
-                AvatarShapeCard()
-            }
-
         SettingsSectionCard(title: "Питомец",
                                 subtitle: petSubtitle,
                                 icon: "pawprint.fill",
@@ -132,75 +123,7 @@ struct VisualTab: View {
             }
     }
 
-    // MARK: - Clock card
-    @ViewBuilder private var clockCard: some View {
-        SettingsSectionCard(title: "Часы",
-                                subtitle: s.showClock ? (s.clockSeconds ? "С секундами" : "Без секунд") : "Выключены",
-                                icon: "clock.fill",
-                                iconColor: Color(r:0xFF,g:0xAB,b:0x40)) {
-                VStack(spacing: 0) {
-                    // Main toggle
-                    SettingsToggle("Показывать часы", icon: "clock",
-                                   subtitle: "Отображать время в шапке всех вкладок",
-                                   val: $s.showClock)
 
-                    if s.showClock {
-                        Divider().background(Color.divider).padding(.leading, 50)
-
-                        // Style picker
-                        ClockStylePicker(selected: $s.clockStyle, ampm: s.clockAmPm, sec: s.clockSeconds, colorHex: s.clockColorHex)
-
-                        Divider().background(Color.divider).padding(.leading, 14)
-
-                        // AM/PM toggle
-                        SettingsToggle("Формат AM/PM", icon: "clock.badge",
-                                       subtitle: s.clockAmPm ? "12-часовой формат" : "24-часовой формат",
-                                       val: $s.clockAmPm)
-
-                        Divider().background(Color.divider).padding(.leading, 50)
-
-                        // Seconds toggle
-                        SettingsToggle("Отображать секунды", icon: "stopwatch",
-                                       subtitle: s.clockSeconds ? "Формат чч:мм:сс" : "Формат чч:мм",
-                                       val: $s.clockSeconds)
-
-                        Divider().background(Color.divider).padding(.leading, 50)
-
-                        // Color picker — same style as bubble colors
-                        let clockHex = s.clockColorHex == "auto" ? "Авто" : s.clockColorHex
-                        Button { showClockColorPicker = true } label: {
-                            HStack(spacing: 12) {
-                                ZStack {
-                                    if s.clockColorHex == "auto" {
-                                        Circle()
-                                            .fill(AngularGradient(colors: [.red,.orange,.yellow,.green,.blue,.purple,.red], center: .center))
-                                            .frame(width: 32, height: 32)
-                                    } else {
-                                        Circle()
-                                            .fill(Color(hex: s.clockColorHex))
-                                            .frame(width: 32, height: 32)
-                                    }
-                                    Circle().stroke(Color.white.opacity(0.15), lineWidth: 1)
-                                        .frame(width: 32, height: 32)
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Цвет часов").font(.system(size: 14)).foregroundStyle(Color.onSurface)
-                                    Text(clockHex).font(.system(size: 11, design: .monospaced)).foregroundStyle(Color.onSurfaceMut)
-                                }
-                                Spacer()
-                                Image(systemName: "eyedropper").foregroundStyle(Color.cyberBlue).font(.system(size: 16))
-                            }
-                            .padding(.horizontal, 14).padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                        .sheet(isPresented: $showClockColorPicker) {
-                            ClockColorPickerSheet(hex: $s.clockColorHex)
-                                .onDisappear { ToastManager.shared.show("Цвет применён", icon: "checkmark.circle.fill", style: .success) }
-                        }
-                    }
-                }
-            }
-    }
 
     // MARK: - Liquid Glass card
     @ViewBuilder private var liquidGlassCard: some View {
@@ -223,14 +146,6 @@ struct VisualTab: View {
 
     // MARK: - Theme card
     @ViewBuilder private var themeCard: some View {
-            // ── Status Changer ──────────────────────────────────────
-            SettingsSectionCard(title: "Status Changer",
-                                subtitle: "Изменение статуса ВКонтакте",
-                                icon: "text.bubble.fill",
-                                iconColor: Color(r:0x34,g:0xC7,b:0x59)) {
-                StatusChangerCard()
-            }
-
         SettingsSectionCard(title: "Тема",
                                 subtitle: "Цветовая схема приложения",
                                 icon: "circle.lefthalf.filled",
