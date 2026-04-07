@@ -161,8 +161,19 @@ private struct DialogRow: View {
                 } else {
                     AvatarView(url: dialog.avatar, size: 48)
                     if dialog.isOnline {
-                        Circle().fill(Color.cyberAccent).frame(width: 12, height: 12)
-                            .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+                        if settings.showPlatformIcon, let plat = dialog.platform, plat > 0 {
+                            let ls = VKLastSeen(time: nil, platform: plat)
+                            Image(systemName: ls.platformIcon)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 16, height: 16)
+                                .background(Color.cyberAccent)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.surface, lineWidth: 1.5))
+                        } else {
+                            Circle().fill(Color.cyberAccent).frame(width: 12, height: 12)
+                                .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+                        }
                     }
                 }
             }

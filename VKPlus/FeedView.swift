@@ -1050,3 +1050,123 @@ struct MediaForwardSheet: View {
         }
     }
 }
+
+// MARK: - Poll View
+struct PollView: View {
+    let poll:    VKPoll
+    let ownerId: Int
+    @ObservedObject private var s = SettingsStore.shared
+    @State private var fullPoll:  VKPoll? = nil
+    @State private var loading = false
+
+    private var displayed: VKPoll { fullPoll ?? poll }
+    private var hasResults: Bool { displayed.answers.contains { $0.votes > 0 } }
+    private var totalVotes: Int { displayed.votes }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header
+            HStack(spacing: 6) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.cyberBlue)
+                Text("Опрос")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.cyberBlue)
+                if displayed.anonymous == 1 {
+                    Text("· анонимный")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                Text("\(totalVotes) гол.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.onSurfaceMut)
+            }
+
+            Text(displayed.question)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.onSurface)
+
+            if s.showPollResults && hasResults {
+                // Show results
+                VStack(spacing: 6) {
+                    ForEach(displayed.answers) { answer in
+                        PollAnswerRow(answer: answer, total: totalVotes)
+                    }
+                }
+            } else if s.showPollResults && !loading {
+                // Fetch results
+                Button {
+                    Task { await loadResults() }
+                } label: {
+                    Text(loading ? "Загрузка..." : "Показать результаты")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.cyberBlue)
+                }
+                .buttonStyle(.plain)
+                .task { await loadResults() }
+            } else {
+                // Just show answer options without results
+                VStack(spacing: 5) {
+                    ForEach(displayed.answers) { answer in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .stroke(Color.divider, lineWidth: 1.5)
+                                .frame(width: 16, height: 16)
+                            Text(answer.text)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.onSurface)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(red:0.07,green:0.08,blue:0.13))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider, lineWidth: 0.5))
+    }
+
+    private func loadResults() async {
+        guard fullPoll == nil && !loading else { return }
+        loading = true
+        fullPoll = try? await VKAPIClient.shared.getPoll(pollId: poll.id, ownerId: ownerId)
+        loading = false
+    }
+}
+
+private struct PollAnswerRow: View {
+    let answer: VKPollAnswer
+    let total:  Int
+
+    var pct: Double { total > 0 ? answer.rate : 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(answer.text)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.onSurface)
+                Spacer()
+                Text("\(Int(pct.rounded()))%")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.cyberBlue)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.divider)
+                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.cyberBlue)
+                        .frame(width: geo.size.width * CGFloat(pct / 100), height: 4)
+                }
+            }
+            .frame(height: 4)
+            Text("\(answer.votes) гол.")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.onSurfaceMut)
+        }
+    }
+}

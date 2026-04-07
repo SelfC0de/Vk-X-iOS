@@ -73,7 +73,8 @@ struct ChatView: View {
     @State private var isUploading   = false
     @State private var editingMsg: VKMessage? = nil
     @State private var replyMsg:   VKMessage? = nil
-    @State private var peerOnline  = false
+    @State private var peerOnline   = false
+    @State private var peerPlatform: Int? = nil
     @State private var peerTyping  = false
     @State private var typingTimer: Timer? = nil
     @State private var lastTypingSent: Date = .distantPast
@@ -189,9 +190,22 @@ struct ChatView: View {
                         if !store.hideSender {
                             if peerTyping { TypingStatusView() }
                             else {
-                                Text(peerOnline ? "в сети" : "не в сети")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                                HStack(spacing: 4) {
+                                    if peerOnline && store.showPlatformIcon,
+                                       let plat = peerPlatform, plat > 0 {
+                                        let ls = VKLastSeen(time: nil, platform: plat)
+                                        Image(systemName: ls.platformIcon)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Color.cyberAccent)
+                                        Text("в сети · \(ls.platformName)")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Color.cyberAccent)
+                                    } else {
+                                        Text(peerOnline ? "в сети" : "не в сети")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                                    }
+                                }
                             }
                         }
                     }
@@ -527,7 +541,10 @@ struct ChatView: View {
             }
         }
         messages = fetched
-        if peerId > 0, let user = try? await VKAPIClient.shared.getUserById("\(peerId)") { peerOnline = user.isOnline }
+        if peerId > 0, let user = try? await VKAPIClient.shared.getUserById("\(peerId)") {
+            peerOnline = user.isOnline
+            peerPlatform = user.lastSeen?.platform
+        }
         let ids = Array(Set(messages.map { $0.fromId }.filter { $0 != myId && $0 > 0 }))
         if !ids.isEmpty, let users = try? await VKAPIClient.shared.getUsers(ids: ids.map(String.init).joined(separator: ",")) {
             for u in users { avatarMap[u.id] = u.photo100 }

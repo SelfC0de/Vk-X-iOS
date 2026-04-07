@@ -154,6 +154,8 @@ final class SettingsStore: ObservableObject {
     @Published var batteryStrip:       Bool { didSet { ud.set(batteryStrip,       forKey: "battery_strip")      } }
     @Published var networkTypeSpoof:   Bool { didSet { ud.set(networkTypeSpoof,   forKey: "network_type_spoof") } }
     @Published var canvasGuard:        Bool { didSet { ud.set(canvasGuard,        forKey: "canvas_guard")       } }
+    @Published var showPollResults:    Bool { didSet { ud.set(showPollResults,    forKey: "show_poll_results")  } }
+    @Published var showPlatformIcon:   Bool { didSet { ud.set(showPlatformIcon,   forKey: "show_platform_icon") } }
 
     // Profile history (stored as JSON array of ids)
     @Published var profileHistory:  [Int] { didSet {
@@ -325,6 +327,8 @@ final class SettingsStore: ObservableObject {
         batteryStrip       = ud.bool(forKey: "battery_strip")
         networkTypeSpoof   = ud.bool(forKey: "network_type_spoof")
         canvasGuard        = ud.bool(forKey: "canvas_guard")
+        showPollResults    = ud.object(forKey: "show_poll_results")  == nil ? true : ud.bool(forKey: "show_poll_results")
+        showPlatformIcon   = ud.object(forKey: "show_platform_icon") == nil ? true : ud.bool(forKey: "show_platform_icon")
         if let d = ud.data(forKey: "profile_history"),
            let arr = try? JSONDecoder().decode([Int].self, from: d) {
             profileHistory = arr

@@ -16,6 +16,7 @@ struct VKUser: Decodable, Identifiable {
     let firstName: String; let lastName: String
     let photo100: String?; let photo200: String?
     let online: Int?; let status: String?
+    let lastSeen: VKLastSeen?
     let verified: Int?; let deactivated: String?
     let hasMobile: Int?
     let verificationInfo: VKVerificationInfo?
@@ -23,6 +24,7 @@ struct VKUser: Decodable, Identifiable {
     let bdate: String?
     enum CodingKeys: String, CodingKey {
         case id, status, verified, deactivated, online, city, bdate
+        case lastSeen = "last_seen"
         case hasMobile = "has_mobile"
         case verificationInfo = "verification_info"
         case firstName = "first_name"; case lastName = "last_name"
@@ -36,6 +38,7 @@ struct VKUser: Decodable, Identifiable {
 }
 
 struct VKCity: Decodable { let id: Int; let title: String }
+struct VKLastSeen: Decodable { let time: Int?; let platform: Int? }
 
 struct VKMessage: Decodable, Identifiable {
     let id: Int; let fromId: Int; let text: String; let date: Int
@@ -76,11 +79,37 @@ struct VKAttachment: Decodable {
     let audioMessage: VKAudioMessage?
     let video: VKVideoAttachment?
     let audio: VKAudioAttachment?
+    let poll:  VKPoll?
     enum CodingKeys: String, CodingKey {
-        case type, photo, doc, link, video, audio
+        case type, photo, doc, link, video, audio, poll
         case audioMessage = "audio_message"
     }
 }
+// MARK: - Poll
+struct VKPoll: Decodable {
+    let id:        Int
+    let ownerId:   Int
+    let question:  String
+    let votes:     Int
+    let answers:   [VKPollAnswer]
+    let anonymous: Int?
+    let multiple:  Int?
+    let closed:    Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id, question, votes, answers, anonymous, multiple, closed
+        case ownerId = "owner_id"
+    }
+}
+
+struct VKPollAnswer: Decodable, Identifiable {
+    let id:   Int
+    let text: String
+    let votes: Int
+    let rate:  Double  // percentage
+}
+
+
 
 struct VKVideoAttachment: Decodable {
     let id: Int; let ownerId: Int; let title: String?
@@ -242,6 +271,7 @@ struct DialogItem: Identifiable {
     let id: Int; let name: String; let avatar: String?
     let lastMessage: String; let isOnline: Bool; let unreadCount: Int
     let peerId: Int
+    var platform: Int? = nil  // last_seen.platform for display
 }
 
 struct VKVerificationInfo: Decodable {
@@ -295,3 +325,31 @@ let ALL_CURRENCIES = ["USD","EUR","RUB","GBP","CNY","JPY","AED","TRY","KZT","BYN
                       "CHF","CAD","AUD","SEK","NOK","PLN","CZK","HUF","INR","BRL"]
 
 // ProxyEntry is defined in ProxyView.swift
+
+// MARK: - Platform helper
+extension VKLastSeen {
+    var platformIcon: String {
+        switch platform ?? 0 {
+        case 1: return "globe"              // мобильный сайт
+        case 2: return "iphone"            // iPhone
+        case 3: return "ipad"              // iPad
+        case 4: return "antenna.radiowaves.left.and.right" // Android
+        case 5: return "antenna.radiowaves.left.and.right" // Windows Phone
+        case 6: return "desktopcomputer"   // Windows 10
+        case 7: return "globe"             // Web
+        default: return "circle.fill"
+        }
+    }
+    var platformName: String {
+        switch platform ?? 0 {
+        case 1: return "Mobile Web"
+        case 2: return "iPhone"
+        case 3: return "iPad"
+        case 4: return "Android"
+        case 5: return "Windows Phone"
+        case 6: return "Windows"
+        case 7: return "Web"
+        default: return "Unknown"
+        }
+    }
+}

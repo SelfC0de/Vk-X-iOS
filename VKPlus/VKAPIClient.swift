@@ -203,7 +203,7 @@ final class VKAPIClient {
     // MARK: - Auth
     func getMe(token t: String) async throws -> VKUser {
         let users: [VKUser] = try await call("users.get",
-            params: ["fields": "photo_200,photo_100,online,status,verified"],
+            params: ["fields": "photo_200,photo_100,online,status,verified,last_seen"],
             tokenOverride: t)
         guard let u = users.first else { throw VKError.noData }
         return u
@@ -212,7 +212,7 @@ final class VKAPIClient {
     // MARK: - Profile
     func getProfile() async throws -> VKUser {
         let json = try await rawCall("users.get", params: [
-            "fields": "photo_200,photo_100,online,status,verified,has_mobile,verification_info,city,followers_count,bdate"
+            "fields": "photo_200,photo_100,online,status,verified,has_mobile,verification_info,city,followers_count,bdate,last_seen"
         ])
         guard let items = json["response"] as? [[String: Any]],
               let dict = items.first,
@@ -293,15 +293,15 @@ final class VKAPIClient {
     // MARK: - Dialogs
     func getDialogs(count: Int = 30) async throws -> [DialogItem] {
         let json = try await rawCall("messages.getConversations", params: [
-            "count": "\(count)", "extended": "1", "fields": "photo_100,online"
+            "count": "\(count)", "extended": "1", "fields": "photo_100,online,last_seen"
         ])
         guard let response = json["response"] as? [String: Any] else { return [] }
         let items    = response["items"]    as? [[String: Any]] ?? []
         let rawProfs = response["profiles"] as? [[String: Any]] ?? []
         let rawGrps  = response["groups"]   as? [[String: Any]] ?? []
 
-        // Build profile map: id -> (name, photo, online)
-        var profMap = [Int: (name: String, photo: String?, online: Bool)]()
+        // Build profile map: id -> (name, photo, online, platform)
+        var profMap = [Int: (name: String, photo: String?, online: Bool, platform: Int?)]()
         let myId = TokenStorage.shared.cachedUserId ?? 0
         let s = SettingsStore.shared
         for p in rawProfs {
@@ -314,7 +314,8 @@ final class VKAPIClient {
             var on = (p["online"] as? Int) == 1
             if id == myId { on = false }
             if s.ghostOnline || s.forceOffline { on = false }
-            profMap[id] = (fn + " " + ln, ph, on)
+            let platform = (p["last_seen"] as? [String: Any])?["platform"] as? Int
+            profMap[id] = (fn + " " + ln, ph, on, platform)
         }
         var grpMap = [Int: (name: String, photo: String?)]()
         for g in rawGrps {
@@ -335,7 +336,8 @@ final class VKAPIClient {
             if pType == "user", let u = profMap[localId] {
                 return DialogItem(id: peerId, name: u.name.trimmingCharacters(in: .whitespaces),
                                   avatar: u.photo, lastMessage: lastMsg,
-                                  isOnline: u.online, unreadCount: unread, peerId: peerId)
+                                  isOnline: u.online, unreadCount: unread, peerId: peerId,
+                                  platform: u.platform)
             } else if pType == "group", let g = grpMap[abs(localId)] {
                 return DialogItem(id: peerId, name: g.name, avatar: g.photo,
                                   lastMessage: lastMsg, isOnline: false, unreadCount: unread, peerId: peerId)
@@ -722,6 +724,36 @@ final class VKAPIClient {
         return result.isEmpty ? "Стикеры найдены, но данные скрыты" : result
     }
 
+
+
+    func getPoll(pollId: Int, ownerId: Int) async throws -> VKPoll? {
+        struct PR: Decodable { let response: VKPoll? }
+        let json = try await rawCall("polls.getById", params: [
+            "poll_id":  "\(pollId)",
+            "owner_id": "\(ownerId)",
+            "extended": "1",
+            "fields":   "photo_200"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let id       = resp["id"]        as? Int,
+              let ownerId  = resp["owner_id"]  as? Int,
+              let question = resp["question"]  as? String,
+              let votes    = resp["votes"]     as? Int,
+              let answersRaw = resp["answers"] as? [[String: Any]]
+        else { return nil }
+
+        let answers = answersRaw.compactMap { a -> VKPollAnswer? in
+            guard let aid  = a["id"]    as? Int,
+                  let text = a["text"]  as? String,
+                  let av   = a["votes"] as? Int,
+                  let rate = a["rate"]  as? Double
+            else { return nil }
+            return VKPollAnswer(id: aid, text: text, votes: av, rate: rate)
+        }
+        return VKPoll(id: id, ownerId: ownerId, question: question, votes: votes,
+                      answers: answers, anonymous: resp["anonymous"] as? Int,
+                      multiple: resp["multiple"] as? Int, closed: resp["is_closed"] as? Int)
+    }
 
     func viewBlockedProfile(userId: Int) async throws -> (user: VKUser?, result: String) {
         // Method 1: execute() runs server-side — bypasses client-level blocks

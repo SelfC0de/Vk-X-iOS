@@ -180,6 +180,22 @@ private struct EngineTab: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
+            SettingsSectionCard(title: "Показать ответы в опросах",
+                                subtitle: "Без голосования",
+                                icon: "chart.bar.fill", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
+                SettingsToggle("Poll Results Bypass", icon: "chart.bar.fill",
+                               subtitle: "Видеть результаты опросов без голосования через polls.getById",
+                               val: $s.showPollResults)
+            }
+
+            SettingsSectionCard(title: "Platform Display",
+                                subtitle: "Платформа устройства собеседника",
+                                icon: "iphone", iconColor: Color(r:0x34,g:0xC7,b:0x59)) {
+                SettingsToggle("Show Platform Icon", icon: "iphone",
+                               subtitle: "Заменяет зелёную точку на иконку платформы (iPhone/Android/Web...)",
+                               val: $s.showPlatformIcon)
+            }
+
             SettingsSectionCard(title: "Silent VM Listener",
                                 subtitle: "Анонимное прослушивание голосовых",
                                 icon: "mic.slash.fill", iconColor: Color(r:0xE9,g:0x3E,b:0xFF)) {
