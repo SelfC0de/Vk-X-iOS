@@ -124,7 +124,9 @@ final class DownloadManager: NSObject, ObservableObject {
     private func safeFilename(_ name: String) -> String {
         let illegal = CharacterSet(charactersIn: "/\\:*?\"<>|")
         let safe    = name.components(separatedBy: illegal).joined(separator: "_")
-        return safe.hasSuffix(".mp3") ? safe : "\(safe).mp3"
+        // Keep existing extension (.ogg, .mp3) or add .mp3
+        let hasExt = safe.hasSuffix(".mp3") || safe.hasSuffix(".ogg") || safe.hasSuffix(".m4a")
+        return hasExt ? safe : "\(safe).mp3"
     }
 }
 

@@ -1347,7 +1347,8 @@ private struct BubbleView: View {
                                 let artist = au.artist ?? ""
                                 let title  = au.title  ?? "audio"
                                 let name   = artist.isEmpty ? title : "\(artist) - \(title)"
-                                await DownloadManager.shared.downloadAudio(from: url, filename: name)
+                                // isVoice: false → saves to Аудио folder
+                                await DownloadManager.shared.downloadAudio(from: url, filename: name, isVoice: false)
                             }
                         }
                     }

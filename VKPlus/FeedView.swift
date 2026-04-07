@@ -1333,20 +1333,10 @@ private struct FeedAudioRow: View {
 
     private func downloadAudio() async {
         guard let urlStr = audio.url else { return }
-        do {
-            let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
-            // Use the downloaded file directly — no move needed, share it in place
-            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
-            await MainActor.run {
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.rootViewController?
-                    .present(av, animated: true)
-            }
-        } catch {
-            await MainActor.run {
-                ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-            }
-        }
+        let artist = audio.artist ?? ""
+        let title  = audio.title  ?? "audio"
+        let name   = artist.isEmpty ? title : "\(artist) - \(title)"
+        // isVoice: false → saves to Аудио folder
+        await DownloadManager.shared.downloadAudio(from: urlStr, filename: name, isVoice: false)
     }
 }
