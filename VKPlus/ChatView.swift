@@ -295,19 +295,7 @@ struct ChatView: View {
             guard let item else { return }
             Task { await uploadAndAttach(item: item, isVideo: true) }
         }
-        // Uploading toast overlay
-        .overlay(alignment: .top) {
-            if isUploading {
-                HStack(spacing: 8) {
-                    ProgressView().tint(.white).scaleEffect(0.8)
-                    Text("Загрузка...").font(.system(size: 13)).foregroundStyle(.white)
-                }
-                .padding(.horizontal, 16).padding(.vertical, 8)
-                .background(Color.cyberBlue.opacity(0.9))
-                .clipShape(Capsule())
-                .padding(.top, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
+        .overlay(alignment: .top) { EmptyView()
         }
     }
 
@@ -337,6 +325,7 @@ struct ChatView: View {
             if let r = replyMsg   { replyBanner(r)  }
             if let e = editingMsg { editBanner(e)   }
             if let vurl = voiceReadyURL { voicePreviewBanner(vurl) }
+            uploadingStrip
             if let a = pendingAttach { attachBanner(a) }
             if showEmoji { emojiPanel }
 
@@ -422,20 +411,58 @@ struct ChatView: View {
     }
 
     @ViewBuilder private func attachBanner(_ att: String) -> some View {
-        HStack(spacing: 8) {
-            let icon = att.hasPrefix("photo") ? "photo.fill" :
-                       att.hasPrefix("video") ? "video.fill" :
-                       att.hasPrefix("audio") ? "waveform" : "paperclip"
-            Rectangle().fill(Color(red:0.0,green:0.7,blue:0.5)).frame(width: 3).clipShape(Capsule())
-            Image(systemName: icon).foregroundStyle(Color(red:0.0,green:0.7,blue:0.5)).font(.system(size: 13))
-            Text("Вложение прикреплено").font(.system(size: 13)).foregroundStyle(Color.onSurface)
+        let icon  = att.hasPrefix("photo") ? "photo.fill"   :
+                    att.hasPrefix("video") ? "video.fill"   :
+                    att.hasPrefix("audio") ? "waveform"     :
+                    att.hasPrefix("doc")   ? "doc.fill"     : "paperclip"
+        let label = att.hasPrefix("photo") ? "Фото"         :
+                    att.hasPrefix("video") ? "Видео"        :
+                    att.hasPrefix("audio") ? "Аудио"        :
+                    att.hasPrefix("doc")   ? "Документ"     : "Файл"
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(Color(red:0.0,green:0.75,blue:0.55))
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.onSurface)
+            Text("прикреплено")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.onSurfaceMut)
             Spacer()
             Button { pendingAttach = nil } label: {
-                Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.onSurfaceMut)
+                    .frame(width: 18, height: 18)
+                    .background(Color.onSurfaceMut.opacity(0.12))
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(Color(red:0.07,green:0.08,blue:0.13))
+        .padding(.horizontal, 14).padding(.vertical, 6)
+        .background(Color(red:0.07,green:0.085,blue:0.13))
+        .overlay(Rectangle().frame(height: 0.5).foregroundStyle(Color.divider.opacity(0.5)), alignment: .top)
+    }
+
+    // Compact uploading strip shown while isUploading=true
+    @ViewBuilder private var uploadingStrip: some View {
+        if isUploading {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .tint(Color(red:0.0,green:0.75,blue:0.55))
+                    .scaleEffect(0.75)
+                    .frame(width: 16, height: 16)
+                Text("Загружаем...")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.onSurfaceMut)
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 5)
+            .background(Color(red:0.07,green:0.085,blue:0.13))
+            .overlay(Rectangle().frame(height: 0.5).foregroundStyle(Color.divider.opacity(0.5)), alignment: .top)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+        }
     }
 
     @ViewBuilder private func voicePreviewBanner(_ url: URL) -> some View {

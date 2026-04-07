@@ -1,23 +1,22 @@
 import Foundation
 import UIKit
 
-// MARK: - DownloadManager
-// Singleton that tracks download progress per URL
 @MainActor
 final class DownloadManager: NSObject, ObservableObject {
     static let shared = DownloadManager()
 
-    // progress 0.0 ... 1.0 per URL
     @Published var progress: [String: Double] = [:]
 
     private var session: URLSession!
-    private var completions: [URL: (Result<URL, Error>) -> Void] = [:]
-    private var urlMap: [URLSessionTask: String] = [:]
+    // Key by task identifier — eliminates URL mismatch on redirect
+    private var taskCompletions: [Int: (Result<URL, Error>) -> Void] = [:]
+    private var taskKeys: [Int: String] = [:]
 
     private override init() {
         super.init()
         let cfg = URLSessionConfiguration.default
         cfg.protocolClasses = (cfg.protocolClasses ?? []).filter { $0 != PrivacyURLProtocol.self }
+        // Follow redirects automatically
         session = URLSession(configuration: cfg, delegate: self, delegateQueue: nil)
     }
 
@@ -25,21 +24,28 @@ final class DownloadManager: NSObject, ObservableObject {
         guard let url = URL(string: urlStr) else { throw URLError(.badURL) }
         return try await withCheckedThrowingContinuation { cont in
             Task { @MainActor in
-                self.progress[urlStr] = 0.0
-                let task = self.session.downloadTask(with: url)
-                self.completions[url] = { result in
-                    Task { @MainActor in self.progress.removeValue(forKey: urlStr) }
+                self.progress[urlStr] = 0.001 // show ring immediately
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 120
+                let task = self.session.downloadTask(with: req)
+                let tid = task.taskIdentifier
+                self.taskCompletions[tid] = { result in
                     cont.resume(with: result)
                 }
-                self.urlMap[task] = urlStr
+                self.taskKeys[tid] = urlStr
                 task.resume()
             }
         }
     }
 
     func cancel(urlStr: String) {
-        for (task, key) in urlMap where key == urlStr {
-            task.cancel()
+        for (tid, key) in taskKeys where key == urlStr {
+            // find task by id
+            session.getAllTasks { tasks in
+                tasks.filter { $0.taskIdentifier == tid }.forEach { $0.cancel() }
+            }
+            taskKeys.removeValue(forKey: tid)
+            taskCompletions.removeValue(forKey: tid)
         }
         progress.removeValue(forKey: urlStr)
     }
@@ -49,30 +55,35 @@ extension DownloadManager: URLSessionDownloadDelegate {
     nonisolated func urlSession(_ session: URLSession,
                                 downloadTask: URLSessionDownloadTask,
                                 didWriteData _: Int64,
-                                totalBytesWritten: Int64,
+                                totalBytesWritten written: Int64,
                                 totalBytesExpectedToWrite total: Int64) {
         guard total > 0 else { return }
-        let pct = Double(totalBytesWritten) / Double(total)
-        let key = downloadTask.originalRequest?.url?.absoluteString ?? ""
-        Task { @MainActor in self.progress[key] = pct }
+        let pct = max(0.001, Double(written) / Double(total))
+        let tid = downloadTask.taskIdentifier
+        Task { @MainActor in
+            if let key = self.taskKeys[tid] {
+                self.progress[key] = pct
+            }
+        }
     }
 
     nonisolated func urlSession(_ session: URLSession,
                                 downloadTask: URLSessionDownloadTask,
                                 didFinishDownloadingTo location: URL) {
-        let key  = downloadTask.originalRequest?.url?.absoluteString ?? ""
+        let tid = downloadTask.taskIdentifier
+        // Copy to stable temp path before delegate returns (file deleted after)
         let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent(location.lastPathComponent)
+            .appendingPathComponent("dm_\(tid)_\(location.lastPathComponent)")
         try? FileManager.default.removeItem(at: dest)
         try? FileManager.default.copyItem(at: location, to: dest)
-        let origUrl = downloadTask.originalRequest?.url
         Task { @MainActor in
-            self.urlMap.removeValue(forKey: downloadTask)
-            if let u = origUrl, let completion = self.completions[u] {
-                self.completions.removeValue(forKey: u)
+            if let key = self.taskKeys[tid] {
+                self.progress.removeValue(forKey: key)
+            }
+            self.taskKeys.removeValue(forKey: tid)
+            if let completion = self.taskCompletions.removeValue(forKey: tid) {
                 completion(.success(dest))
             }
-            self.progress.removeValue(forKey: key)
         }
     }
 
@@ -80,15 +91,15 @@ extension DownloadManager: URLSessionDownloadDelegate {
                                 task: URLSessionTask,
                                 didCompleteWithError error: Error?) {
         guard let error else { return }
-        let origUrl = task.originalRequest?.url
+        let tid = task.taskIdentifier
         Task { @MainActor in
-            self.urlMap.removeValue(forKey: task)
-            if let u = origUrl, let completion = self.completions[u] {
-                self.completions.removeValue(forKey: u)
+            if let key = self.taskKeys[tid] {
+                self.progress.removeValue(forKey: key)
+            }
+            self.taskKeys.removeValue(forKey: tid)
+            if let completion = self.taskCompletions.removeValue(forKey: tid) {
                 completion(.failure(error))
             }
-            let key = task.originalRequest?.url?.absoluteString ?? ""
-            self.progress.removeValue(forKey: key)
         }
     }
 }
