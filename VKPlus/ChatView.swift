@@ -404,20 +404,72 @@ struct ChatView: View {
     }
 
     @ViewBuilder private func replyBanner(_ msg: VKMessage) -> some View {
-        HStack(spacing: 8) {
-            Rectangle().fill(Color(red:0.5,green:0.4,blue:0.9)).frame(width: 2).clipShape(Capsule())
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Ответ").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color(red:0.5,green:0.4,blue:0.9))
-                Text(msg.text.isEmpty ? "Вложение" : String(msg.text.prefix(80)))
-                    .font(.system(size: 12)).foregroundStyle(Color(red:0.6,green:0.7,blue:0.85)).lineLimit(1)
+        let accentColor = Color(red:0.5,green:0.4,blue:0.9)
+        HStack(spacing: 10) {
+            // Accent line
+            Rectangle()
+                .fill(accentColor)
+                .frame(width: 2)
+                .clipShape(Capsule())
+
+            // Photo thumbnail if available
+            if let photo = msg.attachments?.first(where: { $0.type == "photo" })?.photo,
+               let url = photo.maxUrl {
+                AsyncImage(url: URL(string: url)) { phase in
+                    if case .success(let img) = phase {
+                        img.resizable().scaledToFill()
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    } else {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(Color.onSurfaceMut.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                // Sender name
+                let senderName = msg.isOutgoing ? "Вы" : "Собеседник"
+                Text(senderName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(accentColor)
+
+                // Content preview
+                let attDesc: String? = {
+                    guard let atts = msg.attachments, !atts.isEmpty else { return nil }
+                    let first = atts[0]
+                    switch first.type {
+                    case "photo":         return "📷 Фото"
+                    case "video":         return "🎬 Видео"
+                    case "audio":         return "🎵 " + (first.audio?.title ?? "Аудио")
+                    case "audio_message": return "🎤 Голосовое"
+                    case "doc":           return "📎 " + (first.doc?.title ?? "Документ")
+                    case "sticker":       return "🎨 Стикер"
+                    case "link":          return "🔗 Ссылка"
+                    default:              return "📎 Вложение"
+                    }
+                }()
+                let preview = attDesc ?? (msg.text.isEmpty ? "Сообщение" : String(msg.text.prefix(60)))
+                Text(preview)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(red:0.6,green:0.7,blue:0.85))
+                    .lineLimit(1)
             }
             Spacer()
             Button { replyMsg = nil } label: {
-                Image(systemName: "xmark").font(.system(size: 11)).foregroundStyle(Color(red:0.4,green:0.5,blue:0.65))
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.onSurfaceMut)
+                    .frame(width: 18, height: 18)
+                    .background(Color.onSurfaceMut.opacity(0.12))
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(Color(red:0.07,green:0.08,blue:0.13))
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .background(Color(red:0.07,green:0.085,blue:0.13))
+        .overlay(Rectangle().frame(height: 0.5).foregroundStyle(Color.divider.opacity(0.5)), alignment: .top)
     }
 
     @ViewBuilder private func attachBanner(_ att: String) -> some View {
@@ -1702,35 +1754,135 @@ struct ForwardSheet: View {
     let message: VKMessage
     let myId: Int
     @Environment(\.dismiss) var dismiss
-    @State private var dialogs: [DialogItem] = []
-    @State private var isLoading = true
-    @State private var sending   = false
+
+    @State private var allDialogs:  [DialogItem] = []
+    @State private var isLoading    = true
+    @State private var sendingTo:   Int? = nil   // peerId currently sending to
+    @State private var searchText   = ""
+    @FocusState private var searchFocused: Bool
+
+    private var filtered: [DialogItem] {
+        guard !searchText.isEmpty else { return allDialogs }
+        let q = searchText.lowercased()
+        return allDialogs.filter { $0.name.lowercased().contains(q) }
+    }
+
+    // Attachment preview for the message being forwarded
+    private var msgPreview: String {
+        if !message.text.isEmpty { return String(message.text.prefix(60)) }
+        guard let atts = message.attachments, !atts.isEmpty else { return "Сообщение" }
+        switch atts[0].type {
+        case "photo":         return "📷 Фото"
+        case "video":         return "🎬 Видео"
+        case "audio":         return "🎵 " + (atts[0].audio?.title ?? "Аудио")
+        case "audio_message": return "🎤 Голосовое"
+        case "doc":           return "📎 " + (atts[0].doc?.title ?? "Документ")
+        default:              return "📎 Вложение"
+        }
+    }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.background.ignoresSafeArea()
-                if isLoading { ProgressView().tint(.cyberBlue) }
-                else {
-                    List(dialogs) { d in
+            VStack(spacing: 0) {
+                // Message preview strip
+                HStack(spacing: 10) {
+                    Rectangle().fill(Color.cyberBlue).frame(width: 3).clipShape(Capsule())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Переслать сообщение")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.cyberBlue)
+                        Text(msgPreview)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.onSurfaceMut)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color(red:0.06,green:0.07,blue:0.11))
+
+                Divider().background(Color.divider)
+
+                // Search bar
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color.onSurfaceMut)
+                        .font(.system(size: 14))
+                    TextField("Поиск...", text: $searchText)
+                        .foregroundStyle(Color.onSurface)
+                        .font(.system(size: 15))
+                        .focused($searchFocused)
+                    if !searchText.isEmpty {
+                        Button { searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Color(red:0.08,green:0.09,blue:0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Color(red:0.05,green:0.06,blue:0.10))
+
+                Divider().background(Color.divider)
+
+                // Dialog list
+                if isLoading {
+                    Spacer()
+                    ProgressView().tint(.cyberBlue)
+                    Spacer()
+                } else if filtered.isEmpty {
+                    Spacer()
+                    Text(searchText.isEmpty ? "Нет диалогов" : "Ничего не найдено")
+                        .foregroundStyle(Color.onSurfaceMut)
+                        .font(.system(size: 14))
+                    Spacer()
+                } else {
+                    List(filtered) { d in
                         Button {
-                            Task { await forward(to: d.id) }
+                            guard sendingTo == nil else { return }
+                            Task { await forward(to: d.peerId) }
                         } label: {
-                            HStack(spacing: 10) {
-                                AvatarView(url: d.avatar, size: 40)
-                                Text(d.name).foregroundStyle(Color.onSurface).font(.system(size: 15))
+                            HStack(spacing: 12) {
+                                AvatarView(url: d.avatar, size: 44)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(d.name)
+                                        .foregroundStyle(Color.onSurface)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .lineLimit(1)
+                                    if !d.lastMessage.isEmpty {
+                                        Text(d.lastMessage)
+                                            .foregroundStyle(Color.onSurfaceMut)
+                                            .font(.system(size: 12))
+                                            .lineLimit(1)
+                                    }
+                                }
                                 Spacer()
-                                if sending { ProgressView().scaleEffect(0.7) }
+                                if sendingTo == d.peerId {
+                                    ProgressView().tint(.cyberBlue).scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "paperplane")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color.onSurfaceMut.opacity(0.4))
+                                }
                             }
                         }
                         .listRowBackground(Color.surface)
+                        .listRowSeparatorTint(Color.divider)
                     }
+                    .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                 }
             }
+            .background(Color.background.ignoresSafeArea())
             .navigationTitle("Переслать в...")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }
+                        .foregroundStyle(Color.cyberBlue)
+                }
+            }
             .toolbarBackground(Color.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -1740,46 +1892,70 @@ struct ForwardSheet: View {
 
     private func loadDialogs() async {
         isLoading = true
-        let json = try? await VKAPIClient.shared.rawCall("messages.getConversations", params: ["count": "40", "extended": "1"])
-        if let resp = json?["response"] as? [String: Any],
-           let items = resp["items"] as? [[String: Any]] {
-            let profiles = (resp["profiles"] as? [[String: Any]]) ?? []
-            let groups   = (resp["groups"]  as? [[String: Any]]) ?? []
-            let pMap = Dictionary(uniqueKeysWithValues: profiles.compactMap { p -> (Int,[String:Any])? in
-                guard let id = p["id"] as? Int else { return nil }; return (id, p) })
-            let gMap = Dictionary(uniqueKeysWithValues: groups.compactMap { g -> (Int,[String:Any])? in
-                guard let id = g["id"] as? Int else { return nil }; return (-id, g) })
-            dialogs = items.compactMap { item -> DialogItem? in
-                guard let conv = item["conversation"] as? [String: Any],
-                      let peer = conv["peer"] as? [String: Any],
-                      let pid  = peer["id"] as? Int else { return nil }
-                let lm = (item["last_message"] as? [String: Any])?["text"] as? String ?? ""
-                if let p = pMap[pid] {
-                    let fn = (p["first_name"] as? String ?? "") + " " + (p["last_name"] as? String ?? "")
-                    let av = p["photo_100"] as? String
-                    return DialogItem(id: pid, name: fn.trimmingCharacters(in: .whitespaces), avatar: av, lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
-                } else if let g = gMap[pid] {
-                    let name = g["name"] as? String ?? "Группа"
-                    let av   = g["photo_100"] as? String
-                    return DialogItem(id: pid, name: name, avatar: av, lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
-                }
-                return nil
+        let json = try? await VKAPIClient.shared.rawCall("messages.getConversations",
+                        params: ["count": "80", "extended": "1"])
+        guard let resp  = json?["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]] else {
+            isLoading = false; return
+        }
+        let profiles = (resp["profiles"] as? [[String: Any]]) ?? []
+        let groups   = (resp["groups"]   as? [[String: Any]]) ?? []
+        let pMap = Dictionary(uniqueKeysWithValues: profiles.compactMap { p -> (Int,[String:Any])? in
+            guard let id = p["id"] as? Int else { return nil }; return (id, p) })
+        let gMap = Dictionary(uniqueKeysWithValues: groups.compactMap { g -> (Int,[String:Any])? in
+            guard let id = g["id"] as? Int else { return nil }; return (-id, g) })
+        allDialogs = items.compactMap { item -> DialogItem? in
+            guard let conv = item["conversation"] as? [String: Any],
+                  let peer = conv["peer"] as? [String: Any],
+                  let pid  = peer["id"] as? Int else { return nil }
+            let lm = (item["last_message"] as? [String: Any])?["text"] as? String ?? ""
+            if let p = pMap[pid] {
+                let fn = ((p["first_name"] as? String ?? "") + " " + (p["last_name"] as? String ?? "")).trimmingCharacters(in: .whitespaces)
+                return DialogItem(id: pid, name: fn, avatar: p["photo_100"] as? String,
+                                  lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
+            } else if let g = gMap[pid] {
+                return DialogItem(id: pid, name: g["name"] as? String ?? "Беседа",
+                                  avatar: g["photo_100"] as? String,
+                                  lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
+            } else if peer["type"] as? String == "chat" {
+                // Group chat without extended info
+                let title = (conv["chat_settings"] as? [String: Any])?["title"] as? String ?? "Беседа"
+                let av    = ((conv["chat_settings"] as? [String: Any])?["photo"] as? [String: Any])?["photo_100"] as? String
+                return DialogItem(id: pid, name: title, avatar: av,
+                                  lastMessage: lm, isOnline: false, unreadCount: 0, peerId: pid)
             }
+            return nil
         }
         isLoading = false
     }
 
-    private func forward(to peerId: Int) async {
-        sending = true
-        let fwd = "\(message.id)"
-        _ = try? await VKAPIClient.shared.rawCall("messages.send", params: [
-            "peer_id": "\(peerId)",
+    private func forward(to toPeerId: Int) async {
+        sendingTo = toPeerId
+        // VK API: forward object with conversation_message_ids (preferred) or message_id
+        let cmid = message.id  // conversation_message_id == message.id for user dialogs
+        // Build forward JSON — works for both personal and group chats
+        let fwdObj: [String: Any] = [
+            "conversation_message_ids": [cmid],
+            "peer_id": toPeerId,
+            "is_reply": false
+        ]
+        guard let fwdData = try? JSONSerialization.data(withJSONObject: fwdObj),
+              let fwdStr  = String(data: fwdData, encoding: .utf8) else {
+            sendingTo = nil; return
+        }
+        let result = try? await VKAPIClient.shared.rawCall("messages.send", params: [
+            "peer_id":   "\(toPeerId)",
             "random_id": "\(Int.random(in: 1...Int.max))",
-            "forward_messages": fwd
+            "forward":   fwdStr
         ])
-        sending = false
-        ToastManager.shared.show("Переслано", icon: "arrowshape.turn.up.right.fill", style: .success)
-        dismiss()
+        let ok = result?["response"] != nil
+        sendingTo = nil
+        if ok {
+            ToastManager.shared.show("Переслано", icon: "arrowshape.turn.up.right.fill", style: .success)
+            dismiss()
+        } else {
+            ToastManager.shared.show("Ошибка пересылки", icon: "exclamationmark.triangle.fill", style: .warning)
+        }
     }
 }
 
