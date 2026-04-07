@@ -414,7 +414,9 @@ final class VKAPIClient {
     // MARK: - Upload doc (video/audio/file) to messages
     func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
         // 1. Get upload URL
-        let type = mimeType.hasPrefix("video") ? "video" : (mimeType.hasPrefix("audio") ? "audio_message" : "doc")
+        // audio/mpeg, audio/m4a etc → use "doc" so VK treats it as a file, not voice
+        // "audio_message" is only for actual voice recordings (uploaded via uploadVoiceMessage)
+        let type = mimeType.hasPrefix("video") ? "video" : "doc"
         let urlJson = try await rawCall("docs.getMessagesUploadServer", params: ["peer_id": "\(peerId)", "type": type])
         guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
             throw VKError.api(0, "No upload URL")
@@ -483,10 +485,13 @@ final class VKAPIClient {
         // response == 1 means success, anything else is fine too
     }
 
-    func deleteMessage(messageIds: [Int], forAll: Bool = true) async throws {
-        let ids = messageIds.map(String.init).joined(separator: ",")
+    func deleteMessage(messageIds: [Int], peerId: Int, forAll: Bool = true) async throws {
+        let ids  = messageIds.map(String.init).joined(separator: ",")
         let json = try await rawCall("messages.delete", params: [
-            "message_ids": ids, "delete_for_all": forAll ? "1" : "0"
+            "message_ids":    ids,
+            "peer_id":        "\(peerId)",
+            "delete_for_all": forAll ? "1" : "0",
+            "spam":           "0"
         ])
         if let err = (json["error"] as? [String: Any])?["error_msg"] as? String {
             throw VKError.api(0, err)

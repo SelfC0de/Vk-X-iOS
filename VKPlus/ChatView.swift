@@ -1078,10 +1078,18 @@ struct ChatView: View {
 
     private func deleteMsg(_ msg: VKMessage) async {
         do {
-            try await VKAPIClient.shared.deleteMessage(messageIds: [msg.id])
+            try await VKAPIClient.shared.deleteMessage(
+                messageIds: [msg.id],
+                peerId:     peerId,
+                forAll:     msg.fromId == myId  // delete_for_all only works for own messages
+            )
             withAnimation { messages.removeAll { $0.id == msg.id } }
+            deletedMsgIds.insert(msg.id)
+            SettingsStore.shared.markDeleted(msg.id, peerId: peerId)
             ToastManager.shared.show("Удалено", icon: "trash.fill", style: .info)
-        } catch { ToastManager.shared.show("Ошибка", icon: "exclamationmark.triangle.fill", style: .warning) }
+        } catch {
+            ToastManager.shared.show("Ошибка удаления", icon: "exclamationmark.triangle.fill", style: .warning)
+        }
     }
 }
 
