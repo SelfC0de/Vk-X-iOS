@@ -755,9 +755,20 @@ final class VKAPIClient {
             else { return nil }
             return VKPollAnswer(id: aid, text: text, votes: av, rate: rate)
         }
+        // answer_ids — array of Int the user voted for
+        let answerIds: [Int]?
+        if let arr = resp["answer_ids"] as? [Int] { answerIds = arr }
+        else if let single = resp["answer_id"] as? Int { answerIds = [single] }
+        else { answerIds = nil }
+
         return VKPoll(id: id, ownerId: ownerId, question: question, votes: votes,
-                      answers: answers, anonymous: resp["anonymous"] as? Int,
-                      multiple: resp["multiple"] as? Int, closed: resp["is_closed"] as? Int)
+                      answers: answers,
+                      anonymous: resp["anonymous"] as? Int,
+                      multiple:  resp["multiple"]  as? Int,
+                      closed:    resp["is_closed"] as? Int,
+                      endDate:   resp["end_date"]  as? Int,
+                      answerIds: answerIds,
+                      canVote:   resp["can_vote"]  as? Int)
     }
 
 
