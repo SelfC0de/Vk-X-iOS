@@ -189,9 +189,23 @@ private struct DialogRow: View {
                             .background(Color.cyberBlue).clipShape(Capsule())
                     }
                 }
-                Text(dialog.lastMessage.isEmpty ? "Нет сообщений" : dialog.lastMessage)
-                    .foregroundStyle(Color.onSurfaceMut)
-                    .font(.system(size: 13)).lineLimit(1)
+                let ts = settings.currentTypeStatus
+                if ts != .none && settings.activeTypingPeerId == dialog.id {
+                    HStack(spacing: 4) {
+                        Text(ts.statusLabel)
+                            .foregroundStyle(Color.cyberBlue)
+                            .font(.system(size: 13)).lineLimit(1)
+                        HStack(spacing: 2) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                Circle().fill(Color.cyberBlue).frame(width: 4, height: 4)
+                            }
+                        }
+                    }
+                } else {
+                    Text(dialog.lastMessage.isEmpty ? "Нет сообщений" : dialog.lastMessage)
+                        .foregroundStyle(Color.onSurfaceMut)
+                        .font(.system(size: 13)).lineLimit(1)
+                }
             }
         }
         .padding(.vertical, 4)

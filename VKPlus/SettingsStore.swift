@@ -19,6 +19,18 @@ enum TypeStatus: String, CaseIterable {
         case .file:         return "Отправляет файл"
         }
     }
+
+    // Short label for chat header/list
+    var statusLabel: String {
+        switch self {
+        case .none:         return "Печатает"
+        case .typing:       return "Печатает"
+        case .audioMessage: return "Записывает голосовое"
+        case .videoMessage: return "Записывает видео"
+        case .photo:        return "Загружает фото"
+        case .file:         return "Отправляет файл"
+        }
+    }
     var emoji: String {
         switch self {
         case .none: return "❌"; case .typing: return "⌨️"
@@ -251,6 +263,8 @@ final class SettingsStore: ObservableObject {
         DeviceProfile.allCases.first { $0.ua == deviceUa } ?? .kate
     }
     var currentTypeStatus: TypeStatus { TypeStatus(rawValue: typeStatus) ?? .none }
+    // Runtime: which peerId is currently broadcasting typeStatus (not persisted)
+    @Published var activeTypingPeerId: Int = 0
 
     private init() {
         ghostMode        = ud.bool(forKey: "ghost_mode")

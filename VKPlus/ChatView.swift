@@ -193,7 +193,9 @@ struct ChatView: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(store.hideSender ? Color.onSurfaceMut : Color.onSurface)
                         if !store.hideSender {
-                            if peerTyping { TypingStatusView() }
+                            if store.currentTypeStatus != .none && typeStatusTask != nil {
+                                    TypingStatusView(label: store.currentTypeStatus.statusLabel)
+                                } else if peerTyping { TypingStatusView() }
                             else {
                                 HStack(spacing: 4) {
                                     if store.showPlatformIcon,
@@ -265,6 +267,7 @@ struct ChatView: View {
             messagePollingTask?.cancel(); messagePollingTask = nil
             fakeTypingTask?.cancel(); fakeTypingTask = nil; fakeTyping = false
             typeStatusTask?.cancel(); typeStatusTask = nil
+            SettingsStore.shared.activeTypingPeerId = 0
         }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
             Button("Фото") { showPhotoPicker = true }
@@ -776,6 +779,7 @@ struct ChatView: View {
         guard s.currentTypeStatus != .none else { return }
         guard !s.antiTyping else { return }
         let statusType = s.currentTypeStatus.rawValue
+        SettingsStore.shared.activeTypingPeerId = peerId
         typeStatusTask = Task {
             // Send immediately on open
             await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: statusType)
@@ -973,13 +977,14 @@ struct ChatView: View {
 
 // MARK: - Typing indicator
 private struct TypingStatusView: View {
+    var label: String = "Печатает"
     @State private var phases: [CGFloat] = [0, 0, 0]
     @State private var step = 0
     private let timer = Timer.publish(every: 0.35, on: .main, in: .common).autoconnect()
 
     var body: some View {
         HStack(spacing: 3) {
-            Text("Печатает").font(.system(size: 11)).foregroundStyle(Color.cyberBlue)
+            Text(label).font(.system(size: 11)).foregroundStyle(Color.cyberBlue)
             HStack(spacing: 2) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle().fill(Color.cyberBlue).frame(width: 4, height: 4)
