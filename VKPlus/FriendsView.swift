@@ -320,7 +320,16 @@ struct FriendRow: View {
         HStack(spacing: 12) {
             ZStack(alignment: .bottomTrailing) {
                 AvatarView(url: user.photo100, size: 44)
-                if user.isOnline {
+                let s = SettingsStore.shared
+                if s.showPlatformIcon, let ls = user.lastSeen, let plat = ls.platform, plat > 0 {
+                    Image(systemName: ls.platformIcon)
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 14, height: 14)
+                        .background(user.isOnline ? Color.cyberAccent : Color.onSurfaceMut.opacity(0.7))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.surface, lineWidth: 1.5))
+                } else if user.isOnline {
                     Circle().fill(Color.cyberAccent).frame(width: 11, height: 11)
                         .overlay(Circle().stroke(Color.surface, lineWidth: 1.5))
                 }
@@ -332,7 +341,14 @@ struct FriendRow: View {
                         .lineLimit(1)
                     VerificationBadgesInline(user: user)
                 }
-                Text(user.isOnline ? "онлайн" : "не в сети")
+                let s2 = SettingsStore.shared
+                let platText: String = {
+                    if s2.showPlatformIcon, let ls = user.lastSeen, let plat = ls.platform, plat > 0 {
+                        return user.isOnline ? "онлайн · \(ls.platformName)" : ls.platformName
+                    }
+                    return user.isOnline ? "онлайн" : "не в сети"
+                }()
+                Text(platText)
                     .foregroundStyle(user.isOnline ? Color.cyberAccent : Color.onSurfaceMut)
                     .font(.system(size: 12))
             }

@@ -407,6 +407,11 @@ VerificationRowFetched(
 
     private func u_online(_ u: VKUser?) -> String {
         guard let u else { return "—" }
+        let s = SettingsStore.shared
+        if s.showPlatformIcon, let ls = u.lastSeen, let plat = ls.platform, plat > 0 {
+            let name = ls.platformName
+            return u.isOnline ? "Онлайн · \(name)" : name
+        }
         return u.isOnline ? "Онлайн" : "Не в сети"
     }
 }

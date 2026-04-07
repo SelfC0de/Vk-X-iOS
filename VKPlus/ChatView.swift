@@ -191,15 +191,17 @@ struct ChatView: View {
                             if peerTyping { TypingStatusView() }
                             else {
                                 HStack(spacing: 4) {
-                                    if peerOnline && store.showPlatformIcon,
+                                    if store.showPlatformIcon,
                                        let plat = peerPlatform, plat > 0 {
                                         let ls = VKLastSeen(time: nil, platform: plat)
                                         Image(systemName: ls.platformIcon)
                                             .font(.system(size: 10))
-                                            .foregroundStyle(Color.cyberAccent)
-                                        Text("в сети · \(ls.platformName)")
+                                            .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                                        Text(peerOnline
+                                            ? "в сети · \(ls.platformName)"
+                                            : ls.platformName)
                                             .font(.system(size: 11))
-                                            .foregroundStyle(Color.cyberAccent)
+                                            .foregroundStyle(peerOnline ? Color.cyberAccent : Color.onSurfaceMut)
                                     } else {
                                         Text(peerOnline ? "в сети" : "не в сети")
                                             .font(.system(size: 11))
