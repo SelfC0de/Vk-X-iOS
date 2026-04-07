@@ -69,6 +69,45 @@ enum DeviceProfile: String, CaseIterable {
     var uaPreview: String { String(ua.prefix(52)) + "…" }
 }
 
+// MARK: - Unified Device Spoof Mode
+enum SpoofMode: String, CaseIterable {
+    case off          = "off"
+    case fixedKate    = "kate"
+    case fixedAndroid = "android"
+    case fixedIphone  = "iphone"
+    case fixedWindows = "windows"
+    case randomAndroid = "random_android"
+    case randomIphone  = "random_iphone"
+
+    var label: String {
+        switch self {
+        case .off:           return "Отключено"
+        case .fixedKate:     return "Kate Mobile"
+        case .fixedAndroid:  return "VK Android (фиксированный)"
+        case .fixedIphone:   return "VK iPhone (фиксированный)"
+        case .fixedWindows:  return "VK Windows (фиксированный)"
+        case .randomAndroid: return "Случайный Android"
+        case .randomIphone:  return "Случайный iPhone"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .off:           return "xmark.circle"
+        case .fixedKate:     return "k.circle.fill"
+        case .fixedAndroid:  return "android.logo"
+        case .fixedIphone:   return "iphone"
+        case .fixedWindows:  return "pc"
+        case .randomAndroid: return "dice.fill"
+        case .randomIphone:  return "shuffle"
+        }
+    }
+
+    var isRandom: Bool { self == .randomAndroid || self == .randomIphone }
+    var isAndroid: Bool { self == .fixedAndroid || self == .randomAndroid || self == .fixedKate }
+    var isIOS: Bool { self == .fixedIphone || self == .randomIphone }
+}
+
 // MARK: - Hardware Spoofing
 struct SpoofedDevice {
     let model: String; let brand: String
@@ -108,15 +147,49 @@ enum HardwareSpoofing {
         (1080,2316,400),(1080,2408,420),(1440,3088,515),
     ]
 
-    static func generate() -> SpoofedDevice {
-        let (model, brand, versions) = devices.randomElement()!
-        let (ver, sdk) = versions.randomElement()!
-        let (w, h, dpi) = screens.randomElement()!
-        let battery = Int.random(in: 15...94)
-        let ua = "VKAndroidApp/8.10-17315 (Android \(ver); SDK \(sdk); arm64-v8a; \(brand) \(model); ru; \(w)x\(h))"
-        return SpoofedDevice(model: model, brand: brand, androidVersion: ver,
-                             sdkVersion: sdk, screenWidth: w, screenHeight: h,
-                             dpi: dpi, batteryLevel: battery, userAgent: ua)
+    // Fixed UA strings
+    static let fixedKateUA    = "KateMobileAndroid/56 lite-460 (Android 4.4.2; SDK 19; x86; unknown Android SDK built for x86; en)"
+    static let fixedAndroidUA = "VKAndroidApp/7.43-15079 (Android 12; SDK 31; arm64-v8a; Samsung Galaxy S21; ru; 2960x1440)"
+    static let fixedIphoneUA  = "com.vk.vkclient/2316 CFNetwork/1240.0.4 Darwin/20.6.0"
+    static let fixedWindowsUA = "VKDesktopApp/6.8.0 (Windows; 10; 19042)"
+
+    static func generate(mode: SpoofMode = .randomAndroid) -> SpoofedDevice {
+        switch mode {
+        case .fixedKate:
+            return SpoofedDevice(model: "unknown", brand: "google", androidVersion: "4.4.2",
+                sdkVersion: 19, screenWidth: 1080, screenHeight: 1920, dpi: 420,
+                batteryLevel: Int.random(in: 20...90), userAgent: fixedKateUA)
+        case .fixedAndroid:
+            return SpoofedDevice(model: "Galaxy S21", brand: "samsung", androidVersion: "12",
+                sdkVersion: 31, screenWidth: 2960, screenHeight: 1440, dpi: 515,
+                batteryLevel: Int.random(in: 20...90), userAgent: fixedAndroidUA)
+        case .fixedIphone:
+            return SpoofedDevice(model: "iPhone", brand: "apple", androidVersion: "17.0",
+                sdkVersion: 0, screenWidth: 1170, screenHeight: 2532, dpi: 460,
+                batteryLevel: Int.random(in: 20...90), userAgent: fixedIphoneUA)
+        case .fixedWindows:
+            return SpoofedDevice(model: "PC", brand: "microsoft", androidVersion: "10",
+                sdkVersion: 0, screenWidth: 1920, screenHeight: 1080, dpi: 96,
+                batteryLevel: 100, userAgent: fixedWindowsUA)
+        case .randomIphone:
+            let iphoneModels = ["iPhone14,2","iPhone14,3","iPhone15,2","iPhone15,3","iPhone16,1","iPhone16,2","iPhone17,1","iPhone17,2"]
+            let iosVers = ["17.0","17.1","17.2","17.3","17.4","17.5","18.0","18.1","18.2","18.3"]
+            let mdl = iphoneModels.randomElement()!
+            let ios = iosVers.randomElement()!
+            let ua = "Mozilla/5.0 (\(mdl); CPU iPhone OS \(ios.replacingOccurrences(of: ".", with: "_")) like Mac OS X) VKiPhone/\(mdl)"
+            return SpoofedDevice(model: mdl, brand: "apple", androidVersion: ios,
+                sdkVersion: 0, screenWidth: 1170, screenHeight: 2532, dpi: 460,
+                batteryLevel: Int.random(in: 15...94), userAgent: ua)
+        default: // randomAndroid + off
+            let (model, brand, versions) = devices.randomElement()!
+            let (ver, sdk) = versions.randomElement()!
+            let (w, h, dpi) = screens.randomElement()!
+            let battery = Int.random(in: 15...94)
+            let ua = "VKAndroidApp/8.10-17315 (Android \(ver); SDK \(sdk); arm64-v8a; \(brand) \(model); ru; \(w)x\(h))"
+            return SpoofedDevice(model: model, brand: brand, androidVersion: ver,
+                sdkVersion: sdk, screenWidth: w, screenHeight: h,
+                dpi: dpi, batteryLevel: battery, userAgent: ua)
+        }
     }
 }
 
@@ -192,6 +265,7 @@ final class SettingsStore: ObservableObject {
 
     // Device
     @Published var hardwareSpoof:   Bool { didSet { ud.set(hardwareSpoof,   forKey: "hardware_spoof")   } }
+    @Published var spoofMode: String { didSet { ud.set(spoofMode, forKey: "spoof_mode") } }
     @Published var liquidGlass:     Bool   { didSet { ud.set(liquidGlass,     forKey: "liquid_glass")     } }
 
     // Visual
@@ -263,6 +337,7 @@ final class SettingsStore: ObservableObject {
         DeviceProfile.allCases.first { $0.ua == deviceUa } ?? .kate
     }
     var currentTypeStatus: TypeStatus { TypeStatus(rawValue: typeStatus) ?? .none }
+    var currentSpoofMode: SpoofMode { SpoofMode(rawValue: spoofMode) ?? .off }
     // Runtime: which peerId is currently broadcasting typeStatus (not persisted)
     @Published var activeTypingPeerId: Int = 0
 
@@ -295,6 +370,20 @@ final class SettingsStore: ObservableObject {
             predictFavoriteIds = arr
         } else { predictFavoriteIds = [] }
         hardwareSpoof    = ud.bool(forKey: "hardware_spoof")
+        // Migrate old settings to spoofMode
+        if let existing = ud.string(forKey: "spoof_mode") {
+            spoofMode = existing
+        } else if ud.bool(forKey: "hardware_spoof") {
+            spoofMode = SpoofMode.randomAndroid.rawValue
+        } else if let ua = ud.string(forKey: "device_ua"), !ua.isEmpty, ua != DeviceProfile.kate.ua {
+            // Map old deviceUa to new mode
+            if ua.contains("VKAndroidApp") { spoofMode = SpoofMode.fixedAndroid.rawValue }
+            else if ua.contains("vkclient") || ua.contains("CFNetwork") { spoofMode = SpoofMode.fixedIphone.rawValue }
+            else if ua.contains("VKDesktopApp") { spoofMode = SpoofMode.fixedWindows.rawValue }
+            else { spoofMode = SpoofMode.fixedKate.rawValue }
+        } else {
+            spoofMode = SpoofMode.off.rawValue
+        }
         liquidGlass      = ud.bool(forKey: "liquid_glass")
         weatherGarland   = ud.bool(forKey: "weather_garland")
         weatherRain    = ud.bool(forKey: "weather_rain")

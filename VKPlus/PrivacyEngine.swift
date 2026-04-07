@@ -134,7 +134,13 @@ final class PrivacyURLProtocol: URLProtocol {
             req = stripForwardMeta(req)
         }
         // Spoof Device Model
-        if s.spoofDeviceModel { req = spoofDevice(req) }
+        // Spoof device fields in request body/URL — only for iOS modes
+        let sm = s.currentSpoofMode
+        if sm == .randomIphone || sm == .fixedIphone {
+            req = spoofDevice(req, mode: sm)
+        } else if sm == .randomAndroid || sm == .fixedAndroid || sm == .fixedKate {
+            req = spoofDeviceAndroid(req, mode: sm)
+        }
         // Language Spoof
         if s.languageSpoof    { req = spoofLanguage(req) }
         // Battery + Accelerometer Strip
@@ -292,10 +298,11 @@ final class PrivacyURLProtocol: URLProtocol {
     }
 
     // MARK: - Spoof Device Model: replace device/os fields
-    private func spoofDevice(_ req: URLRequest) -> URLRequest {
+    private func spoofDevice(_ req: URLRequest, mode: SpoofMode = .randomIphone) -> URLRequest {
         var r = req
-        let model = getSpoofedModel()
-        let ios   = getSpoofedIos()
+        let dev   = HardwareSpoofing.generate(mode: mode)
+        let model = dev.model
+        let ios   = dev.androidVersion // iOS version stored here for iPhone modes
         if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             comps.queryItems = comps.queryItems?.map { item in
                 if MODEL_FIELDS.contains(item.name) { return URLQueryItem(name: item.name, value: model) }
@@ -310,6 +317,33 @@ final class PrivacyURLProtocol: URLProtocol {
                 let key = kv.first ?? ""
                 if MODEL_FIELDS.contains(key) { return "\(key)=\(model.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? model)" }
                 if IOS_FIELDS.contains(key)   { return "\(key)=\(ios)" }
+                return pair
+            }
+            r.httpBody = pairs.joined(separator: "&").data(using: .utf8)
+        }
+        return r
+    }
+
+
+    private func spoofDeviceAndroid(_ req: URLRequest, mode: SpoofMode) -> URLRequest {
+        var r = req
+        let dev = HardwareSpoofing.generate(mode: mode)
+        let ANDROID_MODEL_FIELDS = ["device", "device_model", "device_id", "model"]
+        let ANDROID_VER_FIELDS   = ["android_version", "os_version", "system_version"]
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.map { item in
+                if ANDROID_MODEL_FIELDS.contains(item.name) { return URLQueryItem(name: item.name, value: dev.model) }
+                if ANDROID_VER_FIELDS.contains(item.name)   { return URLQueryItem(name: item.name, value: dev.androidVersion) }
+                return item
+            }
+            r.url = comps.url
+        }
+        if let body = r.httpBody, let str = String(data: body, encoding: .utf8) {
+            let pairs = str.components(separatedBy: "&").map { pair -> String in
+                let kv = pair.components(separatedBy: "=")
+                let key = kv.first ?? ""
+                if ANDROID_MODEL_FIELDS.contains(key) { return "\(key)=\(dev.model.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? dev.model)" }
+                if ANDROID_VER_FIELDS.contains(key)   { return "\(key)=\(dev.androidVersion)" }
                 return pair
             }
             r.httpBody = pairs.joined(separator: "&").data(using: .utf8)

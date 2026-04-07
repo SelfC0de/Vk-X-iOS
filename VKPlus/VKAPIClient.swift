@@ -55,12 +55,13 @@ final class VKAPIClient {
         guard let url = comps.url else { throw VKError.network("Bad URL") }
 
         var req = URLRequest(url: url)
-        if s.hardwareSpoof {
-            let dev = HardwareSpoofing.generate()
+        let mode = s.currentSpoofMode
+        if mode != .off {
+            let dev = HardwareSpoofing.generate(mode: mode)
             req.setValue(dev.userAgent, forHTTPHeaderField: "User-Agent")
-            dev.headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
-        } else {
-            req.setValue(s.deviceUa, forHTTPHeaderField: "User-Agent")
+            if mode.isAndroid {
+                dev.headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
+            }
         }
 
         let (data, _) = try await session.data(for: req)

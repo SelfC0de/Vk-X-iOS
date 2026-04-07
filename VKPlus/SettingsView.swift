@@ -367,17 +367,48 @@ private struct DeviceTab: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
-            // Hardware Spoof toggle
-            SettingsSectionCard(title: "Hardware Spoof",
-                                subtitle: "Маскировка параметров устройства",
+            // Unified Device Spoof
+            SettingsSectionCard(title: "Device Spoof",
+                                subtitle: s.currentSpoofMode == .off ? "Отключено" : s.currentSpoofMode.label,
                                 icon: "iphone.badge.play", iconColor: Color(r:0xFF,g:0x6B,b:0x35)) {
-                SettingsToggle("Hardware Spoof", icon: "dice.fill",
-                               subtitle: "Случайная модель устройства при каждом сеансе",
-                               val: $s.hardwareSpoof)
+                VStack(spacing: 0) {
+                    ForEach(SpoofMode.allCases, id: \.self) { mode in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                s.spoofMode = mode.rawValue
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                let selected = s.currentSpoofMode == mode
+                                Image(systemName: mode.icon)
+                                    .foregroundStyle(selected ? Color.cyberBlue : Color.onSurfaceMut)
+                                    .font(.system(size: 14)).frame(width: 20)
+                                Text(mode.label)
+                                    .font(.system(size: 14, weight: selected ? .semibold : .regular))
+                                    .foregroundStyle(selected ? Color.cyberBlue : Color.onSurface)
+                                Spacer()
+                                if selected {
+                                    Image(systemName: "checkmark").foregroundStyle(Color.cyberBlue).font(.system(size: 12, weight: .semibold))
+                                }
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 11)
+                        }
+                        .buttonStyle(.plain)
+                        if mode != SpoofMode.allCases.last {
+                            Divider().background(Color.divider).padding(.leading, 46)
+                        }
+                    }
+                    if s.currentSpoofMode != .off {
+                        Divider().background(Color.divider)
+                        HStack(spacing: 8) {
+                            Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
+                            Text(s.currentSpoofMode.isRandom ? "Новый отпечаток при каждом запуске приложения" : "Фиксированный профиль для всех запросов")
+                                .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                    }
+                }
             }
-
-            // Device Profile selector
-            deviceProfileSectionCard
 
             // Bypass copy
             SettingsSectionCard(title: "Bypass Copy",
@@ -406,26 +437,7 @@ private struct DeviceTab: View {
                                val: $s.ghostForward)
             }
 
-            // Spoof Device Model
-            SettingsSectionCard(title: "Spoof Device Model",
-                                subtitle: "Подмена модели iPhone в запросах",
-                                icon: "cpu.fill", iconColor: Color(r:0x00,g:0xBC,b:0xD4)) {
-                VStack(spacing: 0) {
-                    SettingsToggle("Spoof Device Model", icon: "cpu.fill",
-                                   subtitle: "Случайный iPhone из пула при каждом запуске",
-                                   val: $s.spoofDeviceModel)
-                    if s.spoofDeviceModel {
-                        Divider().background(Color.divider).padding(.leading, 50)
-                        HStack(spacing: 10) {
-                            Image(systemName: "info.circle").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
-                            Text("iPhone 13–16 Pro/Max · iOS 17–18 · новый при каждом запуске")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color.onSurfaceMut)
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                    }
-                }
-            }
+
 
             // Language Spoof
             SettingsSectionCard(title: "Language Spoof",
@@ -474,10 +486,6 @@ private struct DeviceTab: View {
                 }
             }
 
-            // Current spoof preview (if active)
-            if s.hardwareSpoof {
-                spoofPreview
-            }
 
             // Footer
             HStack {
@@ -489,71 +497,9 @@ private struct DeviceTab: View {
         }
     }
 
-    private var deviceProfileSectionCard: some View {
-        SettingsSectionCard(
-            title: "Device Spoofer",
-            subtitle: s.deviceUa.isEmpty ? "Выбрать профиль" : s.currentDeviceProfile.label,
-            icon: "iphone",
-            iconColor: Color.cyberBlue
-        ) {
-            VStack(spacing: 0) {
-                ForEach(DeviceProfile.allCases, id: \.self) { profile in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            SettingsStore.shared.deviceUa = profile.ua
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            let selected = s.currentDeviceProfile == profile
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(profile.label)
-                                    .font(.system(size: 14, weight: selected ? .semibold : .regular))
-                                    .foregroundStyle(selected ? Color.cyberBlue : Color.onSurface)
-                                Text(profile.uaPreview)
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundStyle(Color.onSurfaceMut)
-                                    .lineLimit(1)
-                            }
-                            Spacer()
-                            ZStack {
-                                Circle().stroke(selected ? Color.cyberBlue : Color.divider, lineWidth: 2).frame(width: 20, height: 20)
-                                if selected { Circle().fill(Color.cyberBlue).frame(width: 10, height: 10) }
-                            }
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
-                    if profile != DeviceProfile.allCases.last {
-                        Divider().background(Color.divider).padding(.leading, 14)
-                    }
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "info.circle").foregroundStyle(Color.onSurfaceMut).font(.system(size: 11))
-                    Text("Выбранный профиль применяется ко всем сетевым запросам.")
-                        .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
-                }
-                .padding(.horizontal, 14).padding(.vertical, 10)
-            }
-        }
-    }
 
-    private var spoofPreview: some View {
-        let device = HardwareSpoofing.generate()
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "shield.lefthalf.filled.badge.checkmark").foregroundStyle(Color(r:0xFF,g:0x6B,b:0x35))
-                Text("Пример сгенерированного отпечатка").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.onSurface)
-            }
-            spoofRow("📱 Модель",       device.model)
-            spoofRow("🤖 Android",      device.androidVersion)
-            spoofRow("🖥 Разрешение",   "\(device.screenWidth)×\(device.screenHeight)")
-            spoofRow("🔋 Заряд",        "\(device.batteryLevel)%")
-        }
-        .padding(14)
-        .background(Color(r:0xFF,g:0x6B,b:0x35).opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(r:0xFF,g:0x6B,b:0x35).opacity(0.2), lineWidth: 1))
-    }
+
+
 
     @ViewBuilder
     private func spoofRow(_ label: String, _ value: String) -> some View {
