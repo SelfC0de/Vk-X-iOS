@@ -148,6 +148,9 @@ private struct PrivacyTab: View {
                                 icon: "eye.slash.fill", iconColor: Color.cyberBlue) {
                 SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.shield.half.filled",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
                 SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "Собеседник не видит что ты печатаешь",       val: $s.antiTyping)
+                        .onChange(of: s.antiTyping) { _, val in
+                            if val { s.typeStatus = TypeStatus.none.rawValue }
+                        }
                 SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "Всегда показываться офлайн",        val: $s.forceOffline)
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
                 SettingsToggle("Ghost Story",              icon: "circle.dashed",         subtitle: "Смотреть истории анонимно",       val: $s.ghostStory)
@@ -304,7 +307,7 @@ private struct EngineTab: View {
         @ObservedObject private var s = SettingsStore.shared
         var body: some View {
             SettingsSectionCard(
-                title: "Type Status",
+                title: "Fake Type Status",
                 subtitle: "Сейчас: \(s.currentTypeStatus.label)",
                 icon: "keyboard.fill",
                 iconColor: Color.cyberBlue

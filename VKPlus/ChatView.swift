@@ -228,18 +228,8 @@ struct ChatView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 4) {
-                    // Fake Typing button
-                    Button {
-                        toggleFakeTyping()
-                    } label: {
-                        Image(systemName: fakeTyping ? "keyboard.fill" : "keyboard")
-                            .foregroundStyle(fakeTyping ? Color.cyberBlue : Color.onSurfaceMut)
-                            .font(.system(size: 16))
-                    }
-                    Button { showSearch.toggle() } label: {
-                        Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
-                    }
+                Button { showSearch.toggle() } label: {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
                 }
             }
         }
