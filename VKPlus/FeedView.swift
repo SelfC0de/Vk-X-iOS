@@ -1113,8 +1113,6 @@ private struct PollAnswerRow: View {
 // MARK: - Feed Audio Row
 private struct FeedAudioRow: View {
     let audio: VKAudioAttachment
-    @State private var downloading = false
-
     private var hasUrl: Bool { !(audio.url ?? "").isEmpty }
 
     var body: some View {
@@ -1166,15 +1164,10 @@ private struct FeedAudioRow: View {
             }
 
             // Download button
-            if hasUrl {
-                Button {
+            if hasUrl, let urlStr = audio.url {
+                CircularDownloadButton(urlStr: urlStr, size: 32, iconColor: Color.cyberBlue) {
                     Task { await downloadAudio() }
-                } label: {
-                    Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
-                        .font(.system(size: 18))
-                        .foregroundStyle(downloading ? Color.onSurfaceMut : Color.cyberBlue)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -1188,29 +1181,21 @@ private struct FeedAudioRow: View {
     }
 
     private func downloadAudio() async {
-        guard let urlStr = audio.url, let url = URL(string: urlStr), !downloading else { return }
-        downloading = true
-        ToastManager.shared.show("Загружаем аудио...", icon: "arrow.down.circle", style: .info)
+        guard let urlStr = audio.url else { return }
         do {
-            let (tmpUrl, _) = try await URLSession.shared.download(from: url)
+            let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
             let title = (audio.title ?? "audio").replacingOccurrences(of: "/", with: "_")
             let dest = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(title)_\(Int(Date().timeIntervalSince1970)).mp3")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            await MainActor.run {
-                downloading = false
-                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.rootViewController?
-                    .present(av, animated: true)
-            }
+            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
         } catch {
-            await MainActor.run {
-                downloading = false
-                ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-            }
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
         }
     }
 }

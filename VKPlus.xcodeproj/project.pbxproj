@@ -49,6 +49,8 @@
 		CC2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = CC2233445566778899AABB00 /* CommunitiesView.swift */; };
 				DD2233445566778899AABB11 = {isa = PBXBuildFile; fileRef = DD2233445566778899AABB00 /* AnimatedIcons.swift */; };
 				AA3344556677889900AABB11={isa=PBXBuildFile;fileRef=AA3344556677889900AABB00 /* TypingPushManager.swift */;settings={};};
+				DD6677889900BBCC11223344={isa=PBXBuildFile;fileRef=DD6677889900BBCC11223355 /* CircularProgressButton.swift */;settings={};};
+				CC5566778899AABB00112233={isa=PBXBuildFile;fileRef=CC5566778899AABB00112244 /* DownloadManager.swift */;settings={};};
 				BB4455667788990011CCDD22={isa=PBXBuildFile;fileRef=BB4455667788990011CCDD11 /* AppLockView.swift */;settings={};};
 				
 		/* End PBXBuildFile section */
@@ -96,6 +98,8 @@
 		CC2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunitiesView.swift; sourceTree = "<group>"; };
 				DD2233445566778899AABB00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedIcons.swift; sourceTree = "<group>"; };
 				AA3344556677889900AABB00={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=TypingPushManager.swift;sourceTree="<group>";};
+				DD6677889900BBCC11223355={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=CircularProgressButton.swift;sourceTree="<group>";};
+				CC5566778899AABB00112244={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=DownloadManager.swift;sourceTree="<group>";};
 				BB4455667788990011CCDD11={isa=PBXFileReference;lastKnownFileType=sourcecode.swift;path=AppLockView.swift;sourceTree="<group>";};
 						/* End PBXFileReference section */
 
@@ -107,6 +111,8 @@
 		566DF978A5F54973B2FA5818={isa=PBXGroup;children=(95FA300BE1F848CE845F6A95,5C086275E8114F91A98711BE,);sourceTree="<group>";};
 		95FA300BE1F848CE845F6A95={isa=PBXGroup;children=(
 				AA3344556677889900AABB00 /* TypingPushManager.swift */,
+				DD6677889900BBCC11223355 /* CircularProgressButton.swift */,
+				CC5566778899AABB00112244 /* DownloadManager.swift */,
 				BB4455667788990011CCDD11 /* AppLockView.swift */,
 				DD2233445566778899AABB00 /* AnimatedIcons.swift */,
 				CC2233445566778899AABB00 /* CommunitiesView.swift */,
@@ -205,6 +211,8 @@
 			C99C207284A5481E803AAFEA,
 			D0CF4B1BF47C4331A822B1B7,
 				AA3344556677889900AABB11 /* TypingPushManager.swift in Sources */,
+				DD6677889900BBCC11223344 /* CircularProgressButton.swift in Sources */,
+				CC5566778899AABB00112233 /* DownloadManager.swift in Sources */,
 				BB4455667788990011CCDD22 /* AppLockView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

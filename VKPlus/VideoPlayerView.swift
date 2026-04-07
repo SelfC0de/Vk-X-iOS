@@ -10,7 +10,6 @@ struct VideoCard: View {
     @State private var loading      = false
     @State private var showPlayer   = false
     @State private var showFullscreen = false
-    @State private var downloading = false
 
     private var fmtDuration: String {
         guard let d = (resolved?.duration ?? video.duration), d > 0 else { return "" }
@@ -85,18 +84,14 @@ struct VideoCard: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            Button {
+            let urlStr = (resolved ?? video).directUrl ?? ""
+            CircularDownloadButton(
+                urlStr: urlStr.isEmpty ? "video_\(video.id)" : urlStr,
+                size: 36,
+                iconColor: .white
+            ) {
                 Task { await downloadVideo() }
-            } label: {
-                Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(.black.opacity(0.6))
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 1))
             }
-            .buttonStyle(.plain)
             .padding(8)
         }
         // Title
@@ -134,7 +129,6 @@ struct VideoCard: View {
 
     private func downloadVideo() async {
         guard !downloading else { return }
-        downloading = true
         ToastManager.shared.show("Получаем ссылку...", icon: "arrow.down.circle", style: .info)
 
         // Resolve direct URL
@@ -148,8 +142,7 @@ struct VideoCard: View {
         }
         guard let str = urlStr, let url = URL(string: str) else {
             await MainActor.run {
-                downloading = false
-                ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
+                                ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
             }
             return
         }
@@ -169,8 +162,7 @@ struct VideoCard: View {
             await saveVideoToGallery(url: dest)
         } catch {
             await MainActor.run {
-                downloading = false
-                ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
+                                ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
             }
         }
     }
@@ -195,13 +187,11 @@ struct VideoCard: View {
                 PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
             }
             await MainActor.run {
-                downloading = false
-                ToastManager.shared.show("Видео сохранено в галерею", icon: "checkmark.circle.fill", style: .success)
+                                ToastManager.shared.show("Видео сохранено в галерею", icon: "checkmark.circle.fill", style: .success)
             }
         } catch {
             await MainActor.run {
-                downloading = false
-                ToastManager.shared.show("Ошибка сохранения", icon: "exclamationmark.triangle.fill", style: .warning)
+                                ToastManager.shared.show("Ошибка сохранения", icon: "exclamationmark.triangle.fill", style: .warning)
             }
         }
     }

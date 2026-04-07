@@ -327,8 +327,10 @@ struct FriendProfileView: View {
                                         .font(.system(size: 11))
                                         .foregroundStyle(Color.onSurfaceMut.opacity(0.7))
                                         .multilineTextAlignment(.center)
+                                        .padding(.bottom, 20)
+                                } else {
+                                    Color.clear.frame(height: 20)
                                 }
-                                .padding(.bottom, 20)
                             }
                         }
 

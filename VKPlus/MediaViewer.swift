@@ -188,35 +188,27 @@ struct AudioPlayerView: View {
         .onDisappear { if isActive { player.stop() } }
         .overlay(alignment: .topTrailing) {
             if isVoice {
-                Button {
+                CircularDownloadButton(urlStr: url, size: 26, iconColor: Color(red:0.11,green:0.63,blue:0.95)) {
                     Task { await downloadVoiceFile() }
-                } label: {
-                    Image(systemName: "arrow.down.to.line")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color(red:0.11,green:0.63,blue:0.95).opacity(0.85))
                 }
-                .buttonStyle(.plain)
                 .padding(.top, 4).padding(.trailing, 4)
             }
         }
     }
 
     private func downloadVoiceFile() async {
-        guard let audioUrl = URL(string: url) else { return }
+        let ext = url.hasSuffix(".ogg") ? "ogg" : "mp3"
         do {
-            let (tmpUrl, _) = try await URLSession.shared.download(from: audioUrl)
-            let ext = url.hasSuffix(".ogg") ? "ogg" : "mp3"
+            let tmpUrl = try await DownloadManager.shared.download(from: url)
             let dest = FileManager.default.temporaryDirectory
                 .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            await MainActor.run {
-                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.rootViewController?
-                    .present(av, animated: true)
-            }
+            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
         } catch {
             ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
         }

@@ -825,12 +825,20 @@ final class VKAPIClient {
             if arr.isEmpty { return [] }
             let idsStr = arr.prefix(20).map { "\($0)" }.joined(separator: ",")
             let users = try await rawCall("users.get", params: ["user_ids": idsStr, "fields": "photo_100,online,last_seen"])
-            return (users["response"] as? [[String: Any]])?.compactMap { VKUser(from: $0) } ?? []
+            return (users["response"] as? [[String: Any]])?.compactMap { dict in
+                guard let data = try? JSONSerialization.data(withJSONObject: dict),
+                      let u = try? JSONDecoder().decode(VKUser.self, from: data) else { return nil }
+                return u
+            } ?? []
         }
         if items.isEmpty { return [] }
         let idsStr = items.prefix(20).map { "\($0)" }.joined(separator: ",")
         let users = try await rawCall("users.get", params: ["user_ids": idsStr, "fields": "photo_100,online,last_seen"])
-        return (users["response"] as? [[String: Any]])?.compactMap { VKUser(from: $0) } ?? []
+        return (users["response"] as? [[String: Any]])?.compactMap { dict in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict),
+                  let u = try? JSONDecoder().decode(VKUser.self, from: data) else { return nil }
+            return u
+        } ?? []
     }
 
     // MARK: - Blacklist check

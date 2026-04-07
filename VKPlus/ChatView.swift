@@ -549,7 +549,7 @@ struct ChatView: View {
                         // Message deleted (pts event): upd[1] = message_id (negative = deleted for all)
                         let delMsgId = upd.count > 1 ? abs(upd[1] as? Int ?? 0) : 0
                         if delMsgId > 0 {
-                            await MainActor.run { deletedMsgIds.insert(delMsgId) }
+                            deletedMsgIds.insert(delMsgId)
                             // Refresh messages to reflect deletion
                             let fresh2 = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
                             if !fresh2.isEmpty {
@@ -746,21 +746,18 @@ struct ChatView: View {
 
     // MARK: - Download voice
     private func downloadVoice(urlStr: String) async {
-        guard let url = URL(string: urlStr) else { return }
+        let ext = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
         do {
-            let (tmpUrl, _) = try await URLSession.shared.download(from: url)
-            let ext = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
+            let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
             let dest = FileManager.default.temporaryDirectory
                 .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            await MainActor.run {
-                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.rootViewController?
-                    .present(av, animated: true)
-            }
+            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
         } catch {
             ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
         }
@@ -1249,6 +1246,7 @@ private struct BubbleView: View {
         let photoUrls = atts.filter { $0.type == "photo" }.compactMap { $0.photo?.maxUrl }
         ForEach(atts.indices, id: \.self) { i in
             let a = atts[i]
+            Group {
             switch a.type {
             case "photo":
                 if let url = a.photo?.maxUrl {
@@ -1280,17 +1278,21 @@ private struct BubbleView: View {
                             .frame(maxWidth: min(maxW - 36, 204))
                             .background(bg)
                             .clipShape(RoundedRectangle(cornerRadius: 18))
-                        Button {
-                            Task { await downloadVoice(urlStr: url) }
-                        } label: {
-                            Image(systemName: "arrow.down.to.line")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Color.cyberBlue)
-                                .frame(width: 30, height: 30)
-                                .background(bg)
-                                .clipShape(Circle())
+                        CircularDownloadButton(urlStr: url, size: 30, iconColor: Color.cyberBlue) {
+                            Task {
+                                if let tmp = try? await DownloadManager.shared.download(from: url) {
+                                    let dest = FileManager.default.temporaryDirectory
+                                        .appendingPathComponent("audio_\(Int(Date().timeIntervalSince1970)).mp3")
+                                    try? FileManager.default.removeItem(at: dest)
+                                    try? FileManager.default.moveItem(at: tmp, to: dest)
+                                    let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                                    UIApplication.shared.connectedScenes
+                                        .compactMap { $0 as? UIWindowScene }
+                                        .first?.windows.first?.rootViewController?
+                                        .present(av, animated: true)
+                                }
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                     if let artist = au.artist, let title = au.title {
                         Text("\(artist) — \(title)")
@@ -1371,6 +1373,7 @@ private struct BubbleView: View {
 
             default:
                 EmptyView()
+            }
             }
         }
         .sheet(isPresented: $showPhotoViewer) {
