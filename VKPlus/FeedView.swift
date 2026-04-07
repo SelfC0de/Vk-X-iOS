@@ -365,7 +365,7 @@ struct PostCard: View {
                 firstName: String(authorName.split(separator:" ").first ?? ""),
                 lastName: String(authorName.split(separator:" ").dropFirst().first ?? ""),
                 photo100: authorPhoto, photo200: nil,
-                online: nil, status: nil, verified: nil,
+                online: nil, status: nil, lastSeen: nil, verified: nil,
                 deactivated: nil, hasMobile: nil, verificationInfo: nil,
                 city: nil, followersCount: nil, bdate: nil
             ))

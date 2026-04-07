@@ -789,7 +789,7 @@ return {"user":u,"mutual":m.length};
             let user = VKUser(
                 id: id, firstName: firstName, lastName: lastName,
                 photo100: photo100, photo200: photo200,
-                online: online, status: status, verified: verified,
+                online: online, status: status, lastSeen: nil, verified: verified,
                 deactivated: nil, hasMobile: nil, verificationInfo: nil,
                 city: cityObj, followersCount: followers, bdate: bdate
             )
@@ -815,7 +815,7 @@ return {"user":u,"mutual":m.length};
                 photo100: ud["photo_100"] as? String,
                 photo200: ud["photo_200"] as? String,
                 online: nil, status: ud["status"] as? String,
-                verified: nil, deactivated: nil, hasMobile: nil,
+                lastSeen: nil, verified: nil, deactivated: nil, hasMobile: nil,
                 verificationInfo: nil, city: nil,
                 followersCount: ud["followers_count"] as? Int, bdate: nil
             )
