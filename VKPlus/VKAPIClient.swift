@@ -823,11 +823,21 @@ final class VKAPIClient {
         guard let resp = json["response"] as? [String: Any] else { return "Недоступно" }
         let online = (resp["online"] as? Int) ?? 0
         if online == 1 { return "Сейчас онлайн" }
-        guard let time = resp["time"] as? Int else { return "Недоступно" }
+        guard let time = resp["time"] as? Int, time > 0 else { return "Недоступно" }
+        let date = Date(timeIntervalSince1970: TimeInterval(time))
         let df = DateFormatter()
         df.locale = Locale(identifier: "ru_RU")
-        df.dateFormat = "d MMMM yyyy, HH:mm:ss"
-        return "Был(а) в сети: \(df.string(from: Date(timeIntervalSince1970: TimeInterval(time))))"
+        let cal = Calendar.current
+        if cal.isDateInToday(date) {
+            df.dateFormat = "Сегодня в HH:mm"
+        } else if cal.isDateInYesterday(date) {
+            df.dateFormat = "Вчера в HH:mm"
+        } else if cal.component(.year, from: date) == cal.component(.year, from: Date()) {
+            df.dateFormat = "d MMMM в HH:mm"
+        } else {
+            df.dateFormat = "d MMMM yyyy в HH:mm"
+        }
+        return "Был(а) в сети: \(df.string(from: date))"
     }
 
     // MARK: - Friends requests (входящие/исходящие)
