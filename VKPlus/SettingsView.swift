@@ -163,7 +163,7 @@ private struct PrivacyTab: View {
                 Image(systemName: "bolt.fill").font(.system(size: 17)).foregroundStyle(Color(r:0xFF,g:0xB8,b:0x00))
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Эксплойты (7)").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
+                Text("Эксплойты").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onSurface)
                 Text("Stickers, Execute, Platform, Groups...").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
             }
             Spacer()
