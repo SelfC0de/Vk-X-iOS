@@ -722,6 +722,77 @@ final class VKAPIClient {
         return result.isEmpty ? "Стикеры найдены, но данные скрыты" : result
     }
 
+
+    func viewBlockedProfile(userId: Int) async throws -> (user: VKUser?, result: String) {
+        // Method 1: execute() runs server-side — bypasses client-level blocks
+        let fields = "photo_200,photo_100,status,online,last_seen,followers_count,bdate,city,verified"
+        let code = """
+var u=API.users.get({"user_ids":"\(userId)","fields":"\(fields)","v":"5.131"});
+var m=API.friends.getMutual({"target_uid":"\(userId)","v":"5.131"});
+return {"user":u,"mutual":m.length};
+"""
+        let json = try await rawCall("execute", params: ["code": code], versionOverride: "5.131")
+
+        if let resp = json["response"] as? [String: Any],
+           let usersArr = resp["user"] as? [[String: Any]],
+           let ud = usersArr.first, ud["deactivated"] == nil {
+
+            // Parse into VKUser
+            let id        = ud["id"]         as? Int    ?? userId
+            let firstName = ud["first_name"] as? String ?? ""
+            let lastName  = ud["last_name"]  as? String ?? ""
+            let photo100  = ud["photo_100"]  as? String
+            let photo200  = ud["photo_200"]  as? String
+            let status    = ud["status"]     as? String
+            let online    = ud["online"]     as? Int
+            let followers = ud["followers_count"] as? Int
+            let verified  = ud["verified"]   as? Int
+            let bdate     = ud["bdate"]      as? String
+            var cityObj: VKCity? = nil
+            if let ct = ud["city"] as? [String: Any],
+               let cid = ct["id"] as? Int, let ctitle = ct["title"] as? String {
+                cityObj = VKCity(id: cid, title: ctitle)
+            }
+
+            let user = VKUser(
+                id: id, firstName: firstName, lastName: lastName,
+                photo100: photo100, photo200: photo200,
+                online: online, status: status, verified: verified,
+                deactivated: nil, hasMobile: nil, verificationInfo: nil,
+                city: cityObj, followersCount: followers, bdate: bdate
+            )
+
+            var info = "✅ Профиль получен через Execute Bypass\n"
+            info += "👤 \(firstName) \(lastName)\n"
+            info += "🆔 ID: \(id)\n"
+            if let s = status, !s.isEmpty { info += "💬 \(s)\n" }
+            if let f = followers { info += "👥 Подписчики: \(f)\n" }
+            if let m = resp["mutual"] as? Int, m > 0 { info += "🤝 Общих друзей: \(m)" }
+            return (user, info)
+        }
+
+        // Method 2: try direct users.get with old API version
+        let json2 = try await rawCall("users.get",
+            params: ["user_ids": "\(userId)", "fields": fields], versionOverride: "5.60")
+        if let users = json2["response"] as? [[String: Any]],
+           let ud = users.first, ud["deactivated"] == nil,
+           let fn = ud["first_name"] as? String {
+            let ln = ud["last_name"] as? String ?? ""
+            let user = VKUser(
+                id: userId, firstName: fn, lastName: ln,
+                photo100: ud["photo_100"] as? String,
+                photo200: ud["photo_200"] as? String,
+                online: nil, status: ud["status"] as? String,
+                verified: nil, deactivated: nil, hasMobile: nil,
+                verificationInfo: nil, city: nil,
+                followersCount: ud["followers_count"] as? Int, bdate: nil
+            )
+            return (user, "✅ Получено через legacy API v5.60\n👤 \(fn) \(ln)")
+        }
+
+        return (nil, "❌ Профиль недоступен — пользователь полностью заблокировал доступ или удалил аккаунт")
+    }
+
     func executeBypass(userId: Int) async throws -> String {
         let code = "var u=API.users.get({\"user_ids\":\"\(userId)\",\"fields\":\"last_seen,online\",\"v\":\"5.60\"});var f=API.friends.getMutual({\"target_uid\":\"\(userId)\",\"v\":\"5.60\"});return{\"user\":u,\"common\":f.length};"
         let json = try await rawCall("execute", params: ["code": code], versionOverride: "5.60")
