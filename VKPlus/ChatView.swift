@@ -78,7 +78,8 @@ struct ChatView: View {
     @State private var peerPlatform: Int? = nil
     @State private var peerTyping    = false
     @State private var currentPts:   Int = 0         // LongPoll pts for delete tracking
-    @State private var deletedMsgIds: Set<Int> = []  // IDs deleted by peer during session
+    @State private var deletedMsgIds: Set<Int> = []  // IDs deleted during current session (LP)
+    @State private var persistedDeletedIds: Set<Int> = []  // IDs deleted in previous sessions
     @State private var fakeTyping    = false
     @State private var fakeTypingTask: Task<Void, Never>? = nil
     @State private var typeStatusTask: Task<Void, Never>? = nil
@@ -128,7 +129,11 @@ struct ChatView: View {
                         ScrollView {
                             LazyVStack(spacing: 2) {
                                 ForEach((searchQuery.isEmpty ? messages : filteredMessages).reversed()) { msg in
-                                    let wasDeleted = deletedMsgIds.contains(msg.id)
+                                    let wasDeleted = deletedMsgIds.contains(msg.id) || persistedDeletedIds.contains(msg.id)
+                                    // Ghost bubble for persisted-deleted messages still returned by API
+                                    if wasDeleted && persistedDeletedIds.contains(msg.id) && !deletedMsgIds.contains(msg.id) {
+                                        DeletedBubble(isOutgoing: msg.isOutgoing)
+                                    } else {
                                     BubbleView(
                                         msg:      msg,
                                         myId:     myId,
@@ -157,15 +162,20 @@ struct ChatView: View {
                                         }
                                     )
                                     .id(msg.id)
+                                    } // end else (not persisted-deleted)
                                     if wasDeleted {
-                                        HStack {
+                                        HStack(spacing: 4) {
                                             if msg.fromId != myId { Spacer() }
-                                            Text("🗑 Удалено собеседником во время сессии")
+                                            Image(systemName: "trash.fill")
+                                                .font(.system(size: 9))
+                                                .foregroundStyle(Color.errorRed.opacity(0.6))
+                                            Text(msg.isOutgoing ? "Вы удалили это сообщение" : "Сообщение удалено")
                                                 .font(.system(size: 10))
-                                                .foregroundStyle(Color.errorRed.opacity(0.7))
-                                                .padding(.horizontal, 8)
+                                                .foregroundStyle(Color.errorRed.opacity(0.6))
                                             if msg.fromId == myId { Spacer() }
                                         }
+                                        .padding(.horizontal, 14)
+                                        .padding(.bottom, 2)
                                     }
                                 }
                                 // Anchor at bottom — always scroll here
@@ -546,6 +556,11 @@ struct ChatView: View {
             return
         }
 
+        // Load persisted deleted IDs
+        await MainActor.run {
+            persistedDeletedIds = SettingsStore.shared.deletedIds(for: peerId)
+        }
+
         var ts  = server.ts
         var pts = server.pts
         await MainActor.run { currentPts = pts }
@@ -577,6 +592,8 @@ struct ChatView: View {
                         let delMsgId = upd.count > 1 ? abs(upd[1] as? Int ?? 0) : 0
                         if delMsgId > 0 {
                             deletedMsgIds.insert(delMsgId)
+                            SettingsStore.shared.markDeleted(delMsgId, peerId: peerId)
+                            persistedDeletedIds.insert(delMsgId)
                             // Refresh messages to reflect deletion
                             let fresh2 = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
                             if !fresh2.isEmpty {
@@ -606,13 +623,20 @@ struct ChatView: View {
                 }
 
                 if hasNewMessage {
-                    // Fetch only new messages (last 20 enough)
                     let fresh = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
                     if !fresh.isEmpty {
                         let currentMaxId = messages.map { $0.id }.max() ?? 0
                         let freshMaxId   = fresh.map { $0.id }.max() ?? 0
                         if freshMaxId > currentMaxId || fresh.count != messages.count {
+                            let freshIds = Set(fresh.map { $0.id })
+                            let oldIds   = Set(messages.map { $0.id })
+                            // IDs present before but gone now = deleted by peer
+                            let newlyDeleted = oldIds.subtracting(freshIds).filter { $0 > 0 }
                             await MainActor.run {
+                                for id in newlyDeleted {
+                                    SettingsStore.shared.markDeleted(id, peerId: peerId)
+                                    persistedDeletedIds.insert(id)
+                                }
                                 withAnimation(.easeIn(duration: 0.15)) {
                                     messages = fresh
                                 }
@@ -1812,5 +1836,32 @@ struct ReactionsSheet: View {
         ])
         ToastManager.shared.show("Реакция добавлена", icon: "face.smiling.fill", style: .success)
         dismiss()
+    }
+}
+
+// MARK: - DeletedBubble
+// Shows in place of a message that was deleted (locally tracked)
+private struct DeletedBubble: View {
+    let isOutgoing: Bool
+    var body: some View {
+        HStack {
+            if isOutgoing { Spacer(minLength: 48) }
+            HStack(spacing: 5) {
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.onSurfaceMut.opacity(0.5))
+                Text(isOutgoing ? "Вы удалили это сообщение" : "Сообщение удалено")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.onSurfaceMut.opacity(0.55))
+                    .italic()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(Color(red:0.09,green:0.10,blue:0.15).opacity(0.7))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.onSurfaceMut.opacity(0.12), lineWidth: 0.5))
+            if !isOutgoing { Spacer(minLength: 48) }
+        }
+        .padding(.horizontal, 8)
     }
 }
