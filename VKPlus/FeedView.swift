@@ -361,12 +361,13 @@ struct PostCard: View {
             ))
         } else if post.authorId > 0 {
             FriendProfileView(user: VKUser(
-                id: post.authorId, firstName: String(authorName.split(separator:" ").first ?? ""),
+                id: post.authorId,
+                firstName: String(authorName.split(separator:" ").first ?? ""),
                 lastName: String(authorName.split(separator:" ").dropFirst().first ?? ""),
                 photo100: authorPhoto, photo200: nil,
                 online: nil, status: nil, verified: nil,
-                deactivated: nil, city: nil, bdate: nil,
-                followersCount: nil, screenName: nil
+                deactivated: nil, hasMobile: nil, verificationInfo: nil,
+                city: nil, followersCount: nil, bdate: nil
             ))
         } else {
             EmptyView()

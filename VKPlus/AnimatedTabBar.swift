@@ -7,12 +7,12 @@ final class UnreadCountManager: ObservableObject {
 
     func start() {
         guard task == nil else { return }
-        task = Task { [weak self] in
+        task = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 if let n = try? await VKAPIClient.shared.getUnreadCount() {
-                    await MainActor.run { self?.count = n }
+                    self?.count = n
                 }
-                try? await Task.sleep(nanoseconds: 30_000_000_000) // 30s
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
             }
         }
     }
