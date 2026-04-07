@@ -1,4 +1,5 @@
 // MARK: - Unread Count Manager
+@MainActor
 final class UnreadCountManager: ObservableObject {
     static let shared = UnreadCountManager()
     @Published var count: Int = 0
@@ -7,16 +8,40 @@ final class UnreadCountManager: ObservableObject {
 
     func start() {
         guard task == nil else { return }
-        task = Task { @MainActor [weak self] in
+        task = Task {
+            // First poll immediately
+            await self.refresh()
             while !Task.isCancelled {
-                if let n = try? await VKAPIClient.shared.getUnreadCount() {
-                    self?.count = n
-                }
-                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                try? await Task.sleep(nanoseconds: 15_000_000_000) // 15s
+                await self.refresh()
             }
         }
     }
+
+    func refresh() async {
+        if let n = try? await VKAPIClient.shared.getUnreadCount() {
+            self.count = n
+        }
+    }
+
     func stop() { task?.cancel(); task = nil }
+}
+
+
+// MARK: - Badge overlay helper
+private struct UnreadBadge: View {
+    let count: Int
+    var body: some View {
+        if count > 0 {
+            Text(count > 99 ? "99+" : "\(count)")
+                .font(.system(size: 7, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 3).padding(.vertical, 1)
+                .background(Color.errorRed)
+                .clipShape(Capsule())
+                .offset(x: 10, y: -8)
+        }
+    }
 }
 
 import SwiftUI

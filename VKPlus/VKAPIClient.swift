@@ -608,9 +608,22 @@ final class VKAPIClient {
     }
 
     func getUnreadCount() async throws -> Int {
+        // account.getCounters: try both field names across API versions
         let json = try await rawCall("account.getCounters", params: ["filter": "messages"])
-        let resp = json["response"] as? [String: Any]
-        return resp?["messages"] as? Int ?? 0
+        if let resp = json["response"] as? [String: Any] {
+            // newer API uses "new_messages", older uses "messages"
+            if let n = resp["new_messages"] as? Int { return n }
+            if let n = resp["messages"]     as? Int { return n }
+        }
+        // Fallback: sum unread_count from conversations
+        let convJson = try await rawCall("messages.getConversations", params: [
+            "count": "20", "filter": "unread", "extended": "0"
+        ])
+        if let resp = convJson["response"] as? [String: Any],
+           let count = resp["count"] as? Int {
+            return count
+        }
+        return 0
     }
 
     func getGroupWall(groupId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {

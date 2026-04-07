@@ -117,14 +117,21 @@ struct MessagesView: View {
         isLoading = false
     }
 
+    private func updateBadge() {
+        let total = dialogs.reduce(0) { $0 + $1.unreadCount }
+        Task { @MainActor in UnreadCountManager.shared.count = total }
+    }
+
     private func fetchDialogs() async {
         // Keep existing on error
         if let fresh = try? await VKAPIClient.shared.getDialogs(), !fresh.isEmpty {
             dialogs = fresh
+            updateBadge()
         } else if dialogs.isEmpty {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             if let retry = try? await VKAPIClient.shared.getDialogs() {
                 dialogs = retry
+                updateBadge()
             }
         }
     }
