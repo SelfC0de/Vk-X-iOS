@@ -763,12 +763,23 @@ final class VKAPIClient {
     // Direct typing signal — bypasses PrivacyEngine URLProtocol
     func sendTypingDirect(peerId: Int, type: String = "typing") async {
         guard let token = TokenStorage.shared.token else { return }
-        let urlStr = "https://api.vk.com/method/messages.setActivity?peer_id=\(peerId)&type=\(type)&v=5.199&access_token=\(token)"
-        guard let url = URL(string: urlStr) else { return }
+        guard let url = URL(string: "https://api.vk.com/method/messages.setActivity") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        let session = URLSession(configuration: .default)
-        _ = try? await session.data(for: req)
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        let body = "peer_id=\(peerId)&type=\(type)&v=5.199&access_token=\(token)"
+        req.httpBody = body.data(using: .utf8)
+        // Custom session bypasses URLProtocol interceptors (antiTyping filter etc.)
+        let cfg = URLSessionConfiguration.default
+        cfg.protocolClasses = []
+        let session = URLSession(configuration: cfg)
+        if let (data, _) = try? await session.data(for: req),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            // Log error for debugging if response contains error
+            if let err = json["error"] as? [String: Any] {
+                print("[TypeStatus] setActivity error:", err["error_msg"] ?? "unknown")
+            }
+        }
     }
 
 
