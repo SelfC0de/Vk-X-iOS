@@ -119,7 +119,7 @@ struct MessagesView: View {
 
     private func updateBadge() {
         let total = dialogs.reduce(0) { $0 + $1.unreadCount }
-        Task { @MainActor in UnreadCountManager.shared.count = total }
+        UnreadCountManager.shared.count = total
     }
 
     private func fetchDialogs() async {

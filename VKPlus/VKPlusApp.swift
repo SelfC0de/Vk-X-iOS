@@ -31,7 +31,7 @@ struct VKPlusApp: App {
                         ForceOfflineManager.shared.stop()
                     }
                     ScreenProtector.shared.apply(enabled: store.blurScreen)
-                    if store.typePush { TypingPushManager.shared.start() }
+                    // TypingPushManager auto-resumes via onChange(typePush)
                 }
                 .onChange(of: store.forceOffline) { _, val in
                     let needOffline = val || store.ghostOnline

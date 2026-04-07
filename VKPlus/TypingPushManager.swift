@@ -18,6 +18,8 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
 
     // Cache: peerId → member count (to avoid repeated API calls)
     private var memberCountCache: [Int: Int] = [:]
+    // Cache: userId → display name
+    private var nameCache: [Int: String] = [:]
 
     // MARK: - Permission
     func requestPermission() {
@@ -62,7 +64,8 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
 
                 let s = SettingsStore.shared
                 guard s.typePush else {
-                    try await Task.sleep(nanoseconds: 1_000_000_000); continue
+                    // Not active — sleep 5s to save battery instead of tight loop
+                    try await Task.sleep(nanoseconds: 5_000_000_000); continue
                 }
 
                 for update in events.updates {
@@ -132,10 +135,14 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
            Date().timeIntervalSince(last) < cooldown { return }
         lastNotif[userId] = Date()
 
-        // Resolve name
+        // Resolve name (cached to avoid blocking loop)
         let name: String
-        if let user = try? await VKAPIClient.shared.getUserById("\(userId)") {
-            name = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
+        if let cached = nameCache[userId] {
+            name = cached
+        } else if let user = try? await VKAPIClient.shared.getUserById("\(userId)") {
+            let resolved = "\(user.firstName) \(user.lastName)".trimmingCharacters(in: .whitespaces)
+            nameCache[userId] = resolved
+            name = resolved
         } else {
             name = "Пользователь"
         }

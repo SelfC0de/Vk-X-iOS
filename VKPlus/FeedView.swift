@@ -628,78 +628,7 @@ struct PhotoViewerSheet: View {
 }
 
 // Zoomable photo with pinch gesture
-private struct ZoomablePhoto: View {
-    let url: URL?
-    @State private var scale:      CGFloat = 1
-    @State private var lastScale:  CGFloat = 1
-    @State private var offset:     CGSize  = .zero
-    @State private var lastOffset: CGSize  = .zero
 
-    var body: some View {
-        GeometryReader { geo in
-            Group {
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable()
-                                .scaledToFit()
-                                .frame(width: geo.size.width, height: geo.size.height)
-                                .scaleEffect(scale)
-                                .offset(offset)
-                                // Pinch to zoom
-                                .gesture(
-                                    MagnifyGesture()
-                                        .onChanged { v in
-                                            scale = max(1, min(5, lastScale * v.magnification))
-                                        }
-                                        .onEnded { _ in
-                                            lastScale = scale
-                                            if scale <= 1 {
-                                                withAnimation(.spring(response: 0.3)) {
-                                                    scale = 1; offset = .zero
-                                                    lastScale = 1; lastOffset = .zero
-                                                }
-                                            }
-                                        }
-                                )
-                                // Drag only when zoomed — don't block TabView horizontal swipe
-                                .simultaneousGesture(
-                                    DragGesture(minimumDistance: 10)
-                                        .onChanged { v in
-                                            guard scale > 1 else { return }
-                                            offset = CGSize(
-                                                width:  lastOffset.width  + v.translation.width,
-                                                height: lastOffset.height + v.translation.height
-                                            )
-                                        }
-                                        .onEnded { _ in
-                                            guard scale > 1 else { return }
-                                            lastOffset = offset
-                                        }
-                                )
-                                .onTapGesture(count: 2) {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        if scale > 1 {
-                                            scale = 1; offset = .zero
-                                            lastScale = 1; lastOffset = .zero
-                                        } else {
-                                            scale = 2.5; lastScale = 2.5
-                                        }
-                                    }
-                                }
-                        default:
-                            ProgressView().tint(.white)
-                                .frame(width: geo.size.width, height: geo.size.height)
-                        }
-                    }
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-        }
-        // Reset zoom on swipe-away (when scale == 1, let TabView handle gesture)
-    }
-}
 
 // MARK: - Repost Sheet
 struct RepostSheet: View {

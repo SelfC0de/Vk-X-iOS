@@ -53,7 +53,7 @@ struct MediaViewerSheet: View {
 }
 
 // MARK: - Zoomable photo
-private struct ZoomablePhoto: View {
+struct ZoomablePhoto: View {
     let url: String
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero

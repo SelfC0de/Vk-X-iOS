@@ -598,15 +598,22 @@ final class VKAPIClient {
         return nil
     }
 
-    func getUserWall(userId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
-        struct WR: Decodable { let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]? }
-        let r: WR = try await call("wall.get", params: [
-            "owner_id": "\(userId)", "count": "\(count)", "offset": "\(offset)",
-            "extended": "1", "fields": "photo_100,screen_name,name,first_name,last_name"
-        ])
+    // Shared wall response decoder
+    private struct WallResponse: Decodable {
+        let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]?
+    }
+    private func wallPage(_ r: WallResponse) -> NewsfeedPage {
         let pm = Dictionary(uniqueKeysWithValues: (r.profiles ?? []).map { ($0.id, $0) })
         let gm = Dictionary(uniqueKeysWithValues: (r.groups   ?? []).map { ($0.id, $0) })
         return NewsfeedPage(items: r.items, profiles: pm, groups: gm, nextFrom: nil)
+    }
+
+    func getUserWall(userId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
+        let r: WallResponse = try await call("wall.get", params: [
+            "owner_id": "\(userId)", "count": "\(count)", "offset": "\(offset)",
+            "extended": "1", "fields": "photo_100,screen_name,name,first_name,last_name"
+        ])
+        return wallPage(r)
     }
 
     func getUnreadCount() async throws -> Int {
@@ -629,10 +636,7 @@ final class VKAPIClient {
     }
 
     func getGroupWall(groupId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
-        struct WR: Decodable {
-            let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]?
-        }
-        let r: WR = try await call("wall.get", params: [
+        let r: WallResponse = try await call("wall.get", params: [
             "owner_id": "-\(groupId)", "count": "\(count)", "offset": "\(offset)",
             "extended": "1",
             "fields": "photo_100,screen_name,name,first_name,last_name"
@@ -667,15 +671,15 @@ final class VKAPIClient {
     }
 
     // MARK: - Likes
+    private struct LikesResponse: Decodable { let likes: Int? }
+
     func addLike(ownerId: Int, itemId: Int) async throws -> Int {
-        struct LR: Decodable { let likes: Int? }
-        let r: LR = try await call("likes.add", params: ["type": "post", "owner_id": "\(ownerId)", "item_id": "\(itemId)"])
+        let r: LikesResponse = try await call("likes.add", params: ["type": "post", "owner_id": "\(ownerId)", "item_id": "\(itemId)"])
         return r.likes ?? 0
     }
 
     func deleteLike(ownerId: Int, itemId: Int) async throws -> Int {
-        struct LR: Decodable { let likes: Int? }
-        let r: LR = try await call("likes.delete", params: ["type": "post", "owner_id": "\(ownerId)", "item_id": "\(itemId)"])
+        let r: LikesResponse = try await call("likes.delete", params: ["type": "post", "owner_id": "\(ownerId)", "item_id": "\(itemId)"])
         return r.likes ?? 0
     }
 

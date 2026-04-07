@@ -66,6 +66,13 @@ private let MODEL_FIELDS = ["device", "device_model", "device_id", "model", "har
 private let IOS_FIELDS   = ["os_version", "system_version", "ios_version", "os"]
 
 final class PrivacyURLProtocol: URLProtocol {
+    // Reusable session — avoids creating a new session per request
+    private static let passthrough: URLSession = {
+        let cfg = URLSessionConfiguration.default
+        cfg.protocolClasses = cfg.protocolClasses?.filter { $0 != PrivacyURLProtocol.self }
+        return URLSession(configuration: cfg)
+    }()
+
 
     override class func canInit(with request: URLRequest) -> Bool {
         guard let url = request.url?.absoluteString else { return false }
@@ -88,9 +95,9 @@ final class PrivacyURLProtocol: URLProtocol {
         let path   = URL(string: url)?.query ?? ""
 
         // ── Deep Privacy interception ─────────────────────────────────────
-        var newRequest2 = request
+        var req = request
         if s.blockWifi || s.spoofAdId || s.spoofCarrier {
-            newRequest2 = scrubRequest(newRequest2, s: s)
+            req = scrubRequest(req, s: s)
         }
 
         // Ghost Mode — block markAsRead
@@ -118,38 +125,27 @@ final class PrivacyURLProtocol: URLProtocol {
             fakeOK("{\"response\":1}"); return
         }
 
-        // Build modified request
-        var newRequest = newRequest2
-
         // Anti-Link Preview
         if s.antiLinkPreview && (method == "messages.getLinkStats" || method == "links.getStats") {
             fakeOK("{\"response\":{\"stats\":[]}}"); return
         }
         // Ghost Forward
         if s.ghostForward && method == "messages.send" {
-            newRequest = stripForwardMeta(newRequest)
+            req = stripForwardMeta(req)
         }
         // Spoof Device Model
-        if s.spoofDeviceModel {
-            newRequest = spoofDevice(newRequest)
-        }
+        if s.spoofDeviceModel { req = spoofDevice(req) }
         // Language Spoof
-        if s.languageSpoof {
-            newRequest = spoofLanguage(newRequest)
-        }
+        if s.languageSpoof    { req = spoofLanguage(req) }
         // Battery + Accelerometer Strip
-        if s.batteryStrip {
-            newRequest = stripBatterySensors(newRequest)
-        }
+        if s.batteryStrip     { req = stripBatterySensors(req) }
         // Network Type Spoof
-        if s.networkTypeSpoof {
-            newRequest = spoofNetworkType(newRequest)
-        }
+        if s.networkTypeSpoof { req = spoofNetworkType(req) }
 
-        newRequest.url = buildModifiedURL(original: newRequest.url ?? request.url!, method: method, antiBan: s.antiBan)
+        req.url = buildModifiedURL(original: req.url ?? request.url!, method: method, antiBan: s.antiBan)
 
         let session = URLSession(configuration: .default)
-        let task = session.dataTask(with: newRequest) { [weak self] data, response, error in
+        let task = session.dataTask(with: req) { [weak self] data, response, error in
             guard let self else { return }
             if let error { self.client?.urlProtocol(self, didFailWithError: error); return }
             if let response { self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }

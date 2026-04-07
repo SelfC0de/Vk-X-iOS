@@ -7,12 +7,12 @@ final class UnreadCountManager: ObservableObject {
     private init() {}
 
     func start() {
-        guard task == nil else { return }
+        // Cancel any dead task and restart
+        if let t = task, !t.isCancelled { return }
         task = Task {
-            // First poll immediately
             await self.refresh()
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 15_000_000_000) // 15s
+                try? await Task.sleep(nanoseconds: 15_000_000_000)
                 await self.refresh()
             }
         }

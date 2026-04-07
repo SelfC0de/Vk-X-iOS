@@ -257,7 +257,10 @@ struct ChatView: View {
             await load()
             startMessagePolling()
         }
-        .onDisappear { messagePollingTask?.cancel(); messagePollingTask = nil }
+        .onDisappear {
+            messagePollingTask?.cancel(); messagePollingTask = nil
+            fakeTypingTask?.cancel(); fakeTypingTask = nil; fakeTyping = false
+        }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
             Button("Фото") { showPhotoPicker = true }
             Button("Видео") { showVideoPicker = true }
@@ -609,17 +612,16 @@ struct ChatView: View {
     }
 
     private func notifyTyping() {
+        guard !SettingsStore.shared.antiTyping else { return }  // respect user's own antiTyping
         let now = Date()
         guard now.timeIntervalSince(lastTypingSent) > 5 else { return }
         lastTypingSent = now
-        Task {
-            _ = try? await VKAPIClient.shared.rawCall("messages.setActivity",
-                params: ["peer_id": "\(peerId)", "type": "typing"])
-        }
+        Task { await VKAPIClient.shared.sendTypingDirect(peerId: peerId) }
     }
 
     private func send() async {
-        let text = draft.trimmingCharacters(in: .whitespaces); guard !text.isEmpty else { return }
+        let text = draft.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty || pendingAttach != nil else { return }
         isSending = true
         if let editing = editingMsg {
             do {
@@ -744,21 +746,6 @@ struct ChatView: View {
         await saveVideoFromUrl(url)
     }
 
-    private func saveVideoFromUrl(_ url: URL) async {
-        ToastManager.shared.show("Загрузка видео...", icon: "arrow.down.circle", style: .info)
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning); return
-        }
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("video_\(Int(Date().timeIntervalSince1970)).mp4")
-        try? data.write(to: tmp)
-        await MainActor.run {
-            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
-        }
-    }
 
     // MARK: - Fake Typing
     private func toggleFakeTyping() {
