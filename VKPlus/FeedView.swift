@@ -1149,8 +1149,14 @@ private struct FeedAudioRow: View {
 
             // Player button (if URL available)
             if hasUrl {
-                AudioPlayerView(url: audio.url!, duration: audio.duration ?? 0, isVoice: false)
-                    .frame(width: 140)
+                AudioPlayerView(
+                    url: audio.url!,
+                    duration: audio.duration ?? 0,
+                    isVoice: false,
+                    artist: audio.artist,
+                    title: audio.title
+                )
+                .frame(width: 140)
             } else {
                 // No direct URL — VK restricts audio API
                 HStack(spacing: 4) {

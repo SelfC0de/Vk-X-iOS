@@ -1301,7 +1301,13 @@ private struct BubbleView: View {
             case "audio":
                 if let au = a.audio, let url = au.url {
                     HStack(spacing: 6) {
-                        AudioPlayerView(url: url, duration: au.duration ?? 0, isVoice: false)
+                        AudioPlayerView(
+                                url: url,
+                                duration: au.duration ?? 0,
+                                isVoice: false,
+                                artist: au.artist,
+                                title: au.title
+                            )
                             .frame(maxWidth: min(maxW - 36, 204))
                             .background(bg)
                             .clipShape(RoundedRectangle(cornerRadius: 18))

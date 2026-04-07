@@ -97,31 +97,44 @@ struct ZoomablePhoto: View {
 // MARK: - Audio/Voice Player
 struct AudioPlayerView: View {
     let url: String
-    let duration: Int
+    let duration: Int       // hint from API (may be 0 for docs)
     let isVoice: Bool
+    var artist: String? = nil
+    var title: String?  = nil
 
     @StateObject private var player = AudioPlayerModel()
+    @StateObject private var meta   = ID3MetadataReader()
 
-    // Fake waveform bars — pseudo-random but stable per url
+    // Pseudo-random waveform stable per URL
     private var bars: [CGFloat] {
         var rng = url.hashValue
-        return (0..<28).map { _ -> CGFloat in
+        return (0..<32).map { _ -> CGFloat in
             rng = rng &* 1664525 &+ 1013904223
-            let v = CGFloat((rng >> 16) & 0xFF) / 255.0
-            return 0.15 + v * 0.85
+            return 0.15 + CGFloat((rng >> 16) & 0xFF) / 255.0 * 0.85
         }
     }
 
-    private var isActive: Bool { player.currentUrl == url }
-    private var progress: Double { isActive ? player.progress : 0 }
+    private var isActive: Bool  { player.currentUrl == url }
+    private var displayProg: Double { isActive ? player.displayProgress : 0 }
+    private var totalSec: Int {
+        if isActive && player.realDuration > 0 { return Int(player.realDuration) }
+        return duration
+    }
+    private var currentSec: Int { Int(displayProg * Double(max(totalSec, 1))) }
+
+    // Resolved metadata
+    private var displayArtist: String? { meta.artist ?? artist }
+    private var displayTitle:  String? { meta.title  ?? title  }
 
     var body: some View {
         HStack(spacing: 10) {
-            // Play/pause button
+            // Play button
             Button { player.toggle(url: url) } label: {
                 ZStack {
                     Circle()
-                        .fill(isVoice ? Color(red:0.11,green:0.63,blue:0.95) : Color.cyberBlue.opacity(0.2))
+                        .fill(isVoice
+                              ? Color(red:0.11,green:0.63,blue:0.95)
+                              : Color.cyberBlue.opacity(isActive ? 0.3 : 0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: isActive && player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 15, weight: .bold))
@@ -130,65 +143,107 @@ struct AudioPlayerView: View {
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 5) {
-                if isVoice {
-                    // VK-style waveform
-                    GeometryReader { geo in
-                        let barW: CGFloat = (geo.size.width - CGFloat(bars.count - 1) * 2) / CGFloat(bars.count)
-                        let filled = Int(progress * Double(bars.count))
-                        HStack(spacing: 2) {
-                            ForEach(Array(bars.enumerated()), id: \.offset) { i, h in
-                                Capsule()
-                                    .fill(i < filled
-                                          ? Color(red:0.11,green:0.63,blue:0.95)
-                                          : Color.white.opacity(0.25))
-                                    .frame(width: max(2, barW), height: geo.size.height * h)
-                            }
+            VStack(alignment: .leading, spacing: 4) {
+                // Title row
+                if !isVoice {
+                    if let t = displayTitle, !t.isEmpty {
+                        Text(t)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.onSurface)
+                            .lineLimit(1)
+                        if let a = displayArtist, !a.isEmpty {
+                            Text(a)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.onSurfaceMut)
+                                .lineLimit(1)
                         }
-                        .frame(height: geo.size.height)
-                        .contentShape(Rectangle())
-                        .gesture(DragGesture(minimumDistance: 0).onEnded { v in
-                            player.seek(to: Double(v.location.x / geo.size.width))
-                        })
                     }
-                    .frame(height: 28)
-                } else {
-                    // Regular audio — slim bar
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
-                            Capsule().fill(Color.cyberBlue)
-                                .frame(width: geo.size.width * CGFloat(progress), height: 3)
-                        }
-                        .contentShape(Rectangle())
-                        .gesture(DragGesture(minimumDistance: 0).onEnded { v in
-                            player.seek(to: Double(v.location.x / geo.size.width))
-                        })
-                    }
-                    .frame(height: 3)
                 }
 
-                HStack {
-                    Text(timeStr(isActive ? Int(progress * Double(duration)) : duration))
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(isVoice
-                            ? (isActive && player.isPlaying ? Color(red:0.11,green:0.63,blue:0.95) : Color.white.opacity(0.5))
-                            : Color(red:0.55,green:0.75,blue:0.95))
-                    if !isVoice {
-                        Spacer()
-                        Text(timeStr(duration))
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.4))
+                // Seekbar
+                GeometryReader { geo in
+                    let w = geo.size.width
+                    ZStack(alignment: .leading) {
+                        if isVoice {
+                            // Waveform bars
+                            let barW: CGFloat = (w - CGFloat(bars.count - 1) * 2) / CGFloat(bars.count)
+                            let filled = Int(displayProg * Double(bars.count))
+                            HStack(spacing: 2) {
+                                ForEach(Array(bars.enumerated()), id: \.offset) { i, h in
+                                    Capsule()
+                                        .fill(i < filled
+                                              ? Color(red:0.11,green:0.63,blue:0.95)
+                                              : Color.white.opacity(0.2))
+                                        .frame(width: max(2, barW), height: geo.size.height * h)
+                                }
+                            }
+                        } else {
+                            // Progress bar with thumb
+                            Capsule()
+                                .fill(Color.white.opacity(0.12))
+                                .frame(height: 4)
+                            Capsule()
+                                .fill(Color.cyberBlue)
+                                .frame(width: w * CGFloat(displayProg), height: 4)
+                            // Thumb dot
+                            if isActive {
+                                Circle()
+                                    .fill(Color.cyberBlue)
+                                    .frame(width: 11, height: 11)
+                                    .offset(x: w * CGFloat(displayProg) - 5.5)
+                                    .animation(.linear(duration: 0.05), value: displayProg)
+                            }
+                        }
                     }
+                    .frame(height: geo.size.height)
+                    .contentShape(Rectangle())
+                    // Drag gesture for scrubbing
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { v in
+                                let pct = max(0, min(1, v.location.x / w))
+                                if player.currentUrl == url {
+                                    player.beginDrag(at: pct)
+                                } else {
+                                    // Start playing + seek
+                                    player.toggle(url: url)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                        player.beginDrag(at: pct)
+                                    }
+                                }
+                            }
+                            .onEnded { _ in player.endDrag() }
+                    )
+                }
+                .frame(height: isVoice ? 28 : 16)
+
+                // Time row
+                HStack {
+                    Text(timeStr(isActive ? currentSec : 0))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(isVoice
+                            ? Color(red:0.11,green:0.63,blue:0.95).opacity(isActive ? 1 : 0.5)
+                            : Color(red:0.55,green:0.75,blue:0.95))
+                    Spacer()
+                    Text(timeStr(totalSec))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Color.white.opacity(0.35))
                 }
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
+        .onAppear {
+            // Load ID3 metadata for non-voice audio if no API metadata
+            if !isVoice && (artist == nil || title == nil) {
+                meta.load(urlStr: url)
+            }
+        }
         .onDisappear { if isActive { player.stop() } }
         .overlay(alignment: .topTrailing) {
             if isVoice {
-                CircularDownloadButton(urlStr: url, size: 26, iconColor: Color(red:0.11,green:0.63,blue:0.95)) {
+                CircularDownloadButton(urlStr: url, size: 26,
+                                       iconColor: Color(red:0.11,green:0.63,blue:0.95)) {
                     Task { await downloadVoiceFile() }
                 }
                 .padding(.top, 4).padding(.trailing, 4)
@@ -219,15 +274,61 @@ struct AudioPlayerView: View {
     }
 }
 
+// MARK: - ID3 Metadata Reader
+@MainActor
+final class ID3MetadataReader: ObservableObject {
+    @Published var title:  String? = nil
+    @Published var artist: String? = nil
+
+    func load(urlStr: String) {
+        guard title == nil, artist == nil else { return }
+        guard let url = URL(string: urlStr) else { return }
+        Task.detached(priority: .utility) {
+            let asset = AVURLAsset(url: url)
+            do {
+                let meta = try await asset.load(.commonMetadata)
+                var t: String? = nil
+                var a: String? = nil
+                for item in meta {
+                    guard let key = item.commonKey else { continue }
+                    if key == .commonKeyTitle, t == nil {
+                        t = try? await item.load(.stringValue)
+                    }
+                    if key == .commonKeyArtist, a == nil {
+                        a = try? await item.load(.stringValue)
+                    }
+                }
+                // Fallback: try filename decomposition "Artist - Title.mp3"
+                if t == nil, a == nil {
+                    let name = url.deletingPathExtension().lastPathComponent
+                    let parts = name.components(separatedBy: " - ")
+                    if parts.count >= 2 {
+                        a = parts[0].trimmingCharacters(in: .whitespaces)
+                        t = parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
+                    }
+                }
+                await MainActor.run {
+                    self.title  = t
+                    self.artist = a
+                }
+            } catch {}
+        }
+    }
+}
+
+
 // MARK: - Audio Player Model
 final class AudioPlayerModel: NSObject, ObservableObject {
-    @Published var isPlaying = false
+    @Published var isPlaying   = false
     @Published var progress: Double = 0
     @Published var currentUrl: String = ""
+    @Published var realDuration: Double = 0   // actual seconds from AVPlayer
+    @Published var isDragging  = false
+    @Published var dragProgress: Double = 0
 
     private var player: AVPlayer?
-    private var observer: Any?
     private var timeObserver: Any?
+    private var durationObserver: NSKeyValueObservation?
 
     func toggle(url: String) {
         if isPlaying && currentUrl == url { pause(); return }
@@ -242,34 +343,67 @@ final class AudioPlayerModel: NSObject, ObservableObject {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {}
-        player = AVPlayer(url: u)
+        let item = AVPlayerItem(url: u)
+        player = AVPlayer(playerItem: item)
+        // Observe real duration
+        durationObserver = item.observe(\.status, options: [.new]) { [weak self] it, _ in
+            guard let self else { return }
+            if it.status == .readyToPlay {
+                let d = it.duration.seconds
+                if !d.isNaN && d > 0 {
+                    DispatchQueue.main.async { self.realDuration = d }
+                }
+            }
+        }
         timeObserver = player?.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.1, preferredTimescale: 600),
+            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
             queue: .main
         ) { [weak self] time in
-            guard let self, let dur = self.player?.currentItem?.duration.seconds,
-                  !dur.isNaN, dur > 0 else { return }
+            guard let self, !self.isDragging else { return }
+            let dur = self.player?.currentItem?.duration.seconds ?? 0
+            guard !dur.isNaN, dur > 0 else { return }
             self.progress = time.seconds / dur
+            if self.realDuration == 0 { self.realDuration = dur }
             if self.progress >= 0.999 { self.stop() }
         }
         player?.play()
         isPlaying = true
     }
 
-    private func pause() { player?.pause(); isPlaying = false }
-    private func resume() { player?.play(); isPlaying = true }
+    private func pause()  { player?.pause(); isPlaying = false }
+    private func resume() { player?.play();  isPlaying = true  }
 
     func stop() {
+        durationObserver?.invalidate(); durationObserver = nil
         if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
         player?.pause(); player = nil
-        isPlaying = false; progress = 0
+        isPlaying = false; progress = 0; realDuration = 0
     }
 
     func seek(to pct: Double) {
-        guard let dur = player?.currentItem?.duration.seconds, !dur.isNaN else { return }
-        let t = CMTime(seconds: pct * dur, preferredTimescale: 600)
-        player?.seek(to: t)
+        let p = max(0, min(1, pct))
+        let dur = player?.currentItem?.duration.seconds ?? realDuration
+        guard !dur.isNaN, dur > 0 else { return }
+        let t = CMTime(seconds: p * dur, preferredTimescale: 600)
+        player?.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
+        progress = p
     }
+
+    func beginDrag(at pct: Double) {
+        isDragging = true
+        dragProgress = max(0, min(1, pct))
+    }
+
+    func moveDrag(to pct: Double) {
+        dragProgress = max(0, min(1, pct))
+    }
+
+    func endDrag() {
+        seek(to: dragProgress)
+        isDragging = false
+    }
+
+    var displayProgress: Double { isDragging ? dragProgress : progress }
 }
 
 // MARK: - Video Player Sheet
