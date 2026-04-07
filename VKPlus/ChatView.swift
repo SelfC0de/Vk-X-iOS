@@ -872,17 +872,26 @@ struct ChatView: View {
             audioRecorder = recorder
             recordedURL   = url
             isRecording   = true
+            recordSeconds = 0
+            // Start seconds counter on main thread
+            DispatchQueue.main.async {
+                self.recordTimer?.invalidate()
+                self.recordTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                    self.recordSeconds += 1
+                }
+                RunLoop.main.add(self.recordTimer!, forMode: .common)
+            }
         } catch {
             ToastManager.shared.show("Ошибка микрофона: \(error.localizedDescription)", icon: "mic.slash.fill", style: .warning)
         }
     }
 
     private func stopRecording() {
+        recordTimer?.invalidate(); recordTimer = nil
         audioRecorder?.stop()
         audioRecorder = nil
         isRecording = false
         guard let url = recordedURL else { return }
-        // Show preview first — upload happens on send
         voiceReadyURL = url
     }
 
