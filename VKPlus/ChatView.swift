@@ -834,16 +834,9 @@ struct ChatView: View {
 
     // MARK: - Download voice
     private func downloadVoice(urlStr: String) async {
-        do {
-            let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
-            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
-        } catch {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-        }
+        let ext  = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
+        let name = "voice_\(Int(Date().timeIntervalSince1970)).\(ext)"
+        await DownloadManager.shared.downloadAudio(from: urlStr, filename: name)
     }
 
     // MARK: - Download video
@@ -1351,13 +1344,10 @@ private struct BubbleView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         CircularDownloadButton(urlStr: url, size: 30, iconColor: Color.cyberBlue) {
                             Task {
-                                if let tmp = try? await DownloadManager.shared.download(from: url) {
-                                    let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
-                                    UIApplication.shared.connectedScenes
-                                        .compactMap { $0 as? UIWindowScene }
-                                        .first?.windows.first?.rootViewController?
-                                        .present(av, animated: true)
-                                }
+                                let artist = au.artist ?? ""
+                                let title  = au.title  ?? "audio"
+                                let name   = artist.isEmpty ? title : "\(artist) - \(title)"
+                                await DownloadManager.shared.downloadAudio(from: url, filename: name)
                             }
                         }
                     }

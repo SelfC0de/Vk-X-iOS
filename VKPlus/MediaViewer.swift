@@ -254,16 +254,9 @@ struct AudioPlayerView: View {
     }
 
     private func downloadVoiceFile() async {
-        do {
-            let tmpUrl = try await DownloadManager.shared.download(from: url)
-            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
-        } catch {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-        }
+        let ext  = url.hasSuffix(".ogg") ? "ogg" : "mp3"
+        let name = "voice_\(Int(Date().timeIntervalSince1970)).\(ext)"
+        await DownloadManager.shared.downloadAudio(from: url, filename: name)
     }
 
     private func timeStr(_ seconds: Int) -> String {
