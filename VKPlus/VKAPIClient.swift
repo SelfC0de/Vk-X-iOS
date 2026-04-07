@@ -769,9 +769,9 @@ final class VKAPIClient {
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         let body = "peer_id=\(peerId)&type=\(type)&v=5.199&access_token=\(token)"
         req.httpBody = body.data(using: .utf8)
-        // Custom session bypasses URLProtocol interceptors (antiTyping filter etc.)
+        // Bypass PrivacyEngine URLProtocol by stripping it from protocol classes
         let cfg = URLSessionConfiguration.default
-        cfg.protocolClasses = []
+        cfg.protocolClasses = (cfg.protocolClasses ?? []).filter { $0 != PrivacyURLProtocol.self }
         let session = URLSession(configuration: cfg)
         if let (data, _) = try? await session.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {

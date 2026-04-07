@@ -362,7 +362,8 @@ struct ChatView: View {
                             recordTimer?.invalidate(); recordTimer = nil
                             audioRecorder?.stop(); audioRecorder = nil
                             isRecording = false; isCancelling = false
-                            dragOffsetX = 0; recordSeconds = 0; recordedURL = nil
+                            dragOffsetX = 0; recordSeconds = 0
+                            recordedURL = nil; voiceReadyURL = nil
                             UINotificationFeedbackGenerator().notificationOccurred(.warning)
                         }
                     )
@@ -788,15 +789,16 @@ struct ChatView: View {
     private func toggleFakeTyping() {
         if fakeTyping {
             fakeTyping = false
-            fakeTypingTask?.cancel()
-            fakeTypingTask = nil
+            fakeTypingTask?.cancel(); fakeTypingTask = nil
+            // Resume typeStatus loop if it was set
+            startTypeStatusLoop()
             ToastManager.shared.show("Имитация набора остановлена", icon: "keyboard", style: .info)
         } else {
+            // Pause typeStatus loop — fakeTyping takes over
+            typeStatusTask?.cancel(); typeStatusTask = nil
             fakeTyping = true
             ToastManager.shared.show("Имитация набора активна", icon: "keyboard.fill", style: .success)
             fakeTypingTask = Task {
-                // Send immediately, then repeat every 4s
-                // Use direct URL bypass to avoid PrivacyEngine antiTyping interception
                 while !Task.isCancelled && fakeTyping {
                     await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: "typing")
                     try? await Task.sleep(nanoseconds: 4_000_000_000)
