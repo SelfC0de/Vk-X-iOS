@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SwiftUI
 
 private let tabs = ["Приватность", "Движок", "Устройство", "Визуал", "Интерфейс", "Прокси", "О нас"]
@@ -87,60 +88,93 @@ struct SettingsView: View {
 private struct PrivacyTab: View {
     @ObservedObject private var s = SettingsStore.shared
     @State private var showPinSetup = false
+    // Detect biometric availability once
+    private var bioAvailable: Bool {
+        let ctx = LAContext(); var e: NSError?
+        return ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &e)
+    }
+    private var bioLabel: String {
+        let ctx = LAContext(); var e: NSError?
+        _ = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &e)
+        return ctx.biometryType == .faceID ? "Face ID" : "Touch ID"
+    }
+    private var bioIcon: String {
+        let ctx = LAContext(); var e: NSError?
+        _ = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &e)
+        return ctx.biometryType == .faceID ? "faceid" : "touchid"
+    }
+
     var body: some View {
         VStack(spacing: 14) {
             // App Lock
             SettingsSectionCard(title: "Блокировка приложения",
-                                subtitle: "PIN-код и биометрия при запуске",
+                                subtitle: "Защита при открытии приложения",
                                 icon: "lock.shield.fill", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
                 VStack(spacing: 0) {
-                    SettingsToggle("Блокировка PIN", icon: "lock.fill",
-                                   subtitle: s.appLockEnabled ? "Активна — вход по PIN" : "Запрашивать PIN при открытии",
-                                   val: $s.appLockEnabled)
-                        .onChange(of: s.appLockEnabled) { _, val in
-                            if val && s.appLockPin.isEmpty { showPinSetup = true; s.appLockEnabled = false }
+
+                    // ── Method picker ─────────────────────────────────────
+                    LockMethodPicker(
+                        hasPIN:        !s.appLockPin.isEmpty,
+                        bioAvailable:  bioAvailable,
+                        bioLabel:      bioLabel,
+                        bioIcon:       bioIcon,
+                        usePIN:        s.appLockEnabled && !s.appLockBiometric,
+                        useBio:        s.appLockEnabled && s.appLockBiometric,
+                        onSelectPIN: {
+                            if s.appLockPin.isEmpty {
+                                showPinSetup = true
+                            } else {
+                                s.appLockBiometric = false
+                                s.appLockEnabled   = true
+                            }
+                        },
+                        onSelectBio: {
+                            guard bioAvailable else {
+                                ToastManager.shared.show("\(bioLabel) недоступен на устройстве",
+                                    icon: bioIcon, style: .warning)
+                                return
+                            }
+                            if s.appLockPin.isEmpty {
+                                // Need PIN as fallback first
+                                showPinSetup = true
+                                s.appLockBiometric = true
+                            } else {
+                                s.appLockBiometric = true
+                                s.appLockEnabled   = true
+                            }
+                        },
+                        onDisable: {
+                            s.appLockEnabled   = false
+                            s.appLockBiometric = false
+                            ToastManager.shared.show("Блокировка отключена", icon: "lock.open.fill", style: .info)
                         }
-                    if s.appLockEnabled || !s.appLockPin.isEmpty {
+                    )
+
+                    // ── Change / set PIN ──────────────────────────────────
+                    if s.appLockEnabled {
                         Divider().background(Color.divider).padding(.leading, 50)
-                        SettingsToggle("Face ID / Touch ID", icon: "faceid",
-                                       subtitle: "Разблокировка биометрией",
-                                       val: $s.appLockBiometric)
-                        Divider().background(Color.divider).padding(.leading, 50)
-                        Button {
-                            showPinSetup = true
-                        } label: {
+                        Button { showPinSetup = true } label: {
                             HStack(spacing: 10) {
-                                Image(systemName: "key.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
+                                Image(systemName: "key.fill")
+                                    .foregroundStyle(Color.cyberBlue).font(.system(size: 14))
                                 Text(s.appLockPin.isEmpty ? "Установить PIN" : "Изменить PIN")
                                     .font(.system(size: 14)).foregroundStyle(Color.onSurface)
                                 Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12))
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(Color.onSurfaceMut).font(.system(size: 12))
                             }
                             .padding(.horizontal, 14).padding(.vertical, 12)
                         }
                         .buttonStyle(.plain)
-                        if s.appLockEnabled {
-                            Divider().background(Color.divider).padding(.leading, 50)
-                            Button {
-                                s.appLockEnabled = false; s.appLockPin = ""; s.appLockBiometric = false
-                                ToastManager.shared.show("Блокировка отключена", icon: "lock.open.fill", style: .info)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "lock.open.fill").foregroundStyle(Color.errorRed).font(.system(size: 14))
-                                    Text("Отключить и удалить PIN")
-                                        .font(.system(size: 14)).foregroundStyle(Color.errorRed)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 14).padding(.vertical, 12)
-                            }
-                            .buttonStyle(.plain)
-                        }
                     }
                 }
             }
             .sheet(isPresented: $showPinSetup) {
                 PinSetupView()
-                    .onDisappear { if !s.appLockPin.isEmpty { s.appLockEnabled = true } }
+                    .onDisappear {
+                        if !s.appLockPin.isEmpty { s.appLockEnabled = true }
+                        else { s.appLockBiometric = false }
+                    }
             }
 
             SettingsSectionCard(title: "Режим невидимки",
@@ -1002,5 +1036,140 @@ struct TabBarStylePicker: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Lock Method Picker
+private struct LockMethodPicker: View {
+    let hasPIN:       Bool
+    let bioAvailable: Bool
+    let bioLabel:     String
+    let bioIcon:      String
+    let usePIN:       Bool
+    let useBio:       Bool
+    let onSelectPIN:  () -> Void
+    let onSelectBio:  () -> Void
+    let onDisable:    () -> Void
+
+    private var isActive: Bool { usePIN || useBio }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header row — active/inactive status
+            HStack(spacing: 10) {
+                Image(systemName: isActive ? "lock.fill" : "lock.open.fill")
+                    .foregroundStyle(isActive ? Color.cyberBlue : Color.onSurfaceMut)
+                    .font(.system(size: 15))
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Блокировка приложения")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.onSurface)
+                    Text(statusText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+
+            Divider().background(Color.divider).padding(.leading, 50)
+
+            // Method options
+            VStack(spacing: 0) {
+                // PIN option
+                MethodRow(
+                    icon:     "key.fill",
+                    label:    "PIN-код",
+                    subtitle: "4-значный цифровой код",
+                    selected: usePIN,
+                    available: true,
+                    action:   onSelectPIN
+                )
+
+                // Biometric option
+                if bioAvailable {
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    MethodRow(
+                        icon:     bioIcon,
+                        label:    bioLabel,
+                        subtitle: bioLabel == "Face ID"
+                            ? "Разблокировка по лицу"
+                            : "Разблокировка по отпечатку",
+                        selected: useBio,
+                        available: true,
+                        action:   onSelectBio
+                    )
+                }
+
+                // Disable option (only when active)
+                if isActive {
+                    Divider().background(Color.divider).padding(.leading, 50)
+                    MethodRow(
+                        icon:     "lock.open.fill",
+                        label:    "Отключить",
+                        subtitle: "Убрать блокировку",
+                        selected: false,
+                        available: true,
+                        isDestructive: true,
+                        action:   onDisable
+                    )
+                }
+            }
+        }
+    }
+
+    private var statusText: String {
+        if usePIN && !useBio { return "Активна — вход по PIN" }
+        if useBio            { return "Активна — вход по \(bioLabel)" }
+        return "Отключена"
+    }
+}
+
+private struct MethodRow: View {
+    let icon:          String
+    let label:         String
+    let subtitle:      String
+    let selected:      Bool
+    let available:     Bool
+    var isDestructive: Bool = false
+    let action:        () -> Void
+
+    private var accent: Color {
+        isDestructive ? Color.errorRed : Color.cyberBlue
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundStyle(selected ? accent : (isDestructive ? accent : Color.onSurfaceMut))
+                    .font(.system(size: 14))
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.system(size: 14, weight: selected ? .semibold : .regular))
+                        .foregroundStyle(isDestructive ? Color.errorRed : Color.onSurface)
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.onSurfaceMut)
+                }
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(accent)
+                        .font(.system(size: 18))
+                } else if !isDestructive {
+                    Image(systemName: "circle")
+                        .foregroundStyle(Color.onSurfaceMut.opacity(0.4))
+                        .font(.system(size: 18))
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(available ? 1 : 0.4)
+        .disabled(!available)
     }
 }

@@ -834,14 +834,9 @@ struct ChatView: View {
 
     // MARK: - Download voice
     private func downloadVoice(urlStr: String) async {
-        let ext = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
         do {
             let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
-            let dest = FileManager.default.temporaryDirectory
-                .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
             UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
                 .first?.windows.first?.rootViewController?
@@ -1338,6 +1333,7 @@ private struct BubbleView: View {
                         .frame(maxWidth: min(maxW, 240))
                         .background(bg)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .id(url)
                 }
 
             case "audio":
@@ -1356,11 +1352,7 @@ private struct BubbleView: View {
                         CircularDownloadButton(urlStr: url, size: 30, iconColor: Color.cyberBlue) {
                             Task {
                                 if let tmp = try? await DownloadManager.shared.download(from: url) {
-                                    let dest = FileManager.default.temporaryDirectory
-                                        .appendingPathComponent("audio_\(Int(Date().timeIntervalSince1970)).mp3")
-                                    try? FileManager.default.removeItem(at: dest)
-                                    try? FileManager.default.moveItem(at: tmp, to: dest)
-                                    let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                                    let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
                                     UIApplication.shared.connectedScenes
                                         .compactMap { $0 as? UIWindowScene }
                                         .first?.windows.first?.rootViewController?

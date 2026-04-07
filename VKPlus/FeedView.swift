@@ -1335,18 +1335,18 @@ private struct FeedAudioRow: View {
         guard let urlStr = audio.url else { return }
         do {
             let tmpUrl = try await DownloadManager.shared.download(from: urlStr)
-            let title = (audio.title ?? "audio").replacingOccurrences(of: "/", with: "_")
-            let dest = FileManager.default.temporaryDirectory
-                .appendingPathComponent("\(title)_\(Int(Date().timeIntervalSince1970)).mp3")
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
+            // Use the downloaded file directly — no move needed, share it in place
+            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
+            await MainActor.run {
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
         } catch {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            await MainActor.run {
+                ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
         }
     }
 }

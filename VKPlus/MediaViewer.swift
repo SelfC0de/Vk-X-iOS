@@ -122,9 +122,9 @@ struct AudioPlayerView: View {
     }
     private var currentSec: Int { Int(displayProg * Double(max(totalSec, 1))) }
 
-    // Resolved metadata
-    private var displayArtist: String? { meta.artist ?? artist }
-    private var displayTitle:  String? { meta.title  ?? title  }
+    // API data shown immediately; ID3 loaded as fallback for non-VK audio
+    private var displayArtist: String? { artist ?? meta.artist }
+    private var displayTitle:  String? { title  ?? meta.title  }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -203,11 +203,14 @@ struct AudioPlayerView: View {
                             .onChanged { v in
                                 let pct = max(0, min(1, v.location.x / w))
                                 if player.currentUrl == url {
-                                    player.beginDrag(at: pct)
+                                    if player.isDragging {
+                                        player.moveDrag(to: pct)
+                                    } else {
+                                        player.beginDrag(at: pct)
+                                    }
                                 } else {
-                                    // Start playing + seek
                                     player.toggle(url: url)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                         player.beginDrag(at: pct)
                                     }
                                 }
@@ -234,8 +237,7 @@ struct AudioPlayerView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .onAppear {
-            // Load ID3 metadata for non-voice audio if no API metadata
-            if !isVoice && (artist == nil || title == nil) {
+            if !isVoice && artist == nil && title == nil {
                 meta.load(urlStr: url)
             }
         }
@@ -252,14 +254,9 @@ struct AudioPlayerView: View {
     }
 
     private func downloadVoiceFile() async {
-        let ext = url.hasSuffix(".ogg") ? "ogg" : "mp3"
         do {
             let tmpUrl = try await DownloadManager.shared.download(from: url)
-            let dest = FileManager.default.temporaryDirectory
-                .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+            let av = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
             UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
                 .first?.windows.first?.rootViewController?
@@ -320,60 +317,78 @@ final class ID3MetadataReader: ObservableObject {
 
 
 // MARK: - Audio Player Model
-@MainActor
+// NOTE: NOT @MainActor — AVPlayer periodic observer fires on main queue directly
 final class AudioPlayerModel: ObservableObject {
-    @Published var isPlaying   = false
-    @Published var progress: Double = 0
-    @Published var currentUrl: String = ""
-    @Published var realDuration: Double = 0   // actual seconds from AVPlayer
-    @Published var isDragging  = false
-    @Published var dragProgress: Double = 0
+    @Published var isPlaying:     Bool   = false
+    @Published var progress:      Double = 0
+    @Published var currentUrl:    String = ""
+    @Published var realDuration:  Double = 0
+    @Published var isDragging:    Bool   = false
+    @Published var dragProgress:  Double = 0
 
-    private var player: AVPlayer?
-    private var timeObserver: Any?
-    private var durationObserver: NSKeyValueObservation?
+    private var player:          AVPlayer?
+    private var timeObserver:    Any?
+    private var endObserver:     NSObjectProtocol?
+    private var statusObserver:  NSKeyValueObservation?
+
+    var displayProgress: Double { isDragging ? dragProgress : progress }
 
     func toggle(url: String) {
-        if isPlaying && currentUrl == url { pause(); return }
-        if currentUrl != url { stop(); play(url: url) }
-        else { resume() }
+        if currentUrl == url {
+            isPlaying ? pause() : resume()
+        } else {
+            stop()
+            play(url: url)
+        }
     }
 
     private func play(url: String) {
         guard let u = URL(string: url) else { return }
-        currentUrl = url
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {}
-        let item = AVPlayerItem(url: u)
-        player = AVPlayer(playerItem: item)
-        // Observe real duration
-        durationObserver = item.observe(\.status, options: [.new]) { [weak self] it, _ in
+
+        let item   = AVPlayerItem(url: u)
+        let avp    = AVPlayer(playerItem: item)
+        player     = avp
+        currentUrl = url
+        progress   = 0
+        realDuration = 0
+
+        // Duration via KVO on status
+        statusObserver = item.observe(\.status, options: [.new]) { [weak self] it, _ in
             guard let self else { return }
             if it.status == .readyToPlay {
                 let d = it.duration.seconds
-                if !d.isNaN && d > 0 {
-                    Task { @MainActor in self.realDuration = d }
+                if d.isFinite && d > 0 {
+                    DispatchQueue.main.async { self.realDuration = d }
                 }
             }
         }
-        let weakPlayer = player
-        timeObserver = player?.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
-            queue: .main
-        ) { [weak self] time in
-            guard let self else { return }
-            Task { @MainActor in
-                guard !self.isDragging else { return }
-                let dur = weakPlayer?.currentItem?.duration.seconds ?? 0
-                guard !dur.isNaN, dur > 0 else { return }
-                self.progress = time.seconds / dur
-                if self.realDuration == 0 { self.realDuration = dur }
-                if self.progress >= 0.999 { self.stop() }
-            }
+
+        // End-of-track notification
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item, queue: .main
+        ) { [weak self] _ in
+            self?.stop()
         }
-        player?.play()
+
+        // Periodic progress — fires on main queue, update directly (no Task)
+        timeObserver = avp.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.1, preferredTimescale: 600),
+            queue: .main
+        ) { [weak self, weak avp] time in
+            guard let self, !self.isDragging else { return }
+            let dur = avp?.currentItem?.duration.seconds ?? self.realDuration
+            guard dur.isFinite, dur > 0 else { return }
+            let p = min(time.seconds / dur, 1.0)
+            self.progress     = p
+            if self.realDuration == 0 { self.realDuration = dur }
+        }
+
+        avp.play()
         isPlaying = true
     }
 
@@ -381,36 +396,27 @@ final class AudioPlayerModel: ObservableObject {
     private func resume() { player?.play();  isPlaying = true  }
 
     func stop() {
-        durationObserver?.invalidate(); durationObserver = nil
-        if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
+        if let obs = timeObserver    { player?.removeTimeObserver(obs); timeObserver  = nil }
+        if let obs = endObserver     { NotificationCenter.default.removeObserver(obs); endObserver = nil }
+        statusObserver?.invalidate(); statusObserver = nil
         player?.pause(); player = nil
-        isPlaying = false; progress = 0; realDuration = 0
+        isPlaying = false; progress = 0; realDuration = 0; currentUrl = ""
     }
 
     func seek(to pct: Double) {
-        let p = max(0, min(1, pct))
+        let p   = max(0, min(1, pct))
         let dur = player?.currentItem?.duration.seconds ?? realDuration
-        guard !dur.isNaN, dur > 0 else { return }
+        guard dur.isFinite, dur > 0 else { progress = p; return }
         let t = CMTime(seconds: p * dur, preferredTimescale: 600)
         player?.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
         progress = p
     }
 
-    func beginDrag(at pct: Double) {
-        isDragging = true
-        dragProgress = max(0, min(1, pct))
-    }
+    func beginDrag(at pct: Double) { isDragging = true;  dragProgress = max(0, min(1, pct)) }
+    func moveDrag(to pct: Double)  { dragProgress = max(0, min(1, pct)) }
+    func endDrag()                 { seek(to: dragProgress); isDragging = false }
 
-    func moveDrag(to pct: Double) {
-        dragProgress = max(0, min(1, pct))
-    }
-
-    func endDrag() {
-        seek(to: dragProgress)
-        isDragging = false
-    }
-
-    var displayProgress: Double { isDragging ? dragProgress : progress }
+    deinit { stop() }
 }
 
 // MARK: - Video Player Sheet
