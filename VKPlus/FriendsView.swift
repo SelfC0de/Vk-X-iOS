@@ -23,6 +23,10 @@ struct VKLinkDetector {
 
 // MARK: - FriendsView
 struct FriendsView: View {
+    @State private var incomingRequests: [(id: Int, name: String, photo: String?, mutual: Int)] = []
+    @State private var outgoingRequests: [(id: Int, name: String, photo: String?, mutual: Int)] = []
+    @State private var recentFriends:    [VKUser] = []
+    @State private var requestsLoaded   = false
     @State private var friends:       [VKUser] = []
     @State private var searchResults: [VKUser] = []
     @State private var isLoading      = false
@@ -102,18 +106,102 @@ struct FriendsView: View {
                         .padding(.leading, 6)
                 }
             } }
-        .task { await load() }
+        .task {
+            await load()
+            if !requestsLoaded {
+                requestsLoaded = true
+                async let inc = VKAPIClient.shared.getFriendRequests(out: false)
+                async let out = VKAPIClient.shared.getFriendRequests(out: true)
+                async let rec = VKAPIClient.shared.getRecentFriends()
+                incomingRequests = (try? await inc) ?? []
+                outgoingRequests = (try? await out) ?? []
+                recentFriends    = (try? await rec) ?? []
+            }
+        }
     }
 
     private var localList: some View {
-        List(localFiltered) { friend in
-            NavigationLink(destination: FriendProfileView(user: friend)) {
-                FriendRow(user: friend)
+        List {
+            // Incoming requests section
+            if !incomingRequests.isEmpty {
+                Section {
+                    ForEach(incomingRequests, id: \.id) { req in
+                        HStack(spacing: 10) {
+                            AvatarView(url: req.photo, size: 40)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(req.name).font(.system(size: 14, weight: .medium)).foregroundStyle(Color.onSurface)
+                                if req.mutual > 0 {
+                                    Text("\(req.mutual) общих друга").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "person.badge.plus").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
+                        }
+                    }
+                } header: {
+                    Text("Заявки в друзья (\(incomingRequests.count))")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.cyberBlue)
+                        .textCase(nil)
+                }
+                .listRowBackground(Color.surface)
+                .listRowSeparatorTint(Color.divider)
+            }
+            // Outgoing requests = people who removed you from friends
+            if !outgoingRequests.isEmpty {
+                Section {
+                    ForEach(outgoingRequests, id: \.id) { req in
+                        HStack(spacing: 10) {
+                            AvatarView(url: req.photo, size: 40)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(req.name).font(.system(size: 14, weight: .medium)).foregroundStyle(Color.onSurface)
+                                Text("Удалил(а) тебя из друзей").font(.system(size: 11)).foregroundStyle(Color.errorRed.opacity(0.8))
+                            }
+                            Spacer()
+                            Image(systemName: "person.badge.minus").foregroundStyle(Color.errorRed).font(.system(size: 14))
+                        }
+                    }
+                } header: {
+                    Text("Удалили из друзей (\(outgoingRequests.count))")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.errorRed)
+                        .textCase(nil)
+                }
+                .listRowBackground(Color.surface)
+                .listRowSeparatorTint(Color.divider)
+            }
+            // Recent friends
+            if !recentFriends.isEmpty {
+                Section {
+                    ForEach(recentFriends) { friend in
+                        NavigationLink(destination: FriendProfileView(user: friend)) {
+                            FriendRow(user: friend)
+                        }
+                    }
+                } header: {
+                    Text("Недавно добавленные")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.onSurfaceMut)
+                        .textCase(nil)
+                }
+                .listRowBackground(Color.surface)
+                .listRowSeparatorTint(Color.divider)
+            }
+            // All friends
+            Section {
+                ForEach(localFiltered) { friend in
+                    NavigationLink(destination: FriendProfileView(user: friend)) {
+                        FriendRow(user: friend)
+                    }
+                }
+            } header: {
+                if !incomingRequests.isEmpty || !outgoingRequests.isEmpty || !recentFriends.isEmpty {
+                    Text("Все друзья (\(localFiltered.count))")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.onSurfaceMut)
+                        .textCase(nil)
+                }
             }
             .listRowBackground(Color.surface)
             .listRowSeparatorTint(Color.divider)
         }
-        .listStyle(.plain)
+        .listStyle(.grouped)
         .scrollContentBackground(.hidden)
     }
 
@@ -186,6 +274,8 @@ struct FriendsView: View {
 
 // MARK: - FriendProfileView
 struct FriendProfileView: View {
+    @State private var lastActivityStr: String? = nil
+    @State private var showLastActivity = false
     let user: VKUser
     @State private var fullUser: VKUser?
     @State private var isLoading = false
@@ -231,6 +321,12 @@ struct FriendProfileView: View {
                                     Text(display.isOnline ? "онлайн" : "не в сети")
                                         .font(.system(size: 12))
                                         .foregroundStyle(display.isOnline ? Color.cyberAccent : Color.onSurfaceMut)
+                                }
+                                if let la = lastActivityStr, !display.isOnline {
+                                    Text(la)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.onSurfaceMut.opacity(0.7))
+                                        .multilineTextAlignment(.center)
                                 }
                                 .padding(.bottom, 20)
                             }
@@ -298,6 +394,8 @@ struct FriendProfileView: View {
             verificationInfo = try? await v
             isLoading = false
             SettingsStore.shared.addProfileHistory(user.id)
+            // Fetch exact last activity (bypasses privacy rounding)
+            lastActivityStr = try? await VKAPIClient.shared.getLastActivity(userId: user.id)
         }
     }
 

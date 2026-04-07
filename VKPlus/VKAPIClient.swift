@@ -784,6 +784,131 @@ final class VKAPIClient {
     }
 
 
+
+    // MARK: - Last Activity (точное время, не округлённое)
+    func getLastActivity(userId: Int) async throws -> String {
+        let json = try await rawCall("messages.getLastActivity", params: ["user_id": "\(userId)"])
+        guard let resp = json["response"] as? [String: Any] else { return "Недоступно" }
+        let online = (resp["online"] as? Int) ?? 0
+        if online == 1 { return "Сейчас онлайн" }
+        guard let time = resp["time"] as? Int else { return "Недоступно" }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        df.dateFormat = "d MMMM yyyy, HH:mm:ss"
+        return "Был(а) в сети: \(df.string(from: Date(timeIntervalSince1970: TimeInterval(time))))"
+    }
+
+    // MARK: - Friends requests (входящие/исходящие)
+    func getFriendRequests(out: Bool = false) async throws -> [(id: Int, name: String, photo: String?, mutual: Int)] {
+        let json = try await rawCall("friends.getRequests", params: [
+            "extended": "1", "out": out ? "1" : "0",
+            "fields": "photo_100,first_name,last_name,common_count"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]] else { return [] }
+        return items.compactMap { d in
+            guard let id = d["id"] as? Int else { return nil }
+            let name = "\(d["first_name"] as? String ?? "") \(d["last_name"] as? String ?? "")".trimmingCharacters(in: .whitespaces)
+            let photo = d["photo_100"] as? String
+            let mutual = d["common_count"] as? Int ?? 0
+            return (id: id, name: name, photo: photo, mutual: mutual)
+        }
+    }
+
+    // MARK: - Recent friends
+    func getRecentFriends() async throws -> [VKUser] {
+        let json = try await rawCall("friends.getRecent", params: ["count": "20"])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [Int] else {
+            // Older API returns plain array
+            let arr = json["response"] as? [Int] ?? []
+            if arr.isEmpty { return [] }
+            let idsStr = arr.prefix(20).map { "\($0)" }.joined(separator: ",")
+            let users = try await rawCall("users.get", params: ["user_ids": idsStr, "fields": "photo_100,online,last_seen"])
+            return (users["response"] as? [[String: Any]])?.compactMap { VKUser(from: $0) } ?? []
+        }
+        if items.isEmpty { return [] }
+        let idsStr = items.prefix(20).map { "\($0)" }.joined(separator: ",")
+        let users = try await rawCall("users.get", params: ["user_ids": idsStr, "fields": "photo_100,online,last_seen"])
+        return (users["response"] as? [[String: Any]])?.compactMap { VKUser(from: $0) } ?? []
+    }
+
+    // MARK: - Blacklist check
+    func checkBlacklist(userId: Int) async throws -> String {
+        let json = try await rawCall("users.get", params: [
+            "user_ids": "\(userId)",
+            "fields": "blacklisted,blacklisted_by_me,first_name,last_name,can_write_private_message"
+        ])
+        guard let items = json["response"] as? [[String: Any]], let u = items.first else { return "Нет данных" }
+        let name = "\(u["first_name"] as? String ?? "") \(u["last_name"] as? String ?? "")".trimmingCharacters(in: .whitespaces)
+        let blockedMe  = (u["blacklisted"]    as? Int) == 1
+        let iBlockedHim = (u["blacklisted_by_me"] as? Int) == 1
+        let canWrite   = (u["can_write_private_message"] as? Int) == 1
+        var lines = ["👤 Пользователь: \(name)"]
+        lines.append(blockedMe    ? "🚫 Этот пользователь заблокировал тебя" : "✅ Ты не в его чёрном списке")
+        lines.append(iBlockedHim  ? "🔒 Ты заблокировал(а) этого пользователя" : "✅ Ты его не блокировал(а)")
+        lines.append(canWrite     ? "💬 Написать сообщение: можно" : "💬 Написать сообщение: нельзя")
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Stories download
+    func getStoriesDownloadUrls(userId: Int) async throws -> [(type: String, url: String, date: Int)] {
+        let json = try await rawCall("stories.get", params: [
+            "owner_id": "\(userId)", "extended": "0"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let items = resp["items"] as? [[String: Any]] else { return [] }
+        var result: [(type: String, url: String, date: Int)] = []
+        for group in items {
+            let stories = group["stories"] as? [[String: Any]] ?? (group["items"] as? [[String: Any]] ?? [])
+            for s in stories {
+                let date = s["date"] as? Int ?? 0
+                if let video = s["video"] as? [String: Any] {
+                    // Video story
+                    let files = video["files"] as? [String: Any] ?? [:]
+                    for q in ["mp4_1080","mp4_720","mp4_480","mp4_240"] {
+                        if let url = files[q] as? String { result.append((type: "video", url: url, date: date)); break }
+                    }
+                } else if let photo = s["photo"] as? [String: Any] {
+                    // Photo story
+                    let sizes = photo["sizes"] as? [[String: Any]] ?? []
+                    if let last = sizes.last, let url = last["url"] as? String {
+                        result.append((type: "photo", url: url, date: date))
+                    }
+                }
+            }
+        }
+        return result
+    }
+
+    // MARK: - Phantom View (stats.trackVisitor)
+    func phantomVisit(userId: Int) async throws -> Bool {
+        // Visit as another user — sends trackVisitor to their profile
+        let json = try await rawCall("stats.trackVisitor", params: ["id": "\(userId)"])
+        return (json["response"] as? Int) == 1
+    }
+
+    // MARK: - Short links
+    func getShortLink(url: String, private_stat: Bool = true) async throws -> String {
+        let json = try await rawCall("utils.getShortLink", params: [
+            "url": url, "private": private_stat ? "1" : "0"
+        ])
+        guard let resp = json["response"] as? [String: Any],
+              let short = resp["short_url"] as? String else { throw VKError.noData }
+        return short
+    }
+
+    func getLinkStats(key: String) async throws -> String {
+        // key = part after vk.cc/
+        let json = try await rawCall("utils.getLinkStats", params: [
+            "key": key, "access_key": key, "interval": "forever", "intervals_count": "1", "extended": "0"
+        ])
+        guard let resp = json["response"] as? [String: Any] else { return "Нет данных" }
+        let stats = (resp["stats"] as? [[String: Any]])?.first
+        let views = stats?["views"] as? Int ?? 0
+        return "👁 Переходов всего: \(views)"
+    }
+
     func searchMessages(query: String, peerId: Int? = nil, count: Int = 20) async throws -> [VKMessage] {
         var params: [String: String] = ["q": query, "count": "\(count)", "extended": "0"]
         if let pid = peerId { params["peer_id"] = "\(pid)" }

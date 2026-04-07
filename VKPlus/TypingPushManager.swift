@@ -194,7 +194,7 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
 
 // MARK: - LongPoll models
 struct LongPollServer {
-    let key: String; let server: String; let ts: Int
+    let key: String; let server: String; let ts: Int; let pts: Int
 }
 
 struct LongPollEvents {
@@ -214,11 +214,16 @@ extension VKAPIClient {
         if let tsInt = resp["ts"] as? Int { ts = tsInt }
         else if let tsStr = resp["ts"] as? String, let tsInt = Int(tsStr) { ts = tsInt }
         else { throw VKError.noData }
-        return LongPollServer(key: key, server: server, ts: ts)
+        let pts: Int
+        if let ptsInt = resp["pts"] as? Int { pts = ptsInt }
+        else if let ptsStr = resp["pts"] as? String, let ptsInt = Int(ptsStr) { pts = ptsInt }
+        else { pts = 0 }
+        return LongPollServer(key: key, server: server, ts: ts, pts: pts)
     }
 
-    func pollLongPoll(server srv: LongPollServer, ts: Int) async throws -> LongPollEvents {
-        let urlStr = "https://\(srv.server)?act=a_check&key=\(srv.key)&ts=\(ts)&wait=25&mode=2&version=3"
+    func pollLongPoll(server srv: LongPollServer, ts: Int, pts: Int = 0) async throws -> LongPollEvents {
+        let ptsParam = pts > 0 ? "&pts=\(pts)" : ""
+        let urlStr = "https://\(srv.server)?act=a_check&key=\(srv.key)&ts=\(ts)&wait=25&mode=42&version=3\(ptsParam)"
         guard let url = URL(string: urlStr) else { throw VKError.noData }
         let (data, _) = try await URLSession.shared.data(from: url)
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

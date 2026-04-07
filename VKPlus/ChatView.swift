@@ -77,6 +77,8 @@ struct ChatView: View {
     @State private var peerOnline   = false
     @State private var peerPlatform: Int? = nil
     @State private var peerTyping    = false
+    @State private var currentPts:   Int = 0         // LongPoll pts for delete tracking
+    @State private var deletedMsgIds: Set<Int> = []  // IDs deleted by peer during session
     @State private var fakeTyping    = false
     @State private var fakeTypingTask: Task<Void, Never>? = nil
     @State private var typeStatusTask: Task<Void, Never>? = nil
@@ -126,6 +128,7 @@ struct ChatView: View {
                         ScrollView {
                             LazyVStack(spacing: 2) {
                                 ForEach((searchQuery.isEmpty ? messages : filteredMessages).reversed()) { msg in
+                                    let wasDeleted = deletedMsgIds.contains(msg.id)
                                     BubbleView(
                                         msg:      msg,
                                         myId:     myId,
@@ -154,6 +157,16 @@ struct ChatView: View {
                                         }
                                     )
                                     .id(msg.id)
+                                    if wasDeleted {
+                                        HStack {
+                                            if msg.fromId != myId { Spacer() }
+                                            Text("🗑 Удалено собеседником во время сессии")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(Color.errorRed.opacity(0.7))
+                                                .padding(.horizontal, 8)
+                                            if msg.fromId == myId { Spacer() }
+                                        }
+                                    }
                                 }
                                 // Anchor at bottom — always scroll here
                                 Color.clear.frame(height: 1).id("bottom_anchor")
@@ -506,12 +519,15 @@ struct ChatView: View {
             return
         }
 
-        var ts = server.ts
+        var ts  = server.ts
+        var pts = server.pts
+        await MainActor.run { currentPts = pts }
 
         while !Task.isCancelled {
             do {
-                let events = try await VKAPIClient.shared.pollLongPoll(server: server, ts: ts)
-                ts = events.ts
+                let events = try await VKAPIClient.shared.pollLongPoll(server: server, ts: ts, pts: pts)
+                ts  = events.ts
+                if let newPts = events.pts { pts = newPts; await MainActor.run { currentPts = newPts } }
 
                 // Process LongPoll events
                 var hasNewMessage = false
@@ -522,6 +538,26 @@ struct ChatView: View {
                         // New message: upd[3] = peer_id
                         let msgPeerId = upd.count > 3 ? (upd[3] as? Int ?? 0) : 0
                         if msgPeerId == peerId { hasNewMessage = true }
+                    case 6:
+                        // Messages read by peer: upd[1] = peer_id, upd[2] = local_id (last read)
+                        // We don't need to do anything UI-wise — already handled by message flags
+                        break
+                    case 7:
+                        // Messages read by me — could update read receipts locally
+                        break
+                    case 18:
+                        // Message deleted (pts event): upd[1] = message_id (negative = deleted for all)
+                        let delMsgId = upd.count > 1 ? abs(upd[1] as? Int ?? 0) : 0
+                        if delMsgId > 0 {
+                            await MainActor.run { deletedMsgIds.insert(delMsgId) }
+                            // Refresh messages to reflect deletion
+                            let fresh2 = (try? await VKAPIClient.shared.getMessages(peerId: peerId, count: 50)) ?? []
+                            if !fresh2.isEmpty {
+                                await MainActor.run {
+                                    withAnimation(.easeIn(duration: 0.15)) { messages = fresh2 }
+                                }
+                            }
+                        }
                     case 61:
                         // Peer typing: upd[1] = user_id, upd[2] = flags (1=typing)
                         let userId   = upd.count > 1 ? (upd[1] as? Int ?? 0) : 0
