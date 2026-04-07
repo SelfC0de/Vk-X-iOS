@@ -79,6 +79,7 @@ struct ChatView: View {
     @State private var peerTyping    = false
     @State private var fakeTyping    = false
     @State private var fakeTypingTask: Task<Void, Never>? = nil
+    @State private var typeStatusTask: Task<Void, Never>? = nil
     @State private var typingTimer: Timer? = nil
     @State private var lastTypingSent: Date = .distantPast
 
@@ -256,10 +257,14 @@ struct ChatView: View {
         .task {
             await load()
             startMessagePolling()
+            startTypeStatusLoop()
         }
+        .onChange(of: store.typeStatus) { _, _ in startTypeStatusLoop() }
+        .onChange(of: store.antiTyping) { _, _ in startTypeStatusLoop() }
         .onDisappear {
             messagePollingTask?.cancel(); messagePollingTask = nil
             fakeTypingTask?.cancel(); fakeTypingTask = nil; fakeTyping = false
+            typeStatusTask?.cancel(); typeStatusTask = nil
         }
         .confirmationDialog("Прикрепить", isPresented: $showAttach, titleVisibility: .visible) {
             Button("Фото") { showPhotoPicker = true }
@@ -612,11 +617,14 @@ struct ChatView: View {
     }
 
     private func notifyTyping() {
-        guard !SettingsStore.shared.antiTyping else { return }  // respect user's own antiTyping
+        let s = SettingsStore.shared
+        guard !s.antiTyping else { return }
+        // If typeStatus loop is already running, skip manual notify
+        guard s.currentTypeStatus == .none else { return }
         let now = Date()
         guard now.timeIntervalSince(lastTypingSent) > 5 else { return }
         lastTypingSent = now
-        Task { await VKAPIClient.shared.sendTypingDirect(peerId: peerId) }
+        Task { await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: "typing") }
     }
 
     private func send() async {
@@ -760,6 +768,28 @@ struct ChatView: View {
     }
 
 
+    // MARK: - Type Status Loop
+    private func startTypeStatusLoop() {
+        typeStatusTask?.cancel()
+        typeStatusTask = nil
+        let s = SettingsStore.shared
+        guard s.currentTypeStatus != .none else { return }
+        guard !s.antiTyping else { return }
+        let statusType = s.currentTypeStatus.rawValue
+        typeStatusTask = Task {
+            // Send immediately on open
+            await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: statusType)
+            // VK typing status expires after ~5s — resend every 4s
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                guard !Task.isCancelled else { break }
+                let cur = SettingsStore.shared.currentTypeStatus
+                guard cur != .none && !SettingsStore.shared.antiTyping else { break }
+                await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: cur.rawValue)
+            }
+        }
+    }
+
     // MARK: - Fake Typing
     private func toggleFakeTyping() {
         if fakeTyping {
@@ -774,7 +804,7 @@ struct ChatView: View {
                 // Send immediately, then repeat every 4s
                 // Use direct URL bypass to avoid PrivacyEngine antiTyping interception
                 while !Task.isCancelled && fakeTyping {
-                    await VKAPIClient.shared.sendTypingDirect(peerId: peerId)
+                    await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: "typing")
                     try? await Task.sleep(nanoseconds: 4_000_000_000)
                 }
             }
