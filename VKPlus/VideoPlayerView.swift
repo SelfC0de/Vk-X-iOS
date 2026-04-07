@@ -84,20 +84,19 @@ struct VideoCard: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            if !showPlayer {
-                Button {
-                    Task { await downloadVideo() }
-                } label: {
-                    Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(.black.opacity(0.55))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .padding(8)
+            Button {
+                Task { await downloadVideo() }
+            } label: {
+                Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(.black.opacity(0.6))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 1))
             }
+            .buttonStyle(.plain)
+            .padding(8)
         }
         // Title
         .overlay(alignment: .topLeading) {
@@ -136,31 +135,48 @@ struct VideoCard: View {
         guard !downloading else { return }
         downloading = true
         ToastManager.shared.show("Получаем ссылку...", icon: "arrow.down.circle", style: .info)
+
+        // Resolve direct URL
         let src = resolved ?? video
         var urlStr = src.directUrl
         if urlStr == nil {
-            let fetched = try? await VKAPIClient.shared.getVideo(ownerId: video.ownerId, videoId: video.id)
-            urlStr = fetched?.directUrl
-            if let f = fetched { resolved = f }
+            if let fetched = try? await VKAPIClient.shared.getVideo(ownerId: video.ownerId, videoId: video.id) {
+                urlStr = fetched.directUrl
+                await MainActor.run { resolved = fetched }
+            }
         }
         guard let str = urlStr, let url = URL(string: str) else {
-            ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
-            downloading = false; return
+            await MainActor.run {
+                downloading = false
+                ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+            return
         }
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-            downloading = false; return
-        }
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("video_\(Int(Date().timeIntervalSince1970)).mp4")
-        try? data.write(to: tmp)
-        await MainActor.run {
-            downloading = false
-            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
+
+        // Download to temp file (not in memory — avoids OOM on large videos)
+        let session = URLSession(configuration: .default)
+        do {
+            let (tmpUrl, resp) = try await session.download(from: url)
+            guard let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("vkplus_video_\(Int(Date().timeIntervalSince1970)).mp4")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tmpUrl, to: dest)
+            await MainActor.run {
+                downloading = false
+                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
+        } catch {
+            await MainActor.run {
+                downloading = false
+                ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
         }
     }
 

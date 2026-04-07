@@ -202,21 +202,23 @@ struct AudioPlayerView: View {
     }
 
     private func downloadVoiceFile() async {
-        guard let audioUrl = URL(string: url),
-              let (data, _) = try? await URLSession.shared.data(from: audioUrl) else {
+        guard let audioUrl = URL(string: url) else { return }
+        do {
+            let (tmpUrl, _) = try await URLSession.shared.download(from: audioUrl)
+            let ext = url.hasSuffix(".ogg") ? "ogg" : "mp3"
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tmpUrl, to: dest)
+            await MainActor.run {
+                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
+        } catch {
             ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
-            return
-        }
-        let ext  = url.hasSuffix(".ogg") ? "ogg" : "mp3"
-        let tmp  = FileManager.default.temporaryDirectory
-            .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
-        try? data.write(to: tmp)
-        await MainActor.run {
-            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
         }
     }
 

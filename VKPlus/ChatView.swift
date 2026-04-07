@@ -63,6 +63,7 @@ struct ChatView: View {
     @State private var recordTimer:   Timer? = nil
     @State private var audioRecorder: AVAudioRecorder? = nil
     @State private var recordedURL:   URL? = nil
+    @State private var voiceReadyURL:  URL? = nil  // local URL for preview before send
     @State private var dragOffsetX:   CGFloat = 0
     @State private var videoItem2:  PhotosPickerItem? = nil
     @State private var audioItem:   PhotosPickerItem? = nil
@@ -321,6 +322,7 @@ struct ChatView: View {
             if isRecording { recordingBanner }
             if let r = replyMsg   { replyBanner(r)  }
             if let e = editingMsg { editBanner(e)   }
+            if let vurl = voiceReadyURL { voicePreviewBanner(vurl) }
             if let a = pendingAttach { attachBanner(a) }
             if showEmoji { emojiPanel }
 
@@ -348,7 +350,7 @@ struct ChatView: View {
                         lineWidth: 0.8))
                     .onChange(of: draft) { _, v in if !v.isEmpty { notifyTyping() } }
 
-                if draft.trimmingCharacters(in: .whitespaces).isEmpty && pendingAttach == nil && !isSending {
+                if draft.trimmingCharacters(in: .whitespaces).isEmpty && pendingAttach == nil && voiceReadyURL == nil && !isSending {
                     VoiceRecordButton(
                         isRecording: $isRecording,
                         isCancelling: $isCancelling,
@@ -419,6 +421,45 @@ struct ChatView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(Color(red:0.07,green:0.08,blue:0.13))
+    }
+
+    @ViewBuilder private func voicePreviewBanner(_ url: URL) -> some View {
+        HStack(spacing: 10) {
+            // Waveform preview player
+            AudioPlayerView(url: url.absoluteString, duration: recordSeconds, isVoice: true)
+                .frame(maxWidth: .infinity)
+            // Send button
+            Button {
+                Task { await uploadAndSendVoice() }
+            } label: {
+                if isUploading {
+                    ProgressView().tint(.cyberBlue).scaleEffect(0.9)
+                        .frame(width: 36, height: 36)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.cyberBlue)
+                }
+            }
+            .buttonStyle(.plain)
+            // Delete button
+            Button {
+                voiceReadyURL = nil
+                recordedURL   = nil
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.errorRed)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color(red:0.06,green:0.07,blue:0.11))
+        .overlay(
+            Rectangle().fill(Color(red:0.11,green:0.63,blue:0.95)).frame(height: 1),
+            alignment: .top
+        )
     }
 
     @ViewBuilder private func editBanner(_ msg: VKMessage) -> some View {
@@ -665,18 +706,23 @@ struct ChatView: View {
 
     // MARK: - Download voice
     private func downloadVoice(urlStr: String) async {
-        guard let url = URL(string: urlStr),
-              let (data, _) = try? await URLSession.shared.data(from: url) else {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning); return
-        }
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).mp3")
-        try? data.write(to: tmp)
-        await MainActor.run {
-            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first?.windows.first?.rootViewController?
-                .present(av, animated: true)
+        guard let url = URL(string: urlStr) else { return }
+        do {
+            let (tmpUrl, _) = try await URLSession.shared.download(from: url)
+            let ext = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tmpUrl, to: dest)
+            await MainActor.run {
+                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
+        } catch {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
         }
     }
 
@@ -797,19 +843,24 @@ struct ChatView: View {
         audioRecorder = nil
         isRecording = false
         guard let url = recordedURL else { return }
-        Task {
-            isUploading = true
-            do {
-                let data = try Data(contentsOf: url)
-                let att = try await VKAPIClient.shared.uploadDocForMessage(
-                    peerId: peerId, data: data, filename: "voice.m4a", mimeType: "audio/m4a")
-                pendingAttach = att
-                ToastManager.shared.show("Голосовое прикреплено", icon: "mic.fill", style: .success)
-            } catch {
-                ToastManager.shared.show("Ошибка записи", icon: "exclamationmark.triangle.fill", style: .warning)
-            }
-            isUploading = false
+        // Show preview first — upload happens on send
+        voiceReadyURL = url
+    }
+
+    private func uploadAndSendVoice() async {
+        guard let url = voiceReadyURL else { return }
+        isUploading = true
+        do {
+            let data = try Data(contentsOf: url)
+            let att = try await VKAPIClient.shared.uploadDocForMessage(
+                peerId: peerId, data: data, filename: "voice.m4a", mimeType: "audio/m4a")
+            pendingAttach = att
+            voiceReadyURL = nil
+            await send()
+        } catch {
+            ToastManager.shared.show("Ошибка загрузки голосового", icon: "exclamationmark.triangle.fill", style: .warning)
         }
+        isUploading = false
     }
 
     // MARK: - Emoji panel
