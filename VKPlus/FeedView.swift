@@ -259,6 +259,7 @@ struct PostCard: View {
                 let photos = att.filter { $0.type == "photo" }.compactMap { $0.photo }
                 let videos = att.filter { $0.type == "video" }.compactMap { $0.video }
                 let links  = att.filter { $0.type == "link"  }.compactMap { $0.link }
+                let audios = att.filter { $0.type == "audio" }.compactMap { $0.audio }
                 if !photos.isEmpty {
                     ZStack(alignment: .topTrailing) {
                         PhotoGrid(photos: photos, onTap: { idx in
@@ -296,6 +297,15 @@ struct PostCard: View {
                 }
                 ForEach(links.indices, id: \.self) { i in
                     LinkPreview(link: links[i]).padding(.horizontal, 14).padding(.top, 6)
+                }
+                // Audio attachments
+                if !audios.isEmpty {
+                    VStack(spacing: 6) {
+                        ForEach(audios.indices, id: \.self) { i in
+                            FeedAudioRow(audio: audios[i])
+                        }
+                    }
+                    .padding(.horizontal, 14).padding(.top, 8)
                 }
             }
 
@@ -1096,6 +1106,111 @@ private struct PollAnswerRow: View {
             Text("\(answer.votes) гол.")
                 .font(.system(size: 10))
                 .foregroundStyle(Color.onSurfaceMut)
+        }
+    }
+}
+
+// MARK: - Feed Audio Row
+private struct FeedAudioRow: View {
+    let audio: VKAudioAttachment
+    @State private var downloading = false
+
+    private var hasUrl: Bool { !(audio.url ?? "").isEmpty }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Cover / icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(red:0.08,green:0.10,blue:0.16))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "music.note")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.cyberBlue.opacity(0.7))
+            }
+
+            // Title + artist
+            VStack(alignment: .leading, spacing: 2) {
+                Text(audio.title ?? "Аудиозапись")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.onSurface)
+                    .lineLimit(1)
+                if let artist = audio.artist, !artist.isEmpty {
+                    Text(artist)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.onSurfaceMut)
+                        .lineLimit(1)
+                }
+                if let dur = audio.duration {
+                    Text(formatDur(dur))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(Color.onSurfaceMut.opacity(0.7))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Player button (if URL available)
+            if hasUrl {
+                AudioPlayerView(url: audio.url!, duration: audio.duration ?? 0, isVoice: false)
+                    .frame(width: 140)
+            } else {
+                // No direct URL — VK restricts audio API
+                HStack(spacing: 4) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.onSurfaceMut)
+                    Text("Недоступно")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.onSurfaceMut)
+                }
+            }
+
+            // Download button
+            if hasUrl {
+                Button {
+                    Task { await downloadAudio() }
+                } label: {
+                    Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
+                        .font(.system(size: 18))
+                        .foregroundStyle(downloading ? Color.onSurfaceMut : Color.cyberBlue)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color(red:0.06,green:0.07,blue:0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider.opacity(0.5), lineWidth: 0.5))
+    }
+
+    private func formatDur(_ sec: Int) -> String {
+        String(format: "%d:%02d", sec / 60, sec % 60)
+    }
+
+    private func downloadAudio() async {
+        guard let urlStr = audio.url, let url = URL(string: urlStr), !downloading else { return }
+        downloading = true
+        ToastManager.shared.show("Загружаем аудио...", icon: "arrow.down.circle", style: .info)
+        do {
+            let (tmpUrl, _) = try await URLSession.shared.download(from: url)
+            let title = (audio.title ?? "audio").replacingOccurrences(of: "/", with: "_")
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(title)_\(Int(Date().timeIntervalSince1970)).mp3")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tmpUrl, to: dest)
+            await MainActor.run {
+                downloading = false
+                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first?.windows.first?.rootViewController?
+                    .present(av, animated: true)
+            }
+        } catch {
+            await MainActor.run {
+                downloading = false
+                ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
         }
     }
 }

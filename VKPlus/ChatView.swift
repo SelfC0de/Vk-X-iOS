@@ -1275,10 +1275,23 @@ private struct BubbleView: View {
 
             case "audio":
                 if let au = a.audio, let url = au.url {
-                    AudioPlayerView(url: url, duration: au.duration ?? 0, isVoice: false)
-                        .frame(maxWidth: min(maxW, 240))
-                        .background(bg)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    HStack(spacing: 6) {
+                        AudioPlayerView(url: url, duration: au.duration ?? 0, isVoice: false)
+                            .frame(maxWidth: min(maxW - 36, 204))
+                            .background(bg)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        Button {
+                            Task { await downloadVoice(urlStr: url) }
+                        } label: {
+                            Image(systemName: "arrow.down.to.line")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.cyberBlue)
+                                .frame(width: 30, height: 30)
+                                .background(bg)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                     if let artist = au.artist, let title = au.title {
                         Text("\(artist) — \(title)")
                             .font(.system(size: 12)).foregroundStyle(fg.opacity(0.8))
