@@ -13,10 +13,11 @@ final class DownloadManager: NSObject, ObservableObject {
     private var taskCompletions: [Int: (Result<URL, Error>) -> Void] = [:]
     private var taskKeys:        [Int: String] = [:]  // tid → normalized urlStr
 
-    // Folder: Documents/VKPlus/Audio
-    static var audioDir: URL {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let dir  = docs.appendingPathComponent("VKPlus/Audio", isDirectory: true)
+    // Documents/Аудио — visible as "На iPhone → VK+ → Аудио"
+    static func mediaDir(voice: Bool) -> URL {
+        let docs   = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let folder = voice ? "Голосовые" : "Аудио"
+        let dir    = docs.appendingPathComponent(folder, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -50,14 +51,14 @@ final class DownloadManager: NSObject, ObservableObject {
 
     /// Download audio directly to Documents/VKPlus/Audio/{filename}.mp3
     /// Returns the saved file URL, shows toast on success
-    func downloadAudio(from urlStr: String, filename: String) async {
+    func downloadAudio(from urlStr: String, filename: String, isVoice: Bool = false) async {
         let key = urlStr  // raw URL as key
         guard progress[key] == nil else { return }
         guard let url = URL(string: urlStr) else {
             ToastManager.shared.show("Неверная ссылка", icon: "exclamationmark.triangle.fill", style: .warning)
             return
         }
-        let dest = Self.audioDir.appendingPathComponent(safeFilename(filename))
+        let dest = Self.mediaDir(voice: isVoice).appendingPathComponent(safeFilename(filename))
         // Already exists — skip download
         if FileManager.default.fileExists(atPath: dest.path) {
             ToastManager.shared.show("Уже сохранено", icon: "checkmark.circle.fill", style: .success)
@@ -79,8 +80,9 @@ final class DownloadManager: NSObject, ObservableObject {
                             do {
                                 try? FileManager.default.removeItem(at: dest)
                                 try FileManager.default.moveItem(at: tmpUrl, to: dest)
+                                let folder = isVoice ? "Голосовые" : "Аудио"
                                 ToastManager.shared.show(
-                                    "Сохранено в Файлы → VKPlus/Audio",
+                                    "Сохранено: На iPhone → VK+ → \(folder)",
                                     icon: "checkmark.circle.fill", style: .success)
                             } catch {
                                 ToastManager.shared.show(

@@ -256,7 +256,7 @@ struct AudioPlayerView: View {
     private func downloadVoiceFile() async {
         let ext  = url.hasSuffix(".ogg") ? "ogg" : "mp3"
         let name = "voice_\(Int(Date().timeIntervalSince1970)).\(ext)"
-        await DownloadManager.shared.downloadAudio(from: url, filename: name)
+        await DownloadManager.shared.downloadAudio(from: url, filename: name, isVoice: true)
     }
 
     private func timeStr(_ seconds: Int) -> String {

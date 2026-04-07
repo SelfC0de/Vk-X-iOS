@@ -836,7 +836,7 @@ struct ChatView: View {
     private func downloadVoice(urlStr: String) async {
         let ext  = urlStr.hasSuffix(".ogg") ? "ogg" : "mp3"
         let name = "voice_\(Int(Date().timeIntervalSince1970)).\(ext)"
-        await DownloadManager.shared.downloadAudio(from: urlStr, filename: name)
+        await DownloadManager.shared.downloadAudio(from: urlStr, filename: name, isVoice: true)
     }
 
     // MARK: - Download video
