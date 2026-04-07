@@ -14,18 +14,30 @@ let clockStyles: [(id: String, name: String, desc: String)] = [
     ("cyber",     "Cyber",     "〈00:00〉"),
 ]
 
+// MARK: - Shared clock state (prevents duplicate timers)
+final class ClockViewModel: ObservableObject {
+    static let shared = ClockViewModel()
+    @Published var now: Date = Date()
+    private var timer: Timer?
+    private init() { startTimer() }
+
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.now = Date()
+        }
+        timer?.tolerance = 0.1
+    }
+}
+
 // MARK: - ClockView (used in tab bar / header)
 struct ClockView: View {
-    @ObservedObject private var s = SettingsStore.shared
+    @ObservedObject private var s  = SettingsStore.shared
+    @ObservedObject private var vm = ClockViewModel.shared
     @Environment(\.colorScheme) private var cs
-    @State private var now = Date()
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         if s.showClock {
-            clockContent(style: s.clockStyle, now: now, ampm: s.clockAmPm, sec: s.clockSeconds, colorHex: s.clockColorHex, cs: cs)
-                .onReceive(timer) { now = $0 }
-                .animation(.none, value: now)
+            clockContent(style: s.clockStyle, now: vm.now, ampm: s.clockAmPm, sec: s.clockSeconds, colorHex: s.clockColorHex, cs: cs)
         }
     }
 }
@@ -156,8 +168,7 @@ struct ClockStylePicker: View {
     @Binding var selected: String
     let ampm: Bool; let sec: Bool; let colorHex: String
     @Environment(\.colorScheme) private var cs
-    @State private var now = Date()
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @ObservedObject private var vm = ClockViewModel.shared
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
@@ -176,7 +187,7 @@ struct ClockStylePicker: View {
                     } label: {
                         VStack(spacing: 6) {
                             // Live preview
-                            clockContent(style: style.id, now: now, ampm: ampm, sec: false, colorHex: colorHex, cs: cs)
+                            clockContent(style: style.id, now: vm.now, ampm: ampm, sec: false, colorHex: colorHex, cs: cs)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.6)
                                 .frame(height: 22)
@@ -197,6 +208,5 @@ struct ClockStylePicker: View {
             }
             .padding(.horizontal, 14).padding(.bottom, 12)
         }
-        .onReceive(timer) { now = $0 }
     }
 }

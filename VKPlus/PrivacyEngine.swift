@@ -123,7 +123,7 @@ final class PrivacyURLProtocol: URLProtocol {
 
         // Anti-Link Preview
         if s.antiLinkPreview && (method == "messages.getLinkStats" || method == "links.getStats") {
-            fakeOK("{"response":{"stats":[]}}"); return
+            fakeOK("{\"response\":{\"stats\":[]}}"); return
         }
         // Ghost Forward
         if s.ghostForward && method == "messages.send" {

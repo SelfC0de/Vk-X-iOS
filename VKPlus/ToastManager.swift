@@ -253,7 +253,7 @@ struct SlideFadeOverlay: View {
                             removal:   .move(edge: .trailing).combined(with: .opacity)
                         ))
                 }
-                Spacer().frame(height: UIScreen.main.bounds.height * 0.18)
+                Spacer().frame(height: UIScreen.main.bounds.height * 0.22)
             }
         }
         .padding(.trailing, 0)
@@ -264,47 +264,71 @@ struct SlideFadeOverlay: View {
 
 private struct SlideFadeToast: View {
     let toast: Toast
-    @State private var appear   = false
+    @State private var appear     = false
     @State private var iconBounce = false
+    @State private var iconScale  = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: toast.icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(toast.style.color)
-                .scaleEffect(iconBounce ? 1.2 : 1.0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: iconBounce)
-            Text(toast.message)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Color.onSurface)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+        HStack(spacing: 14) {
+            // Icon circle
+            ZStack {
+                Circle()
+                    .fill(toast.style.color.opacity(0.18))
+                    .frame(width: 44, height: 44)
+                Circle()
+                    .stroke(toast.style.color.opacity(0.3), lineWidth: 1)
+                    .frame(width: 44, height: 44)
+                Image(systemName: toast.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(toast.style.color)
+                    .scaleEffect(iconScale ? 1.0 : 0.5)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.5).delay(0.08), value: iconScale)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(toast.message)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.onSurface)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("VK+")
+                    .font(.system(size: 11))
+                    .foregroundStyle(toast.style.color.opacity(0.7))
+            }
+
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .frame(maxWidth: 230, alignment: .leading)
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .frame(width: 300, alignment: .leading)
         .background(
             ZStack {
-                toast.style.bgColor.opacity(0.95)
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(toast.style.bgColor)
                 // Left accent bar
-                HStack {
-                    Rectangle()
+                HStack(spacing: 0) {
+                    RoundedRectangle(cornerRadius: 18)
                         .fill(toast.style.color)
-                        .frame(width: 3)
+                        .frame(width: 4)
+                        .clipShape(
+                            .rect(
+                                topLeadingRadius: 18,
+                                bottomLeadingRadius: 18,
+                                bottomTrailingRadius: 0,
+                                topTrailingRadius: 0
+                            )
+                        )
                     Spacer()
                 }
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(toast.style.color.opacity(0.35), lineWidth: 0.8)
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(toast.style.color.opacity(0.3), lineWidth: 1)
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: toast.style.color.opacity(0.25), radius: 10, x: -4, y: 4)
-        // Slide from right
-        .offset(x: appear ? 0 : 260)
+        .shadow(color: toast.style.color.opacity(0.2), radius: 16, x: -6, y: 6)
+        .offset(x: appear ? 0 : 320)
         .opacity(appear ? 1 : 0)
         .onAppear {
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { appear = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { iconBounce = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { iconBounce = false }
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.68)) { appear = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { iconScale = true }
         }
     }
 }
