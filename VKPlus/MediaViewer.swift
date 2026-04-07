@@ -320,7 +320,8 @@ final class ID3MetadataReader: ObservableObject {
 
 
 // MARK: - Audio Player Model
-final class AudioPlayerModel: NSObject, ObservableObject {
+@MainActor
+final class AudioPlayerModel: ObservableObject {
     @Published var isPlaying   = false
     @Published var progress: Double = 0
     @Published var currentUrl: String = ""
@@ -353,20 +354,24 @@ final class AudioPlayerModel: NSObject, ObservableObject {
             if it.status == .readyToPlay {
                 let d = it.duration.seconds
                 if !d.isNaN && d > 0 {
-                    DispatchQueue.main.async { self.realDuration = d }
+                    Task { @MainActor in self.realDuration = d }
                 }
             }
         }
+        let weakPlayer = player
         timeObserver = player?.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
             queue: .main
         ) { [weak self] time in
-            guard let self, !self.isDragging else { return }
-            let dur = self.player?.currentItem?.duration.seconds ?? 0
-            guard !dur.isNaN, dur > 0 else { return }
-            self.progress = time.seconds / dur
-            if self.realDuration == 0 { self.realDuration = dur }
-            if self.progress >= 0.999 { self.stop() }
+            guard let self else { return }
+            Task { @MainActor in
+                guard !self.isDragging else { return }
+                let dur = weakPlayer?.currentItem?.duration.seconds ?? 0
+                guard !dur.isNaN, dur > 0 else { return }
+                self.progress = time.seconds / dur
+                if self.realDuration == 0 { self.realDuration = dur }
+                if self.progress >= 0.999 { self.stop() }
+            }
         }
         player?.play()
         isPlaying = true

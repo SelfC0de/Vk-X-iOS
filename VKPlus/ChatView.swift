@@ -90,8 +90,8 @@ struct ChatView: View {
     private var W: CGFloat { UIScreen.main.bounds.width }
     // Avatar slot width
     private let AV: CGFloat = 28
-    // Max bubble width: ~72% of screen minus avatar slots
-    private var maxW: CGFloat { (W - (AV+6)*2 - 20) * 0.72 }
+    // Max bubble width: VK-style ~75% of usable width
+    private var maxW: CGFloat { (W - 32) * 0.75 }
     private var filteredMessages: [VKMessage] {
         guard !searchQuery.isEmpty else { return messages }
         return messages.filter { $0.text.localizedCaseInsensitiveContains(searchQuery) }
@@ -130,8 +130,7 @@ struct ChatView: View {
                             LazyVStack(spacing: 2) {
                                 ForEach((searchQuery.isEmpty ? messages : filteredMessages).reversed()) { msg in
                                     let wasDeleted = deletedMsgIds.contains(msg.id) || persistedDeletedIds.contains(msg.id)
-                                    // Ghost bubble for persisted-deleted messages still returned by API
-                                    if wasDeleted && persistedDeletedIds.contains(msg.id) && !deletedMsgIds.contains(msg.id) {
+                                    if wasDeleted {
                                         DeletedBubble(isOutgoing: msg.isOutgoing)
                                     } else {
                                     BubbleView(
@@ -162,21 +161,7 @@ struct ChatView: View {
                                         }
                                     )
                                     .id(msg.id)
-                                    } // end else (not persisted-deleted)
-                                    if wasDeleted {
-                                        HStack(spacing: 4) {
-                                            if msg.fromId != myId { Spacer() }
-                                            Image(systemName: "trash.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundStyle(Color.errorRed.opacity(0.6))
-                                            Text(msg.isOutgoing ? "Вы удалили это сообщение" : "Сообщение удалено")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(Color.errorRed.opacity(0.6))
-                                            if msg.fromId == myId { Spacer() }
-                                        }
-                                        .padding(.horizontal, 14)
-                                        .padding(.bottom, 2)
-                                    }
+                                    } // end else (not deleted)
                                 }
                                 // Anchor at bottom — always scroll here
                                 Color.clear.frame(height: 1).id("bottom_anchor")
@@ -1229,36 +1214,17 @@ private struct BubbleView: View {
                 }
                 // Text
                 if !msg.text.isEmpty {
-                    HStack(alignment: .bottom, spacing: 5) {
-                        MessageTextView(
-                            text: msg.text,
-                            textColor: fg,
-                            onVKLink: onVKLink
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
-                        HStack(spacing: 2) {
-                            Text(timeStr(msg.date))
-                                .font(.system(size: 10))
-                                .foregroundStyle(tc)
-                                .fixedSize()
-                            readIndicator
-                        }
-                        .fixedSize()
-                        .alignmentGuide(.bottom) { d in d[.bottom] }
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(bg)
-                    .clipShape(UnevenRoundedRectangle(
-                        topLeadingRadius:     isMe ? 16 : 4,
-                        bottomLeadingRadius:  isMe ? 16 : 4,
-                        bottomTrailingRadius: isMe ?  4 : 16,
-                        topTrailingRadius:    16))
-                    .overlay(UnevenRoundedRectangle(
-                        topLeadingRadius:     isMe ? 16 : 4,
-                        bottomLeadingRadius:  isMe ? 16 : 4,
-                        bottomTrailingRadius: isMe ?  4 : 16,
-                        topTrailingRadius:    16)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 0.5))
+                    BubbleTextBubble(
+                        text:    msg.text,
+                        time:    timeStr(msg.date),
+                        fg:      fg,
+                        tc:      tc,
+                        bg:      bg,
+                        isMe:    isMe,
+                        maxW:    maxW,
+                        onVKLink: onVKLink,
+                        readIndicator: AnyView(readIndicator)
+                    )
                 }
                 if msg.text.isEmpty {
                     HStack(spacing: 2) {
@@ -1545,6 +1511,163 @@ private struct AttachmentPhoto: View {
 }
 
 // MARK: - Link-aware message text
+// MARK: - BubbleTextBubble
+// VK-style: text flows naturally, time+ticks sit at bottom-right.
+// Uses a UITextView width probe to decide if time fits on the last line.
+private struct BubbleTextBubble: View {
+    let text:       String
+    let time:       String
+    let fg:         Color
+    let tc:         Color
+    let bg:         Color
+    let isMe:       Bool
+    let maxW:       CGFloat
+    var onVKLink:   ((String) -> Void)? = nil
+    let readIndicator: AnyView
+
+    // Width of "HH:MM  ✓✓" footer — ~50 pt is enough for time + two ticks
+    private let footerW: CGFloat = 52
+    private let hPad:    CGFloat = 12
+    private let vPad:    CGFloat = 8
+
+    // Natural text width at maxW minus horizontal padding
+    private var textAreaW: CGFloat { maxW - hPad * 2 }
+
+    // Measure natural single-line width of the text
+    private func measuredTextWidth() -> CGFloat {
+        let font = UIFont.systemFont(ofSize: 15)
+        let size = (text as NSString).boundingRect(
+            with: CGSize(width: 10_000, height: 400),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font],
+            context: nil
+        )
+        return ceil(size.width)
+    }
+
+    // Natural last-line width (multiline case)
+    private func lastLineWidth() -> CGFloat {
+        let font  = UIFont.systemFont(ofSize: 15)
+        let textW = textAreaW
+        let size  = (text as NSString).boundingRect(
+            with: CGSize(width: textW, height: 10_000),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font],
+            context: nil
+        )
+        // Approximate last line: total width mod lineWidth
+        let totalH   = ceil(size.height)
+        let lineH    = font.lineHeight
+        let lines    = max(1, Int(round(totalH / lineH)))
+        if lines == 1 { return min(ceil(size.width), textW) }
+        // For multiline: measure last line by splitting on newlines
+        // Simple heuristic: remainder width
+        let words    = text.components(separatedBy: .whitespacesAndNewlines)
+        var lineW: CGFloat = 0
+        var lastW: CGFloat = 0
+        for word in words {
+            let ww = ceil((word + " " as NSString).size(withAttributes: [.font: font]).width)
+            if lineW + ww > textW {
+                lastW = 0
+                lineW = ww
+            } else {
+                lineW += ww
+                lastW = lineW
+            }
+        }
+        return min(lastW, textW)
+    }
+
+    // Does footer (time+ticks) fit on the last line of text?
+    private var footerFitsOnLastLine: Bool {
+        let naturalW = measuredTextWidth()
+        let lastW    = lastLineWidth()
+        if naturalW <= textAreaW {
+            // Single-line message: fits if text + gap + footer <= textAreaW
+            return naturalW + 6 + footerW <= textAreaW
+        } else {
+            // Multi-line: footer fits if last line has room
+            return lastW + 6 + footerW <= textAreaW
+        }
+    }
+
+    // Ideal bubble content width
+    private var bubbleContentW: CGFloat {
+        let naturalW = measuredTextWidth()
+        if naturalW <= textAreaW {
+            // Short text: width = text + maybe footer
+            let needed = naturalW + hPad * 2
+            if footerFitsOnLastLine {
+                return min(needed + 6 + footerW, maxW)
+            } else {
+                return min(max(needed, footerW + hPad * 2 + 8), maxW)
+            }
+        }
+        return maxW
+    }
+
+    private var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius:     isMe ? 16 : 4,
+            bottomLeadingRadius:  isMe ? 16 : 4,
+            bottomTrailingRadius: isMe ?  4 : 16,
+            topTrailingRadius:    16)
+    }
+
+    var body: some View {
+        if footerFitsOnLastLine {
+            // Footer appended inline after text via trailing padding trick
+            ZStack(alignment: .bottomTrailing) {
+                MessageTextView(
+                    text: text + "\u{00A0}\u{00A0}\u{00A0}\u{00A0}\u{00A0}",  // non-breaking spaces reserve footer room
+                    textColor: fg,
+                    onVKLink: onVKLink
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: bubbleContentW - hPad * 2)
+
+                footerView
+                    .padding(.bottom, 1)
+            }
+            .padding(.horizontal, hPad)
+            .padding(.vertical, vPad)
+            .frame(width: bubbleContentW)
+            .background(bg)
+            .clipShape(shape)
+            .overlay(shape.stroke(Color.white.opacity(0.07), lineWidth: 0.5))
+        } else {
+            // Footer on its own line below text
+            VStack(alignment: .trailing, spacing: 2) {
+                MessageTextView(
+                    text: text,
+                    textColor: fg,
+                    onVKLink: onVKLink
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                footerView
+            }
+            .padding(.horizontal, hPad)
+            .padding(.vertical, vPad)
+            .frame(width: bubbleContentW)
+            .background(bg)
+            .clipShape(shape)
+            .overlay(shape.stroke(Color.white.opacity(0.07), lineWidth: 0.5))
+        }
+    }
+
+    private var footerView: some View {
+        HStack(spacing: 2) {
+            Text(time)
+                .font(.system(size: 10))
+                .foregroundStyle(tc)
+                .fixedSize()
+            readIndicator
+        }
+    }
+}
+
 private struct MessageTextView: View {
     let text: String
     let textColor: Color

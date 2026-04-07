@@ -146,23 +146,15 @@ struct VideoCard: View {
             return
         }
 
-        // Download to temp file (not in memory — avoids OOM on large videos)
-        let session = URLSession(configuration: .default)
         do {
-            let (tmpUrl, resp) = try await session.download(from: url)
-            guard let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
+            let tmpUrl = try await DownloadManager.shared.download(from: url.absoluteString)
             let dest = FileManager.default.temporaryDirectory
                 .appendingPathComponent("vkplus_video_\(Int(Date().timeIntervalSince1970)).mp4")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            // Save to Photos gallery
             await saveVideoToGallery(url: dest)
         } catch {
-            await MainActor.run {
-                                ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
-            }
+            ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
         }
     }
 
