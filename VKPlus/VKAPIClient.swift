@@ -755,6 +755,19 @@ final class VKAPIClient {
                       multiple: resp["multiple"] as? Int, closed: resp["is_closed"] as? Int)
     }
 
+
+    // Direct typing signal — bypasses PrivacyEngine URLProtocol (for fake typing feature)
+    func sendTypingDirect(peerId: Int) async {
+        guard let token = TokenStorage.shared.token else { return }
+        let urlStr = "https://api.vk.com/method/messages.setActivity?peer_id=\(peerId)&type=typing&v=5.199&access_token=\(token)"
+        guard let url = URL(string: urlStr) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        // Use default URLSession (not shared) to bypass URLProtocol registration
+        let session = URLSession(configuration: .default)
+        _ = try? await session.data(for: req)
+    }
+
     func viewBlockedProfile(userId: Int) async throws -> (user: VKUser?, result: String) {
         // Method 1: execute() runs server-side — bypasses client-level blocks
         let fields = "photo_200,photo_100,status,online,last_seen,followers_count,bdate,city,verified"

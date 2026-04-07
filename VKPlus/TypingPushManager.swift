@@ -88,8 +88,9 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
                 }
 
             } catch {
+                // Reset server so it gets re-fetched on next iteration
                 server = nil
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
     }
@@ -105,7 +106,7 @@ final class TypingPushManager: NSObject, UNUserNotificationCenterDelegate {
         // ── 2. Favorites only — block non-favorites ───────────────────
         if s.predictFavoritesOnly {
             if !s.predictFavoriteIds.contains(userId) {
-                return false // will be filtered — not in favorites
+                return true // NOT in favorites → filter out
             }
         }
 
@@ -200,8 +201,11 @@ extension VKAPIClient {
             params: ["lp_version": "3", "need_pts": "1"])
         guard let resp = json["response"] as? [String: Any],
               let key    = resp["key"]    as? String,
-              let server = resp["server"] as? String,
-              let ts     = resp["ts"]     as? Int
+              let server = resp["server"] as? String
+        else { throw VKError.noData }
+        let ts: Int
+        if let tsInt = resp["ts"] as? Int { ts = tsInt }
+        else if let tsStr = resp["ts"] as? String, let tsInt = Int(tsStr) { ts = tsInt }
         else { throw VKError.noData }
         return LongPollServer(key: key, server: server, ts: ts)
     }
@@ -214,14 +218,26 @@ extension VKAPIClient {
             throw VKError.noData
         }
         if let failed = json["failed"] as? Int {
-            if failed == 1, let newTs = json["ts"] as? Int {
+            if failed == 1 {
+                // ts outdated — use new ts
+                let newTs = (json["ts"] as? Int) ?? ts
                 return LongPollEvents(ts: newTs, pts: nil, updates: [])
+            }
+            if failed == 2 || failed == 3 {
+                // key/ts expired — need new server
+                throw VKError.api(failed, "LongPoll key expired")
             }
             throw VKError.api(failed, "LongPoll failed=\(failed)")
         }
+        // VK sometimes returns ts as String, sometimes as Int
+        let newTs: Int
+        if let tsInt = json["ts"] as? Int { newTs = tsInt }
+        else if let tsStr = json["ts"] as? String, let tsInt = Int(tsStr) { newTs = tsInt }
+        else { newTs = ts }
+
         return LongPollEvents(
-            ts:  json["ts"]      as? Int     ?? ts,
-            pts: json["pts"]     as? Int,
+            ts:  newTs,
+            pts: json["pts"] as? Int,
             updates: json["updates"] as? [[Any]] ?? []
         )
     }

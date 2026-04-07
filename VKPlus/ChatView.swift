@@ -771,11 +771,11 @@ struct ChatView: View {
             fakeTyping = true
             ToastManager.shared.show("Имитация набора активна", icon: "keyboard.fill", style: .success)
             fakeTypingTask = Task {
+                // Send immediately, then repeat every 4s
+                // Use direct URL bypass to avoid PrivacyEngine antiTyping interception
                 while !Task.isCancelled && fakeTyping {
-                    _ = try? await VKAPIClient.shared.rawCall("messages.setActivity", params: [
-                        "peer_id": "\(peerId)", "type": "typing"
-                    ])
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // VK requires re-send every 5s
+                    await VKAPIClient.shared.sendTypingDirect(peerId: peerId)
+                    try? await Task.sleep(nanoseconds: 4_000_000_000)
                 }
             }
         }

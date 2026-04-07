@@ -1,4 +1,5 @@
 import SwiftUI
+import Photos
 import AVKit
 import AVFoundation
 
@@ -164,18 +165,43 @@ struct VideoCard: View {
                 .appendingPathComponent("vkplus_video_\(Int(Date().timeIntervalSince1970)).mp4")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmpUrl, to: dest)
-            await MainActor.run {
-                downloading = false
-                let av = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-                UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.rootViewController?
-                    .present(av, animated: true)
-            }
+            // Save to Photos gallery
+            await saveVideoToGallery(url: dest)
         } catch {
             await MainActor.run {
                 downloading = false
                 ToastManager.shared.show("Ошибка загрузки видео", icon: "exclamationmark.triangle.fill", style: .warning)
+            }
+        }
+    }
+
+    private func saveVideoToGallery(url: URL) async {
+        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        switch status {
+        case .authorized, .limited:
+            await performSave(url: url)
+        case .notDetermined:
+            let granted = await PHPhotoLibrary.requestAuthorization(for: .addOnly) == .authorized
+            if granted { await performSave(url: url) }
+            else { await MainActor.run { downloading = false; ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning) } }
+        default:
+            await MainActor.run { downloading = false; ToastManager.shared.show("Нет доступа к галерее", icon: "exclamationmark.triangle.fill", style: .warning) }
+        }
+    }
+
+    private func performSave(url: URL) async {
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            }
+            await MainActor.run {
+                downloading = false
+                ToastManager.shared.show("Видео сохранено в галерею", icon: "checkmark.circle.fill", style: .success)
+            }
+        } catch {
+            await MainActor.run {
+                downloading = false
+                ToastManager.shared.show("Ошибка сохранения", icon: "exclamationmark.triangle.fill", style: .warning)
             }
         }
     }
