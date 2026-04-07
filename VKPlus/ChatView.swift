@@ -772,22 +772,35 @@ struct ChatView: View {
 
 
     private func startRecording() {
-        // Use AVAudioSession permission check — works on iOS 14+
-        let session = AVAudioSession.sharedInstance()
-        switch session.recordPermission {
-        case .granted:
-            beginRecording()
-        case .denied:
-            ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
-        case .undetermined:
-            session.requestRecordPermission { granted in
-                DispatchQueue.main.async {
-                    if granted { self.beginRecording() }
-                    else { ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning) }
+        if #available(iOS 17.0, *) {
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted: beginRecording()
+            case .denied:
+                ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
+            case .undetermined:
+                AVAudioApplication.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        if granted { self.beginRecording() }
+                        else { ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning) }
+                    }
                 }
+            @unknown default: beginRecording()
             }
-        @unknown default:
-            beginRecording()
+        } else {
+            let session = AVAudioSession.sharedInstance()
+            switch session.recordPermission {
+            case .granted: beginRecording()
+            case .denied:
+                ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning)
+            case .undetermined:
+                session.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        if granted { self.beginRecording() }
+                        else { ToastManager.shared.show("Нет доступа к микрофону", icon: "mic.slash.fill", style: .warning) }
+                    }
+                }
+            @unknown default: beginRecording()
+            }
         }
     }
 

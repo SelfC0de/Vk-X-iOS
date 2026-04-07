@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var showMain = false
 
     var body: some View {
+        AppLockGate {
         ZStack {
             Color.background.ignoresSafeArea()
             WeatherOverlayView().zIndex(99)
@@ -65,5 +66,6 @@ struct ContentView: View {
                 }
             }
         }
+    }
     }
 }

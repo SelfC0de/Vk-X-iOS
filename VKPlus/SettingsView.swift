@@ -86,6 +86,7 @@ struct SettingsView: View {
 // MARK: - Privacy Tab
 private struct PrivacyTab: View {
     @ObservedObject private var s = SettingsStore.shared
+    @State private var showPinSetup = false
     var body: some View {
         VStack(spacing: 14) {
             SettingsSectionCard(title: "Режим невидимки",
@@ -180,6 +181,60 @@ private struct EngineTab: View {
     @ObservedObject private var s = SettingsStore.shared
     var body: some View {
         VStack(spacing: 14) {
+            // App Lock
+            SettingsSectionCard(title: "Блокировка приложения",
+                                subtitle: "PIN-код и биометрия при запуске",
+                                icon: "lock.shield.fill", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {
+                VStack(spacing: 0) {
+                    SettingsToggle("Блокировка PIN", icon: "lock.fill",
+                                   subtitle: s.appLockEnabled ? "Активна — вход по PIN" : "Запрашивать PIN при открытии",
+                                   val: $s.appLockEnabled)
+                        .onChange(of: s.appLockEnabled) { _, val in
+                            if val && s.appLockPin.isEmpty { showPinSetup = true; s.appLockEnabled = false }
+                        }
+                    if s.appLockEnabled || !s.appLockPin.isEmpty {
+                        Divider().background(Color.divider).padding(.leading, 50)
+                        SettingsToggle("Face ID / Touch ID", icon: "faceid",
+                                       subtitle: "Разблокировка биометрией",
+                                       val: $s.appLockBiometric)
+                        Divider().background(Color.divider).padding(.leading, 50)
+                        Button {
+                            showPinSetup = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "key.fill").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
+                                Text(s.appLockPin.isEmpty ? "Установить PIN" : "Изменить PIN")
+                                    .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                                Spacer()
+                                Image(systemName: "chevron.right").foregroundStyle(Color.onSurfaceMut).font(.system(size: 12))
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        if s.appLockEnabled {
+                            Divider().background(Color.divider).padding(.leading, 50)
+                            Button {
+                                s.appLockEnabled = false; s.appLockPin = ""; s.appLockBiometric = false
+                                ToastManager.shared.show("Блокировка отключена", icon: "lock.open.fill", style: .info)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "lock.open.fill").foregroundStyle(Color.errorRed).font(.system(size: 14))
+                                    Text("Отключить и удалить PIN")
+                                        .font(.system(size: 14)).foregroundStyle(Color.errorRed)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 14).padding(.vertical, 12)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showPinSetup) {
+                PinSetupView()
+                    .onDisappear { if !s.appLockPin.isEmpty { s.appLockEnabled = true } }
+            }
+
             SettingsSectionCard(title: "Показать ответы в опросах",
                                 subtitle: "Без голосования",
                                 icon: "chart.bar.fill", iconColor: Color(r:0x21,g:0x96,b:0xF3)) {

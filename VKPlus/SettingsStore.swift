@@ -153,6 +153,9 @@ final class SettingsStore: ObservableObject {
     @Published var languageSpoof:      Bool { didSet { ud.set(languageSpoof,      forKey: "language_spoof")     } }
     @Published var batteryStrip:       Bool { didSet { ud.set(batteryStrip,       forKey: "battery_strip")      } }
     @Published var networkTypeSpoof:   Bool { didSet { ud.set(networkTypeSpoof,   forKey: "network_type_spoof") } }
+    @Published var appLockEnabled:  Bool   { didSet { ud.set(appLockEnabled,  forKey: "app_lock_enabled")  } }
+    @Published var appLockBiometric: Bool  { didSet { ud.set(appLockBiometric, forKey: "app_lock_bio")      } }
+    @Published var appLockPin:       String { didSet { ud.set(appLockPin,      forKey: "app_lock_pin")      } }
     @Published var canvasGuard:        Bool { didSet { ud.set(canvasGuard,        forKey: "canvas_guard")       } }
     @Published var showPollResults:    Bool { didSet { ud.set(showPollResults,    forKey: "show_poll_results")  } }
     @Published var showPlatformIcon:   Bool { didSet { ud.set(showPlatformIcon,   forKey: "show_platform_icon") } }
@@ -326,6 +329,9 @@ final class SettingsStore: ObservableObject {
         languageSpoof      = ud.bool(forKey: "language_spoof")
         batteryStrip       = ud.bool(forKey: "battery_strip")
         networkTypeSpoof   = ud.bool(forKey: "network_type_spoof")
+        appLockEnabled    = ud.bool(forKey: "app_lock_enabled")
+        appLockBiometric  = ud.bool(forKey: "app_lock_bio")
+        appLockPin        = ud.string(forKey: "app_lock_pin") ?? ""
         canvasGuard        = ud.bool(forKey: "canvas_guard")
         showPollResults    = ud.object(forKey: "show_poll_results")  == nil ? true : ud.bool(forKey: "show_poll_results")
         showPlatformIcon   = ud.object(forKey: "show_platform_icon") == nil ? true : ud.bool(forKey: "show_platform_icon")

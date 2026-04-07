@@ -772,6 +772,58 @@ final class VKAPIClient {
         _ = try? await session.data(for: req)
     }
 
+
+    func searchMessages(query: String, peerId: Int? = nil, count: Int = 20) async throws -> [VKMessage] {
+        var params: [String: String] = ["q": query, "count": "\(count)", "extended": "0"]
+        if let pid = peerId { params["peer_id"] = "\(pid)" }
+        struct SR: Decodable { let items: [VKMessage]? }
+        let r: SR = try await call("messages.search", params: params)
+        return r.items ?? []
+    }
+
+    func getAccountInfo() async throws -> String {
+        let json = try await rawCall("account.getInfo", params: [:])
+        guard let resp = json["response"] as? [String: Any] else { return "Нет данных" }
+        var lines: [String] = []
+        if let country = resp["country"]      as? String { lines.append("🌍 Страна: \(country)") }
+        if let lang    = resp["lang"]         as? Int    { lines.append("🌐 Язык: \(lang)") }
+        if let no2fa   = resp["no_wall_replies"] as? Int { lines.append("📝 Комментарии к стене: \(no2fa == 0 ? "вкл" : "выкл")") }
+        if let intro   = resp["intro"]        as? Int    { lines.append("👋 Intro: \(intro)") }
+        if let own     = resp["own_posts_default"] as? Int { lines.append("📌 Посты по умолчанию: \(own == 1 ? "мои" : "все")") }
+        // 2FA status via account.getProfileInfo
+        let pi = try? await rawCall("account.getProfileInfo", params: [:])
+        if let r2 = pi?["response"] as? [String: Any] {
+            if let phone = r2["phone"] as? String { lines.append("📱 Телефон: \(phone)") }
+            if let name  = r2["first_name"] as? String,
+               let ln    = r2["last_name"]  as? String { lines.append("👤 Имя: \(name) \(ln)") }
+            if let bdate = r2["bdate"]      as? String { lines.append("🎂 Дата рождения: \(bdate)") }
+            if let rel   = r2["relation"]   as? Int    {
+                let rels = ["", "Одинок(а)", "В отношениях", "Помолвлен(а)", "Женат/Замужем", "Всё сложно", "В активном поиске", "Влюблён(а)", "В гражданском браке"]
+                if rel < rels.count { lines.append("❤️ Отношения: \(rels[rel])") }
+            }
+        }
+        return lines.isEmpty ? "Нет данных" : lines.joined(separator: "\n")
+    }
+
+    func getFirstMessage(userId: Int) async throws -> String {
+        // Get first message via reverse history
+        let json = try await rawCall("messages.getHistory", params: [
+            "peer_id": "\(userId)", "count": "1", "rev": "1", "extended": "0"
+        ])
+        guard let resp   = json["response"] as? [String: Any],
+              let items  = resp["items"]    as? [[String: Any]],
+              let first  = items.first else { return "Переписка пуста или недоступна" }
+        let text    = first["text"]   as? String ?? "(без текста)"
+        let fromId  = first["from_id"] as? Int ?? 0
+        let date    = first["date"]   as? Int ?? 0
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        df.dateFormat = "d MMM yyyy, HH:mm"
+        let dateStr = df.string(from: Date(timeIntervalSince1970: TimeInterval(date)))
+        let who = fromId > 0 ? "от вас" : "от собеседника"
+        return "📅 Первое сообщение: \(dateStr)\n📨 Кто написал: \(who)\n💬 \(text)"
+    }
+
     func viewBlockedProfile(userId: Int) async throws -> (user: VKUser?, result: String) {
         // Method 1: execute() runs server-side — bypasses client-level blocks
         let fields = "photo_200,photo_100,status,online,last_seen,followers_count,bdate,city,verified"

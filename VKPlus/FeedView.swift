@@ -566,7 +566,7 @@ struct PhotoViewerSheet: View {
             // Swipeable photo pages
             TabView(selection: $current) {
                 ForEach(photos.indices, id: \.self) { idx in
-                    ZoomablePhoto(url: photos[idx].maxUrl.flatMap(URL.init))
+                    ZoomablePhoto(url: photos[idx].maxUrl ?? "")
                         .tag(idx)
                 }
             }
