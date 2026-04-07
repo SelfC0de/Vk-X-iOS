@@ -191,12 +191,21 @@ struct FriendProfileView: View {
     @State private var isLoading = false
     @State private var verificationInfo: VKVerificationInfo? = nil
     @ObservedObject private var settings = SettingsStore.shared
+    @State private var wallPosts:    [VKWallPost] = []
+    @State private var wallProfiles: [Int: VKUser] = [:]
+    @State private var wallGroups:   [Int: VKGroup] = [:]
+    @State private var wallLoading   = false
+    @State private var wallOffset    = 0
 
     var display: VKUser { fullUser ?? user }
 
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
+            if let data = settings.profileBgImageData, let img = UIImage(data: data) {
+                Image(uiImage: img).resizable().scaledToFill()
+                    .ignoresSafeArea().opacity(0.15)
+            }
             if isLoading { ProgressView().tint(.cyberBlue) }
             else {
                 ScrollView(showsIndicators: false) {

@@ -23,8 +23,10 @@ struct VisualTab: View {
     @State private var showMyColorPicker     = false
     @State private var showTheirColorPicker = false
     @State private var showClockColorPicker  = false
-    @State private var bgPickerItem: PhotosPickerItem? = nil
-    @State private var bgImage: UIImage? = nil
+    @State private var bgPickerItem:        PhotosPickerItem? = nil
+    @State private var bgImage:            UIImage? = nil
+    @State private var feedBgPickerItem:    PhotosPickerItem? = nil
+    @State private var profileBgPickerItem: PhotosPickerItem? = nil
 
     var body: some View {
         VStack(spacing: 14) {
@@ -35,6 +37,8 @@ struct VisualTab: View {
             themeCard
             bubbleCard
             bgCard
+            feedBgCard
+            profileBgCard
         }
         .onAppear { applyTheme(s.appTheme) }
     }
@@ -348,6 +352,18 @@ struct VisualTab: View {
 
     // MARK: - Background card
     @ViewBuilder private var bgCard: some View { BgCardView(bgPickerItem: $bgPickerItem) }
+    @ViewBuilder private var feedBgCard: some View {
+        ExtraBgCardView(title: "Фон ленты", subtitle: "Картинка за постами",
+                        icon: "newspaper.fill", iconColor: Color(r:0x21,g:0x96,b:0xF3),
+                        pickerItem: $feedBgPickerItem,
+                        dataKeyPath: \.feedBgImageData)
+    }
+    @ViewBuilder private var profileBgCard: some View {
+        ExtraBgCardView(title: "Фон профиля", subtitle: "Картинка за профилем",
+                        icon: "person.crop.rectangle.fill", iconColor: Color(r:0xFF,g:0x6B,b:0x35),
+                        pickerItem: $profileBgPickerItem,
+                        dataKeyPath: \.profileBgImageData)
+    }
 
     private func applyTheme(_ t: String) {
         // preferredColorScheme is driven by SettingsStore.appTheme via VKPlusApp
@@ -812,4 +828,68 @@ struct StatusChangerCard: View {
         isFetching = false
     }
 
+}
+
+// MARK: - Generic extra bg card (feed / profile)
+private struct ExtraBgCardView: View {
+    let title:       String
+    let subtitle:    String
+    let icon:        String
+    let iconColor:   Color
+    @Binding var pickerItem: PhotosPickerItem?
+    let dataKeyPath: ReferenceWritableKeyPath<SettingsStore, Data?>
+
+    @ObservedObject private var s = SettingsStore.shared
+
+    var currentData: Data? { s[keyPath: dataKeyPath] }
+
+    var body: some View {
+        SettingsSectionCard(title: title, subtitle: subtitle,
+                            icon: icon, iconColor: iconColor) {
+            VStack(spacing: 0) {
+                if let data = currentData, let img = UIImage(data: data) {
+                    Image(uiImage: img)
+                        .resizable().scaledToFill()
+                        .frame(maxWidth: .infinity).frame(height: 100)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 14).padding(.top, 12)
+                }
+                PhotosPicker(selection: $pickerItem, matching: .images) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "photo.badge.plus").foregroundStyle(Color.cyberBlue)
+                        Text(currentData == nil ? "Выбрать фото" : "Сменить фото")
+                            .font(.system(size: 14)).foregroundStyle(Color.onSurface)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+                }
+                if currentData != nil {
+                    Divider().background(Color.divider).padding(.leading, 14)
+                    Button {
+                        s[keyPath: dataKeyPath] = nil
+                        ToastManager.shared.show("Фон удалён", icon: "trash", style: .info)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "trash").foregroundStyle(Color.errorRed)
+                            Text("Удалить фон").font(.system(size: 14)).foregroundStyle(Color.errorRed)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    s[keyPath: dataKeyPath] = data
+                    ToastManager.shared.show("Фон установлен", icon: "photo.fill", style: .success)
+                }
+                pickerItem = nil
+            }
+        }
+    }
 }

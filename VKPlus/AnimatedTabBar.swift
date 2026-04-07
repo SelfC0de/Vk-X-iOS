@@ -1,3 +1,24 @@
+// MARK: - Unread Count Manager
+final class UnreadCountManager: ObservableObject {
+    static let shared = UnreadCountManager()
+    @Published var count: Int = 0
+    private var task: Task<Void, Never>? = nil
+    private init() {}
+
+    func start() {
+        guard task == nil else { return }
+        task = Task { [weak self] in
+            while !Task.isCancelled {
+                if let n = try? await VKAPIClient.shared.getUnreadCount() {
+                    await MainActor.run { self?.count = n }
+                }
+                try? await Task.sleep(nanoseconds: 30_000_000_000) // 30s
+            }
+        }
+    }
+    func stop() { task?.cancel(); task = nil }
+}
+
 import SwiftUI
 
 // MARK: - Tab order persistence
@@ -95,8 +116,9 @@ private struct BracketHighlight: View {
 // MARK: - Tab Bar
 struct AnimatedTabBar: View {
     @Binding var selected: Int
-    @ObservedObject var toastMgr = ToastManager.shared
-    @ObservedObject private var store = SettingsStore.shared
+    @ObservedObject var toastMgr  = ToastManager.shared
+    @ObservedObject private var store   = SettingsStore.shared
+    @ObservedObject private var unreadMgr = UnreadCountManager.shared
 
     let tabDefs: [(icon: String, label: String)] = [
         ("house.fill",                        "Лента"),
@@ -141,7 +163,7 @@ struct AnimatedTabBar: View {
                     let isGhost = dragPos == pos
                     AnimatedTabItem(icon: tabDefs[tabIdx].icon, label: tabDefs[tabIdx].label,
                                     isSelected: selected == tabIdx && dragPos == nil,
-                                    badgeCount: 0, tabIndex: tabIdx)
+                                    badgeCount: tabIdx == 1 ? unreadMgr.count : 0, tabIndex: tabIdx)
                         .frame(maxWidth: .infinity)
                         .opacity(isGhost ? 0 : 1)
                         .onTapGesture { guard dragPos == nil else { return }; selected = tabIdx }
@@ -535,6 +557,7 @@ struct AnimatedMainTabView: View {
         }
         .ignoresSafeArea(edges: .bottom)
         .toastOverlay()
+        .onAppear { UnreadCountManager.shared.start() }
     }
 
     @ViewBuilder

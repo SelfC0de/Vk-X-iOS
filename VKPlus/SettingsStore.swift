@@ -225,7 +225,9 @@ final class SettingsStore: ObservableObject {
     @Published var appTheme:        String { didSet { ud.set(appTheme,        forKey: "app_theme")         } }
     @Published var myBubbleHex:     String { didSet { ud.set(myBubbleHex,     forKey: "my_bubble_hex")     } }
     @Published var theirBubbleHex:  String { didSet { ud.set(theirBubbleHex,  forKey: "their_bubble_hex")  } }
-    @Published var chatBgImageData: Data?  { didSet { ud.set(chatBgImageData, forKey: "chat_bg_data")      } }
+    @Published var chatBgImageData:    Data? { didSet { ud.set(chatBgImageData,    forKey: "chat_bg_data")    } }
+    @Published var feedBgImageData:    Data? { didSet { ud.set(feedBgImageData,    forKey: "feed_bg_data")    } }
+    @Published var profileBgImageData: Data? { didSet { ud.set(profileBgImageData, forKey: "profile_bg_data") } }
     @Published var deviceUa:        String { didSet { ud.set(deviceUa,      forKey: "device_ua")        } }
 
     // Verification / Exploits
@@ -298,7 +300,9 @@ final class SettingsStore: ObservableObject {
         appTheme         = ud.string(forKey: "app_theme")         ?? "dark"
         myBubbleHex      = ud.string(forKey: "my_bubble_hex")     ?? "#122846"
         theirBubbleHex   = ud.string(forKey: "their_bubble_hex")  ?? "#1A1E2E"
-        chatBgImageData  = ud.data(forKey: "chat_bg_data")
+        chatBgImageData    = ud.data(forKey: "chat_bg_data")
+        feedBgImageData    = ud.data(forKey: "feed_bg_data")
+        profileBgImageData = ud.data(forKey: "profile_bg_data")
         deviceUa         = ud.string(forKey: "device_ua")      ?? DeviceProfile.kate.ua
         verifyChecker    = ud.object(forKey: "verify_checker") == nil ? true  : ud.bool(forKey: "verify_checker")
         fakeVerification = ud.bool(forKey: "fake_verif")

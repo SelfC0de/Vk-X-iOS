@@ -9,6 +9,11 @@ struct ProfileView: View {
     @State private var showMirrorSheet = false
     @State private var headerAppeared = false
     @State private var fetchedVerifInfo: VKVerificationInfo? = nil
+    @State private var wallPosts: [VKWallPost] = []
+    @State private var wallProfiles: [Int: VKUser] = [:]
+    @State private var wallGroups: [Int: VKGroup] = [:]
+    @State private var wallLoading = false
+    @State private var wallOffset  = 0
 
     private var displayName:  String   { mirror.isActive && !mirror.name.isEmpty  ? mirror.name  : (user?.fullName ?? "") }
     private var displayPhoto: String?  { mirror.isActive && !mirror.photo.isEmpty ? mirror.photo : user?.avatar }
@@ -95,6 +100,15 @@ struct ProfileView: View {
 
                     // Profile history
                     ProfileHistorySection()
+
+                    // Wall
+                    ProfileWallSection(
+                        posts: wallPosts,
+                        profiles: wallProfiles,
+                        groups: wallGroups,
+                        isLoading: wallLoading,
+                        onLoadMore: { Task { await loadMoreWall(userId: u.id) } }
+                    )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -361,6 +375,18 @@ VerificationRowFetched(
                     .background(Color.cyberBlue).clipShape(Capsule())
             }
         }
+    }
+
+    private func loadMoreWall(userId: Int) async {
+        guard !wallLoading else { return }
+        wallLoading = true
+        if let page = try? await VKAPIClient.shared.getUserWall(userId: userId, count: 10, offset: wallOffset) {
+            wallPosts  += page.items
+            wallProfiles.merge(page.profiles) { _, new in new }
+            wallGroups.merge(page.groups)     { _, new in new }
+            wallOffset += page.items.count
+        }
+        wallLoading = false
     }
 
     private func load() async {
@@ -719,5 +745,77 @@ private struct ProfileHistorySection: View {
             users = store.profileHistory.prefix(20).compactMap { map[$0] }
         }
         isLoading = false
+    }
+}
+
+// MARK: - Profile Wall Section
+struct ProfileWallSection: View {
+    let posts:     [VKWallPost]
+    let profiles:  [Int: VKUser]
+    let groups:    [Int: VKGroup]
+    let isLoading: Bool
+    let onLoadMore: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if !posts.isEmpty {
+                HStack {
+                    Text("Записи на стене")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.onSurface)
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 10)
+
+                VStack(spacing: 10) {
+                    ForEach(posts) { post in
+                        let aId = post.authorId
+                        let name: String = {
+                            if aId < 0, let g = groups[-aId] { return g.name }
+                            if let u = profiles[aId] { return u.fullName }
+                            return "Пользователь"
+                        }()
+                        let photo: String? = {
+                            if aId < 0, let g = groups[-aId] { return g.photo100 }
+                            return profiles[aId]?.photo100
+                        }()
+                        PostCard(post: post, authorName: name, authorPhoto: photo, onLike: {})
+                            .background(Color.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.divider, lineWidth: 0.5))
+                            .padding(.horizontal, 12)
+                    }
+
+                    // Load more
+                    Button {
+                        onLoadMore()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isLoading {
+                                ProgressView().tint(.cyberBlue).scaleEffect(0.8)
+                            }
+                            Text(isLoading ? "Загружаем..." : "Показать ещё")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.cyberBlue)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.divider, lineWidth: 0.5))
+                        .padding(.horizontal, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isLoading)
+                    .padding(.bottom, 24)
+                }
+            } else if isLoading {
+                HStack {
+                    ProgressView().tint(.cyberBlue)
+                    Text("Загружаем стену...").font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
+                }
+                .padding(.vertical, 20)
+            }
+        }
     }
 }

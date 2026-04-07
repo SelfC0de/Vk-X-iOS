@@ -105,12 +105,20 @@ final class FeedViewModel: ObservableObject {
 }
 
 // MARK: - FeedView
+// MARK: - FeedView
 struct FeedView: View {
     @StateObject private var vm = FeedViewModel()
 
+    @ObservedObject private var settings = SettingsStore.shared
     var body: some View {
         ZStack {
             Color.background.ignoresSafeArea()
+            if let data = settings.feedBgImageData, let img = UIImage(data: data) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .ignoresSafeArea()
+                    .opacity(0.18)
+            }
             Group {
                 if vm.isLoading && vm.posts.isEmpty {
                     ProgressView().tint(.cyberBlue)
@@ -350,6 +358,15 @@ struct PostCard: View {
                 membersCount: nil, description: nil,
                 activity: nil, isMember: nil,
                 isAdmin: nil, isClosed: nil, screenName: nil
+            ))
+        } else if post.authorId > 0 {
+            FriendProfileView(user: VKUser(
+                id: post.authorId, firstName: String(authorName.split(separator:" ").first ?? ""),
+                lastName: String(authorName.split(separator:" ").dropFirst().first ?? ""),
+                photo100: authorPhoto, photo200: nil,
+                online: nil, status: nil, verified: nil,
+                deactivated: nil, city: nil, bdate: nil,
+                followersCount: nil, screenName: nil
             ))
         } else {
             EmptyView()

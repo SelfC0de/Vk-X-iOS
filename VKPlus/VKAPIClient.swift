@@ -596,6 +596,23 @@ final class VKAPIClient {
         return nil
     }
 
+    func getUserWall(userId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
+        struct WR: Decodable { let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]? }
+        let r: WR = try await call("wall.get", params: [
+            "owner_id": "\(userId)", "count": "\(count)", "offset": "\(offset)",
+            "extended": "1", "fields": "photo_100,screen_name,name,first_name,last_name"
+        ])
+        let pm = Dictionary(uniqueKeysWithValues: (r.profiles ?? []).map { ($0.id, $0) })
+        let gm = Dictionary(uniqueKeysWithValues: (r.groups   ?? []).map { ($0.id, $0) })
+        return NewsfeedPage(items: r.items, profiles: pm, groups: gm, nextFrom: nil)
+    }
+
+    func getUnreadCount() async throws -> Int {
+        let json = try await rawCall("account.getCounters", params: ["filter": "messages"])
+        let resp = json["response"] as? [String: Any]
+        return resp?["messages"] as? Int ?? 0
+    }
+
     func getGroupWall(groupId: Int, count: Int = 20, offset: Int = 0) async throws -> NewsfeedPage {
         struct WR: Decodable {
             let items: [VKWallPost]; let profiles: [VKUser]?; let groups: [VKGroup]?
