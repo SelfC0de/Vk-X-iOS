@@ -329,10 +329,13 @@ struct FloatingIslandBar: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         VStack(spacing: 2) {
-                            Image(systemName: tabDefs[i].icon)
-                                .font(.system(size: selected == i ? 22 : 18))
-                                .foregroundStyle(selected == i ? Color(r:0xA7,g:0x8B,b:0xFA) : Color.onSurfaceMut.opacity(0.55))
-                                .offset(y: selected == i ? -6 : 0)
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: selected == i ? 22 : 18))
+                                    .foregroundStyle(selected == i ? Color(r:0xA7,g:0x8B,b:0xFA) : Color.onSurfaceMut.opacity(0.55))
+                                    .offset(y: selected == i ? -6 : 0)
+                                if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                            }
                             if selected == i {
                                 Text(tabDefs[i].label)
                                     .font(.system(size: 9, weight: .semibold))
@@ -400,10 +403,13 @@ struct NeonGlowBar: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         VStack(spacing: 3) {
-                            Image(systemName: tabDefs[i].icon)
-                                .font(.system(size: 20))
-                                .foregroundStyle(selected == i ? Color(r:0x00,g:0xF5,b:0xFF) : Color.onSurfaceMut.opacity(0.5))
-                                .shadow(color: selected == i ? Color(r:0x00,g:0xF5,b:0xFF).opacity(pulse && selected == i ? 0.9 : 0.4) : .clear, radius: 8)
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(selected == i ? Color(r:0x00,g:0xF5,b:0xFF) : Color.onSurfaceMut.opacity(0.5))
+                                    .shadow(color: selected == i ? Color(r:0x00,g:0xF5,b:0xFF).opacity(pulse && selected == i ? 0.9 : 0.4) : .clear, radius: 8)
+                                if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                            }
                             Text(tabDefs[i].label)
                                 .font(.system(size: 8))
                                 .foregroundStyle(selected == i ? Color(r:0x00,g:0xF5,b:0xFF).opacity(0.8) : Color.onSurfaceMut.opacity(0.4))
@@ -449,10 +455,13 @@ struct TickerLabelBar: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             VStack(spacing: 2) {
-                                Image(systemName: tabDefs[i].icon)
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(selected == i ? Color(r:0xFF,g:0xB8,b:0x00) : Color.onSurfaceMut.opacity(0.55))
-                                    .scaleEffect(selected == i ? 1.12 : 1.0)
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: tabDefs[i].icon)
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(selected == i ? Color(r:0xFF,g:0xB8,b:0x00) : Color.onSurfaceMut.opacity(0.55))
+                                        .scaleEffect(selected == i ? 1.12 : 1.0)
+                                    if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                                }
                                 if selected == i {
                                     Text(displayedLabel)
                                         .font(.system(size: 9, weight: .semibold, design: .monospaced))
@@ -511,14 +520,17 @@ struct GravityDropBar: View {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         } label: {
                             VStack(spacing: 3) {
-                                Image(systemName: tabDefs[i].icon)
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(selected == i ? Color(r:0x34,g:0xD3,b:0x99) : Color.onSurfaceMut.opacity(0.55))
-                                    .offset(y: droppingIdx == i ? dropPhase * 24 : 0)
-                                    .animation(droppingIdx == i && dropPhase > 0
-                                        ? .easeIn(duration: 0.12)
-                                        : .spring(response: 0.4, dampingFraction: 0.45),
-                                               value: dropPhase)
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: tabDefs[i].icon)
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(selected == i ? Color(r:0x34,g:0xD3,b:0x99) : Color.onSurfaceMut.opacity(0.55))
+                                        .offset(y: droppingIdx == i ? dropPhase * 24 : 0)
+                                        .animation(droppingIdx == i && dropPhase > 0
+                                            ? .easeIn(duration: 0.12)
+                                            : .spring(response: 0.4, dampingFraction: 0.45),
+                                                   value: dropPhase)
+                                    if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                                }
                                 Text(tabDefs[i].label)
                                     .font(.system(size: 8.5))
                                     .foregroundStyle(selected == i ? Color(r:0x34,g:0xD3,b:0x99) : Color.onSurfaceMut.opacity(0.4))
@@ -643,12 +655,15 @@ struct ArcMenuBar: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         VStack(spacing: 3) {
-                            Image(systemName: tabDefs[i].icon)
-                                .font(.system(size: selected == i ? 22 : 18))
-                                .foregroundStyle(selected == i
-                                    ? Color(r:0x63,g:0x66,b:0xF1)
-                                    : Color.onSurfaceMut.opacity(0.5))
-                                .scaleEffect(selected == i ? 1.1 : 1.0)
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: tabDefs[i].icon)
+                                    .font(.system(size: selected == i ? 22 : 18))
+                                    .foregroundStyle(selected == i
+                                        ? Color(r:0x63,g:0x66,b:0xF1)
+                                        : Color.onSurfaceMut.opacity(0.5))
+                                    .scaleEffect(selected == i ? 1.1 : 1.0)
+                                if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                            }
                             Circle()
                                 .fill(selected == i ? Color(r:0x63,g:0x66,b:0xF1) : Color.clear)
                                 .frame(width: 3, height: 3)
@@ -691,11 +706,14 @@ struct PillSelectorBar: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             HStack(spacing: selected == i ? 5 : 0) {
-                                Image(systemName: tabDefs[i].icon)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(selected == i
-                                        ? Color(r:0xA5,g:0xB4,b:0xFC)
-                                        : Color.onSurfaceMut.opacity(0.5))
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: tabDefs[i].icon)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(selected == i
+                                            ? Color(r:0xA5,g:0xB4,b:0xFC)
+                                            : Color.onSurfaceMut.opacity(0.5))
+                                    if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
+                                }
                                 if selected == i {
                                     Text(tabDefs[i].label)
                                         .font(.system(size: 10, weight: .semibold))
@@ -745,7 +763,7 @@ struct ShapeMorphBar: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             VStack(spacing: 4) {
-                                ZStack {
+                                ZStack(alignment: .topTrailing) {
                                     RoundedRectangle(cornerRadius: selected == i ? 14 : 6)
                                         .fill(selected == i
                                             ? Color(r:0x06,g:0xB6,b:0xD4).opacity(0.2)
@@ -757,6 +775,7 @@ struct ShapeMorphBar: View {
                                         .foregroundStyle(selected == i
                                             ? Color(r:0x06,g:0xB6,b:0xD4)
                                             : Color.onSurfaceMut.opacity(0.5))
+                                    if i == 1 { UnreadBadge(count: UnreadCountManager.shared.count) }
                                 }
                                 Text(tabDefs[i].label)
                                     .font(.system(size: 8))

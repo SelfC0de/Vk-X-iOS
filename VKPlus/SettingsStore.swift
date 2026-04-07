@@ -150,6 +150,10 @@ final class SettingsStore: ObservableObject {
     @Published var antiLinkPreview:    Bool { didSet { ud.set(antiLinkPreview,    forKey: "anti_link_preview") } }
     @Published var ghostForward:       Bool { didSet { ud.set(ghostForward,       forKey: "ghost_forward")     } }
     @Published var spoofDeviceModel:   Bool { didSet { ud.set(spoofDeviceModel,   forKey: "spoof_device_model") } }
+    @Published var languageSpoof:      Bool { didSet { ud.set(languageSpoof,      forKey: "language_spoof")     } }
+    @Published var batteryStrip:       Bool { didSet { ud.set(batteryStrip,       forKey: "battery_strip")      } }
+    @Published var networkTypeSpoof:   Bool { didSet { ud.set(networkTypeSpoof,   forKey: "network_type_spoof") } }
+    @Published var canvasGuard:        Bool { didSet { ud.set(canvasGuard,        forKey: "canvas_guard")       } }
 
     // Profile history (stored as JSON array of ids)
     @Published var profileHistory:  [Int] { didSet {
@@ -317,6 +321,10 @@ final class SettingsStore: ObservableObject {
         antiLinkPreview    = ud.bool(forKey: "anti_link_preview")
         ghostForward       = ud.bool(forKey: "ghost_forward")
         spoofDeviceModel   = ud.bool(forKey: "spoof_device_model")
+        languageSpoof      = ud.bool(forKey: "language_spoof")
+        batteryStrip       = ud.bool(forKey: "battery_strip")
+        networkTypeSpoof   = ud.bool(forKey: "network_type_spoof")
+        canvasGuard        = ud.bool(forKey: "canvas_guard")
         if let d = ud.data(forKey: "profile_history"),
            let arr = try? JSONDecoder().decode([Int].self, from: d) {
             profileHistory = arr

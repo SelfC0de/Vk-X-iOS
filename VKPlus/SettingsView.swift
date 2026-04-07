@@ -353,6 +353,53 @@ private struct DeviceTab: View {
                 }
             }
 
+            // Language Spoof
+            SettingsSectionCard(title: "Language Spoof",
+                                subtitle: "Подмена языка в запросах",
+                                icon: "globe", iconColor: Color(r:0x4C,g:0xAF,b:0x50)) {
+                SettingsToggle("Language Spoof", icon: "globe",
+                               subtitle: "Случайный EU язык вместо системного (en/de/fr/es...)",
+                               val: $s.languageSpoof)
+            }
+
+            // Battery + Accelerometer Strip
+            SettingsSectionCard(title: "Sensor Strip",
+                                subtitle: "Удаление данных датчиков из запросов",
+                                icon: "battery.50", iconColor: Color(r:0xFF,g:0xB8,b:0x00)) {
+                SettingsToggle("Battery & Sensor Strip", icon: "battery.50",
+                               subtitle: "Удалять battery_level, accelerometer, gyroscope из запросов",
+                               val: $s.batteryStrip)
+            }
+
+            // Network Type Spoof
+            SettingsSectionCard(title: "Network Type Spoof",
+                                subtitle: "Подмена типа подключения",
+                                icon: "wifi", iconColor: Color(r:0x00,g:0xBC,b:0xD4)) {
+                SettingsToggle("Network Type Spoof", icon: "wifi",
+                               subtitle: "Случайный тип сети вместо реального (wifi/lte/5g)",
+                               val: $s.networkTypeSpoof)
+            }
+
+            // Canvas Fingerprint Guard
+            SettingsSectionCard(title: "Canvas Fingerprint Guard",
+                                subtitle: "Защита от canvas fingerprinting",
+                                icon: "square.dashed", iconColor: Color(r:0x9C,g:0x27,b:0xB0)) {
+                VStack(spacing: 0) {
+                    SettingsToggle("Canvas Guard", icon: "square.dashed",
+                                   subtitle: "Блокировать уникальный fingerprint через canvas API",
+                                   val: $s.canvasGuard)
+                    if s.canvasGuard {
+                        Divider().background(Color.divider).padding(.leading, 50)
+                        HStack(spacing: 10) {
+                            Image(systemName: "info.circle").foregroundStyle(Color.cyberBlue).font(.system(size: 14))
+                            Text("Добавляет шум в canvas render — применяется в WKWebView компонентах")
+                                .font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                    }
+                }
+            }
+
             // Current spoof preview (if active)
             if s.hardwareSpoof {
                 spoofPreview

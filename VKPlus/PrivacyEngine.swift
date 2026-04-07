@@ -118,22 +118,35 @@ final class PrivacyURLProtocol: URLProtocol {
             fakeOK("{\"response\":1}"); return
         }
 
+        // Build modified request
+        var newRequest = newRequest2
 
-        // Anti-Link Preview — block getLinkStats (would leak user IP via VK preview server)
+        // Anti-Link Preview
         if s.antiLinkPreview && (method == "messages.getLinkStats" || method == "links.getStats") {
-            fakeOK("{\"response\":{\"stats\":[]}}"); return
+            fakeOK("{"response":{"stats":[]}}"); return
         }
-        // Ghost Forward — strip forward metadata from sendMessage
+        // Ghost Forward
         if s.ghostForward && method == "messages.send" {
             newRequest = stripForwardMeta(newRequest)
         }
-        // Spoof Device Model — replace device/os fields
+        // Spoof Device Model
         if s.spoofDeviceModel {
             newRequest = spoofDevice(newRequest)
         }
-        // Build modified request
-        var newRequest = newRequest2
-        newRequest.url = buildModifiedURL(original: newRequest2.url ?? request.url!, method: method, antiBan: s.antiBan)
+        // Language Spoof
+        if s.languageSpoof {
+            newRequest = spoofLanguage(newRequest)
+        }
+        // Battery + Accelerometer Strip
+        if s.batteryStrip {
+            newRequest = stripBatterySensors(newRequest)
+        }
+        // Network Type Spoof
+        if s.networkTypeSpoof {
+            newRequest = spoofNetworkType(newRequest)
+        }
+
+        newRequest.url = buildModifiedURL(original: newRequest.url ?? request.url!, method: method, antiBan: s.antiBan)
 
         let session = URLSession(configuration: .default)
         let task = session.dataTask(with: newRequest) { [weak self] data, response, error in
@@ -211,6 +224,57 @@ final class PrivacyURLProtocol: URLProtocol {
         return pairs.joined(separator: "&").data(using: .utf8) ?? data
     }
 
+
+
+    // MARK: - Language Spoof
+    private func spoofLanguage(_ req: URLRequest) -> URLRequest {
+        let langs = ["en", "de", "fr", "es", "it", "nl", "pl", "sv"]
+        let lang = langs[abs(getSpoofedModel().hashValue) % langs.count]
+        var r = req
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.map { item in
+                ["lang", "language", "locale"].contains(item.name)
+                    ? URLQueryItem(name: item.name, value: lang) : item
+            }
+            r.url = comps.url
+        }
+        r.setValue(lang, forHTTPHeaderField: "Accept-Language")
+        return r
+    }
+
+    // MARK: - Battery / Accelerometer Strip
+    private let BATTERY_FIELDS = ["battery_level", "battery", "charging", "is_charging",
+                                   "accelerometer", "gyroscope", "motion", "orientation"]
+    private func stripBatterySensors(_ req: URLRequest) -> URLRequest {
+        var r = req
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.filter { !BATTERY_FIELDS.contains($0.name) }
+            r.url = comps.url
+        }
+        if let body = r.httpBody, let str = String(data: body, encoding: .utf8) {
+            let cleaned = str.components(separatedBy: "&").filter {
+                let key = $0.components(separatedBy: "=").first ?? ""
+                return !BATTERY_FIELDS.contains(key)
+            }.joined(separator: "&")
+            r.httpBody = cleaned.data(using: .utf8)
+        }
+        return r
+    }
+
+    // MARK: - Network Type Spoof
+    private let NETWORK_TYPES = ["wifi", "lte", "4g", "5g", "ethernet"]
+    private func spoofNetworkType(_ req: URLRequest) -> URLRequest {
+        let net = NETWORK_TYPES[abs(getSpoofedModel().hashValue) % NETWORK_TYPES.count]
+        var r = req
+        if let url = r.url, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = comps.queryItems?.map { item in
+                ["connection_type", "network_type", "connection"].contains(item.name)
+                    ? URLQueryItem(name: item.name, value: net) : item
+            }
+            r.url = comps.url
+        }
+        return r
+    }
 
     // MARK: - Ghost Forward: strip forward_messages / reply_id metadata
     private func stripForwardMeta(_ req: URLRequest) -> URLRequest {
