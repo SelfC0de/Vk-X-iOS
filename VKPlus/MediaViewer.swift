@@ -186,6 +186,38 @@ struct AudioPlayerView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .onDisappear { if isActive { player.stop() } }
+        .overlay(alignment: .topTrailing) {
+            if isVoice {
+                Button {
+                    Task { await downloadVoiceFile() }
+                } label: {
+                    Image(systemName: "arrow.down.to.line")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color(red:0.11,green:0.63,blue:0.95).opacity(0.85))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4).padding(.trailing, 4)
+            }
+        }
+    }
+
+    private func downloadVoiceFile() async {
+        guard let audioUrl = URL(string: url),
+              let (data, _) = try? await URLSession.shared.data(from: audioUrl) else {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            return
+        }
+        let ext  = url.hasSuffix(".ogg") ? "ogg" : "mp3"
+        let tmp  = FileManager.default.temporaryDirectory
+            .appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970)).\(ext)")
+        try? data.write(to: tmp)
+        await MainActor.run {
+            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
+        }
     }
 
     private func timeStr(_ seconds: Int) -> String {

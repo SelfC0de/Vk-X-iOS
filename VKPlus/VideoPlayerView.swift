@@ -9,6 +9,7 @@ struct VideoCard: View {
     @State private var loading      = false
     @State private var showPlayer   = false
     @State private var showFullscreen = false
+    @State private var downloading = false
 
     private var fmtDuration: String {
         guard let d = (resolved?.duration ?? video.duration), d > 0 else { return "" }
@@ -82,6 +83,22 @@ struct VideoCard: View {
                     .padding(8)
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            if !showPlayer {
+                Button {
+                    Task { await downloadVideo() }
+                } label: {
+                    Image(systemName: downloading ? "arrow.down.circle.fill" : "arrow.down.to.line")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(.black.opacity(0.55))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(8)
+            }
+        }
         // Title
         .overlay(alignment: .topLeading) {
             if let title = (resolved?.title ?? video.title), !title.isEmpty, !showPlayer {
@@ -114,6 +131,38 @@ struct VideoCard: View {
         return src.player.flatMap(URL.init)
     }
     private var playableURL: URL? { directVideoURL ?? embedVideoURL }
+
+    private func downloadVideo() async {
+        guard !downloading else { return }
+        downloading = true
+        ToastManager.shared.show("Получаем ссылку...", icon: "arrow.down.circle", style: .info)
+        let src = resolved ?? video
+        var urlStr = src.directUrl
+        if urlStr == nil {
+            let fetched = try? await VKAPIClient.shared.getVideo(ownerId: video.ownerId, videoId: video.id)
+            urlStr = fetched?.directUrl
+            if let f = fetched { resolved = f }
+        }
+        guard let str = urlStr, let url = URL(string: str) else {
+            ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
+            downloading = false; return
+        }
+        guard let (data, _) = try? await URLSession.shared.data(from: url) else {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            downloading = false; return
+        }
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("video_\(Int(Date().timeIntervalSince1970)).mp4")
+        try? data.write(to: tmp)
+        await MainActor.run {
+            downloading = false
+            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
+        }
+    }
 
     private func resolve() async {
         guard !loading else { return }

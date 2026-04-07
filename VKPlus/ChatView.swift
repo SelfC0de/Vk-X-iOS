@@ -75,7 +75,9 @@ struct ChatView: View {
     @State private var replyMsg:   VKMessage? = nil
     @State private var peerOnline   = false
     @State private var peerPlatform: Int? = nil
-    @State private var peerTyping  = false
+    @State private var peerTyping    = false
+    @State private var fakeTyping    = false
+    @State private var fakeTypingTask: Task<Void, Never>? = nil
     @State private var typingTimer: Timer? = nil
     @State private var lastTypingSent: Date = .distantPast
 
@@ -137,6 +139,7 @@ struct ChatView: View {
                                         onReact:         { reactMsg = msg; showReact = true },
                                         onSavePhoto:     { url in Task { await saveImageToGallery(urlStr: url) } },
                                         onDownloadVoice: { url in Task { await downloadVoice(urlStr: url) } },
+                                        onDownloadVideo: { vid in Task { await downloadVideo(vid) } },
                                         onVKLink: { name in
                                             Task {
                                                 if let u = try? await VKAPIClient.shared.getUserById(name) {
@@ -221,8 +224,18 @@ struct ChatView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button { showSearch.toggle() } label: {
-                    Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
+                HStack(spacing: 4) {
+                    // Fake Typing button
+                    Button {
+                        toggleFakeTyping()
+                    } label: {
+                        Image(systemName: fakeTyping ? "keyboard.fill" : "keyboard")
+                            .foregroundStyle(fakeTyping ? Color.cyberBlue : Color.onSurfaceMut)
+                            .font(.system(size: 16))
+                    }
+                    Button { showSearch.toggle() } label: {
+                        Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
+                    }
                 }
             }
         }
@@ -667,7 +680,64 @@ struct ChatView: View {
         }
     }
 
+    // MARK: - Download video
+    private func downloadVideo(_ vid: VKVideoAttachment) async {
+        // First try direct URL already in model
+        if let directUrl = vid._directUrl ?? vid.player.flatMap({ _ in nil }),
+           let url = URL(string: directUrl) {
+            await saveVideoFromUrl(url)
+            return
+        }
+        // Fetch via video.get to get direct file URLs
+        guard let full = try? await VKAPIClient.shared.getVideo(ownerId: vid.ownerId, videoId: vid.id),
+              let urlStr = full._directUrl,
+              let url = URL(string: urlStr) else {
+            ToastManager.shared.show("Прямая ссылка недоступна", icon: "exclamationmark.triangle.fill", style: .warning)
+            return
+        }
+        await saveVideoFromUrl(url)
+    }
+
+    private func saveVideoFromUrl(_ url: URL) async {
+        ToastManager.shared.show("Загрузка видео...", icon: "arrow.down.circle", style: .info)
+        guard let (data, _) = try? await URLSession.shared.data(from: url) else {
+            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning); return
+        }
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("video_\(Int(Date().timeIntervalSince1970)).mp4")
+        try? data.write(to: tmp)
+        await MainActor.run {
+            let av = UIActivityViewController(activityItems: [tmp], applicationActivities: nil)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows.first?.rootViewController?
+                .present(av, animated: true)
+        }
+    }
+
+    // MARK: - Fake Typing
+    private func toggleFakeTyping() {
+        if fakeTyping {
+            fakeTyping = false
+            fakeTypingTask?.cancel()
+            fakeTypingTask = nil
+            ToastManager.shared.show("Имитация набора остановлена", icon: "keyboard", style: .info)
+        } else {
+            fakeTyping = true
+            ToastManager.shared.show("Имитация набора активна", icon: "keyboard.fill", style: .success)
+            fakeTypingTask = Task {
+                while !Task.isCancelled && fakeTyping {
+                    _ = try? await VKAPIClient.shared.rawCall("messages.setActivity", params: [
+                        "peer_id": "\(peerId)", "type": "typing"
+                    ])
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // VK requires re-send every 5s
+                }
+            }
+        }
+    }
+
     // MARK: - Voice recording
+
+
     private func startRecording() {
         AVAudioApplication.requestRecordPermission { granted in
             DispatchQueue.main.async {
@@ -828,6 +898,7 @@ private struct BubbleView: View {
     let onReact:         () -> Void
     let onSavePhoto:     ((String) -> Void)?
     let onDownloadVoice: ((String) -> Void)?
+    let onDownloadVideo: ((VKVideoAttachment) -> Void)?
     let onVKLink:        ((String) -> Void)?
 
     @ObservedObject private var store = SettingsStore.shared
@@ -965,6 +1036,11 @@ private struct BubbleView: View {
                         Button {
                             onDownloadVoice?(url)
                         } label: { Label("Скачать голосовое", systemImage: "arrow.down.circle") }
+                    }
+                    if att.type == "video", let vid = att.video {
+                        Button {
+                            onDownloadVideo?(vid)
+                        } label: { Label("Скачать видео", systemImage: "arrow.down.video") }
                     }
                 }
             }
