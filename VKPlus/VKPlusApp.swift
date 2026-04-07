@@ -7,6 +7,7 @@ struct VKPlusApp: App {
 
     init() {
         URLProtocol.registerClass(PrivacyURLProtocol.self)
+        Self.setupMediaDirectories()
         // Start offline manager immediately on launch if enabled
         let s = SettingsStore.shared
         if s.forceOffline || s.ghostOnline {
@@ -14,6 +15,24 @@ struct VKPlusApp: App {
         }
         if s.typePush {
             TypingPushManager.shared.start()
+        }
+    }
+
+    // Create Documents/Аудио and Documents/Голосовые on first launch
+    private static func setupMediaDirectories() {
+        let fm   = FileManager.default
+        let docs = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        for folder in ["Аудио", "Голосовые"] {
+            let dir = docs.appendingPathComponent(folder)
+            if !fm.fileExists(atPath: dir.path) {
+                try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+                // Create a .nomedia placeholder so folder is visible in Files immediately
+                let placeholder = dir.appendingPathComponent(".readme.txt")
+                let text = folder == "Аудио"
+                    ? "Здесь хранятся скачанные аудиозаписи из VK+"
+                    : "Здесь хранятся скачанные голосовые сообщения из VK+"
+                try? text.write(to: placeholder, atomically: true, encoding: .utf8)
+            }
         }
     }
 

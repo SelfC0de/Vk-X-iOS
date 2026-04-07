@@ -13,11 +13,12 @@ final class DownloadManager: NSObject, ObservableObject {
     private var taskCompletions: [Int: (Result<URL, Error>) -> Void] = [:]
     private var taskKeys:        [Int: String] = [:]  // tid → normalized urlStr
 
-    // Documents/Аудио — visible as "На iPhone → VK+ → Аудио"
+    // Documents/Аудио or Documents/Голосовые — visible under "На iPhone → VK+"
     static func mediaDir(voice: Bool) -> URL {
         let docs   = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let folder = voice ? "Голосовые" : "Аудио"
         let dir    = docs.appendingPathComponent(folder, isDirectory: true)
+        // Ensure exists (also created on launch, this is a safety fallback)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
