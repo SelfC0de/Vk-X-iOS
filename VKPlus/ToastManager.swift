@@ -1,4 +1,4 @@
-import ExytePopupView
+import PopupView
 import SwiftUI
 
 // MARK: - Toast Model

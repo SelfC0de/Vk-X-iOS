@@ -172,7 +172,7 @@
 		SPM_WRAPPINGHSTACK_REF = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/dkk/WrappingHStack.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = "2.0.0";}; };
 /* End XCRemoteSwiftPackageReference section */
 /* Begin XCSwiftPackageProductDependency section */
-		SPM_EXYTE_DEP = {isa = XCSwiftPackageProductDependency; package = SPM_EXYTE_REF; productName = ExytePopupView; };
+		SPM_EXYTE_DEP = {isa = XCSwiftPackageProductDependency; package = SPM_EXYTE_REF; productName = PopupView; };
 		SPM_SWIFTSOUP_DEP = {isa = XCSwiftPackageProductDependency; package = SPM_SWIFTSOUP_REF; productName = SwiftSoup; };
 		SPM_WRAPPINGHSTACK_DEP = {isa = XCSwiftPackageProductDependency; package = SPM_WRAPPINGHSTACK_REF; productName = WrappingHStack; };
 /* End XCSwiftPackageProductDependency section */
