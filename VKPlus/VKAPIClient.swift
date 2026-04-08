@@ -421,43 +421,48 @@ final class VKAPIClient {
 
     // MARK: - Upload doc (video/audio/file) to messages
     func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
-        // 1. Get upload URL — always "doc" for audio files (not "audio_message")
-        let uploadType = mimeType.hasPrefix("video") ? "video" : "doc"
-        let urlJson = try await rawCall("docs.getMessagesUploadServer",
-                                        params: ["peer_id": "\(peerId)", "type": uploadType])
+        // For audio files use docs.getUploadServer (not getMessagesUploadServer)
+        // VK blocks audio uploads via getMessagesUploadServer with type=doc
+        let isAudio = mimeType.hasPrefix("audio")
+        let isVideo = mimeType.hasPrefix("video")
+
+        // 1. Get upload URL
+        let urlJson: [String: Any]
+        if isVideo {
+            urlJson = try await rawCall("docs.getMessagesUploadServer",
+                                        params: ["peer_id": "\(peerId)", "type": "video"])
+        } else {
+            // audio and other files — use generic upload server
+            urlJson = try await rawCall("docs.getUploadServer", params: [:])
+        }
         guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String,
               !uploadUrl.isEmpty else {
             let msg = (urlJson["error"] as? [String: Any])?["error_msg"] as? String ?? "No upload URL"
             throw VKError.api(0, msg)
         }
 
-        // 2. Upload multipart
+        // 2. Upload — bypass PrivacyURLProtocol for direct upload
         let fileToken = try await uploadMultipartRaw(
             url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
 
-        // 3. Save — title without extension for cleaner display
+        // 3. Save with title (no extension)
         let titleNoExt = (filename as NSString).deletingPathExtension
         let saveJson   = try await rawCall("docs.save", params: ["file": fileToken, "title": titleNoExt])
 
-        // docs.save response: {"response": {"type": "doc", "doc": {...}}}
-        //                  or {"response": [{"type": "doc", "doc": {...}}]}  (legacy)
-        let responseVal = saveJson["response"]
+        // docs.save response variants
+        let responseVal  = saveJson["response"]
         let responseDict: [String: Any]?
-        if let dict = responseVal as? [String: Any] {
-            responseDict = dict
-        } else if let arr = responseVal as? [[String: Any]] {
-            responseDict = arr.first
-        } else {
-            responseDict = nil
-        }
+        if let dict = responseVal as? [String: Any]       { responseDict = dict }
+        else if let arr = responseVal as? [[String: Any]] { responseDict = arr.first }
+        else                                               { responseDict = nil }
         guard let response = responseDict else {
             let msg = (saveJson["error"] as? [String: Any])?["error_msg"] as? String ?? "Save failed"
             throw VKError.api(0, msg)
         }
         let docType = response["type"] as? String ?? "doc"
-        if let obj      = response[docType] as? [String: Any],
-           let docId    = obj["id"]       as? Int,
-           let ownerId  = obj["owner_id"] as? Int {
+        if let obj     = response[docType] as? [String: Any],
+           let docId   = obj["id"]       as? Int,
+           let ownerId = obj["owner_id"] as? Int {
             return "\(docType)\(ownerId)_\(docId)"
         }
         throw VKError.api(0, "Save parse failed: \(response)")
@@ -477,9 +482,15 @@ final class VKAPIClient {
         req.httpMethod = "POST"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
-        let (respData, _) = try await URLSession.shared.data(for: req)
+        req.timeoutInterval = 120
+        // Bypass PrivacyURLProtocol — upload server is not VK API
+        let cfg = URLSessionConfiguration.default
+        cfg.protocolClasses = (cfg.protocolClasses ?? []).filter { $0 != PrivacyURLProtocol.self }
+        cfg.timeoutIntervalForRequest  = 120
+        cfg.timeoutIntervalForResource = 300
+        let session = URLSession(configuration: cfg)
+        let (respData, _) = try await session.data(for: req)
         let json = try JSONSerialization.jsonObject(with: respData) as? [String: Any] ?? [:]
-        // VK upload server returns {"file": "<token>"} or {"file_id": ...}
         if let file = json["file"] as? String, !file.isEmpty { return file }
         throw VKError.api(0, "Upload server error: \(json)")
     }
