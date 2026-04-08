@@ -563,30 +563,61 @@ struct GravityDropBar: View {
 struct AnimatedMainTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var selectedTab = 0
+    @State private var swipeOffset: CGFloat = 0
+    @State private var swipeDir: Int = 0      // -1 left, 1 right, 0 none
+    @State private var isTransitioning = false
+    @State private var nextTab: Int = 0
     @ObservedObject private var store = SettingsStore.shared
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ZStack {
-                tabView(for:0).opacity(selectedTab==0 ? 1:0).allowsHitTesting(selectedTab==0)
-                tabView(for:1).opacity(selectedTab==1 ? 1:0).allowsHitTesting(selectedTab==1)
-                tabView(for:2).opacity(selectedTab==2 ? 1:0).allowsHitTesting(selectedTab==2)
-                tabView(for:3).opacity(selectedTab==3 ? 1:0).allowsHitTesting(selectedTab==3)
-                tabView(for:4).opacity(selectedTab==4 ? 1:0).allowsHitTesting(selectedTab==4)
-                tabView(for:5).opacity(selectedTab==5 ? 1:0).allowsHitTesting(selectedTab==5)
+            GeometryReader { geo in
+                ZStack {
+                    // Current tab (base layer)
+                    tabView(for: selectedTab)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(!isTransitioning)
+
+                    // Next tab (revealed through liquid wave)
+                    if isTransitioning {
+                        tabView(for: nextTab)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .allowsHitTesting(false)
+                            .mask {
+                                LiquidWaveMask(
+                                    progress: swipeOffset,
+                                    direction: swipeDir,
+                                    size: geo.size
+                                )
+                            }
+                    }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.bottom, 92)
             .gesture(
                 DragGesture(minimumDistance: 40, coordinateSpace: .local)
-                    .onEnded { val in
-                        guard abs(val.translation.width) > abs(val.translation.height) * 1.5 else { return }
+                    .onChanged { val in
+                        guard !isTransitioning else { return }
+                        guard abs(val.translation.width) > abs(val.translation.height) * 1.2 else { return }
                         let order = loadTabOrder()
                         let cur   = order.firstIndex(of: selectedTab) ?? 0
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            selectedTab = val.translation.width < 0
-                                ? order[min(cur+1, 5)]
-                                : order[max(cur-1, 0)]
+                        let dir   = val.translation.width < 0 ? -1 : 1
+                        let candidatePos = dir < 0 ? min(cur+1, 5) : max(cur-1, 0)
+                        guard candidatePos != cur else { return }
+                        let candidate = order[candidatePos]
+                        guard candidate != selectedTab else { return }
+                        isTransitioning = true
+                        swipeDir        = dir
+                        nextTab         = candidate
+                        swipeOffset     = 0
+                        withAnimation(.spring(response: 0.48, dampingFraction: 0.78)) {
+                            swipeOffset = 1
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            selectedTab    = nextTab
+                            swipeOffset    = 0
+                            isTransitioning = false
                         }
                     }
             )

@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftSoup
 
 // MARK: - URL helper
 private func resolveURL(_ raw: String) -> URL? {

@@ -1,12 +1,6 @@
 import SwiftUI
-import SwiftSoup
 import WrappingHStack
 
-// HTML stripping via SwiftSoup
-fileprivate func stripHTML(_ html: String) -> String {
-    guard html.contains("<") else { return html }
-    return (try? SwiftSoup.parse(html).text()) ?? html
-}
 import AVFoundation
 import PhotosUI
 
@@ -2146,25 +2140,29 @@ struct ReactionsSheet: View {
         ("🎉","party"),("💩","poop"),("🤔","thinking"),("🥰","love_face")
     ]
 
+    @ViewBuilder private var reactionButtons: some View {
+        WrappingHStack(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            ForEach(reactions, id: \.0) { (emoji, id) in
+                Button {
+                    Task { await sendReaction(id) }
+                } label: {
+                    Text(emoji).font(.system(size: 28))
+                        .frame(width: 50, height: 50)
+                        .background(Color.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Capsule().fill(Color.divider).frame(width: 40, height: 4).padding(.top, 10)
             Text("Добавить реакцию").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onSurface)
-            WrappingHStack(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
-                ForEach(reactions, id: \.0) { (emoji, id) in
-                    Button {
-                        Task { await sendReaction(id) }
-                    } label: {
-                        Text(emoji).font(.system(size: 28))
-                            .frame(width: 50, height: 50)
-                            .background(Color.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider, lineWidth: 0.5))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 20)
+            reactionButtons
+                .padding(.horizontal, 20)
             Spacer()
         }
         .presentationDetents([.height(220)])

@@ -625,7 +625,7 @@ struct SettingsToggle: View {
                     }
                 }
                 Spacer()
-                Toggle("", isOn: $val).tint(.cyberBlue).labelsHidden()
+                TKSwitch(isOn: $val, style: .liquid)
             }
             .padding(.horizontal, 14).padding(.vertical, subtitle.isEmpty ? 13 : 10)
             Divider().background(Color.divider).padding(.leading, 48)
