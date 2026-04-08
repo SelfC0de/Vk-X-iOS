@@ -910,20 +910,29 @@ struct ChatView: View {
     private func toggleFakeTyping() {
         if fakeTyping {
             fakeTyping = false
-            fakeTypingTask?.cancel(); fakeTypingTask = nil
-            // Resume typeStatus loop if it was set
+            fakeTypingTask?.cancel()
+            fakeTypingTask = nil
             startTypeStatusLoop()
             ToastManager.shared.show("Имитация набора остановлена", icon: "keyboard", style: .info)
         } else {
-            // Pause typeStatus loop — fakeTyping takes over
             typeStatusTask?.cancel(); typeStatusTask = nil
             fakeTyping = true
             ToastManager.shared.show("Имитация набора активна", icon: "keyboard.fill", style: .success)
+            let pid = peerId
             fakeTypingTask = Task {
-                while !Task.isCancelled && fakeTyping {
-                    await VKAPIClient.shared.sendTypingDirect(peerId: peerId, type: "typing")
-                    try? await Task.sleep(nanoseconds: 4_000_000_000)
-                }
+                // Первая отправка сразу
+                await VKAPIClient.shared.sendTypingDirect(peerId: pid, type: "typing")
+                // Повтор каждые 4с пока задача не отменена
+                repeat {
+                    do {
+                        try await Task.sleep(nanoseconds: 4_000_000_000)
+                    } catch {
+                        // Task.sleep бросил CancellationError — выходим чисто
+                        return
+                    }
+                    guard !Task.isCancelled else { return }
+                    await VKAPIClient.shared.sendTypingDirect(peerId: pid, type: "typing")
+                } while !Task.isCancelled
             }
         }
     }
