@@ -424,14 +424,16 @@ final class VKAPIClient {
         let isVideo = mimeType.hasPrefix("video")
 
         // 1. Get upload URL
-        // audio files: docs.getMessagesUploadServer with type=doc works when peer_id provided
-        // generic fallback: docs.getUploadServer
-        let uploadServerMethod = "docs.getMessagesUploadServer"
-        let uploadServerParams: [String: String] = isVideo
-            ? ["peer_id": "\(peerId)", "type": "video"]
-            : ["peer_id": "\(peerId)", "type": "doc"]
-
-        let urlJson = try await rawCall(uploadServerMethod, params: uploadServerParams)
+        // audio/doc: docs.getUploadServer — accepts any file type
+        // video: docs.getMessagesUploadServer with type=video
+        let urlJson: [String: Any]
+        if isVideo {
+            urlJson = try await rawCall("docs.getMessagesUploadServer",
+                                        params: ["peer_id": "\(peerId)", "type": "video"])
+        } else {
+            // docs.getUploadServer accepts audio, docs, etc. without filetype restrictions
+            urlJson = try await rawCall("docs.getUploadServer", params: [:])
+        }
 
         // Check for error in response
         if let apiErr = urlJson["error"] as? [String: Any],
