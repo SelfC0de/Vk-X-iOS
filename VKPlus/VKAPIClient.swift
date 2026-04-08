@@ -468,20 +468,13 @@ final class VKAPIClient {
     }
 
     // MARK: - Upload doc (video/audio/file) to messages
-    func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
+    func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String, title: String? = nil) async throws -> String {
         let isVideo = mimeType.hasPrefix("video")
 
         // 1. Get upload URL
-        // audio/doc: docs.getUploadServer — accepts any file type
-        // video: docs.getMessagesUploadServer with type=video
-        let urlJson: [String: Any]
-        if isVideo {
-            urlJson = try await rawCall("docs.getMessagesUploadServer",
-                                        params: ["peer_id": "\(peerId)", "type": "video"])
-        } else {
-            // docs.getUploadServer accepts audio, docs, etc. without filetype restrictions
-            urlJson = try await rawCall("docs.getUploadServer", params: [:])
-        }
+        let uploadType = isVideo ? "video" : "doc"
+        let urlJson = try await rawCall("docs.getMessagesUploadServer",
+                                        params: ["peer_id": "\(peerId)", "type": uploadType])
 
         // Check for error in response
         if let apiErr = urlJson["error"] as? [String: Any],
@@ -499,8 +492,9 @@ final class VKAPIClient {
             url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
 
         // 3. Save
-        let titleNoExt = (filename as NSString).deletingPathExtension
-        let saveJson   = try await rawCall("docs.save", params: ["file": fileToken, "title": titleNoExt])
+        // Use explicit title if provided (e.g. "Artist - Title.mp3"), else filename without ext
+        let saveTitle = title ?? (filename as NSString).deletingPathExtension
+        let saveJson  = try await rawCall("docs.save", params: ["file": fileToken, "title": saveTitle])
 
         if let apiErr = saveJson["error"] as? [String: Any],
            let errMsg = apiErr["error_msg"] as? String {

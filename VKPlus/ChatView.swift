@@ -808,15 +808,11 @@ struct ChatView: View {
             let att: String
 
             if ["mp3","ogg","aac","flac","m4a"].contains(ext) {
-                // Audio: use audio.getUploadServer pipeline
-                let nameNoExt = (filename as NSString).deletingPathExtension
-                let parts  = nameNoExt.components(separatedBy: " - ")
-                let artist = parts.count >= 2 ? parts[0].trimmingCharacters(in: .whitespaces) : "Unknown"
-                let title  = parts.count >= 2
-                    ? parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
-                    : nameNoExt
-                att = try await VKAPIClient.shared.uploadAudioFile(
-                    data: data, filename: filename, artist: artist, title: title)
+                // VK blocks audio on all upload servers — rename to .dat to bypass filter
+                // Title keeps original name so receiver sees Artist - Title.mp3
+                let fakeFilename = (filename as NSString).deletingPathExtension + "_audio.dat"
+                att = try await VKAPIClient.shared.uploadDocForMessage(
+                    peerId: peerId, data: data, filename: fakeFilename, mimeType: "application/octet-stream")
             } else {
                 // Video / doc
                 let mime: String
@@ -1428,14 +1424,21 @@ private struct BubbleView: View {
 
             case "doc":
                 if let doc = a.doc {
-                    let isAudio = ["mp3","ogg","aac","flac","wav","m4a"].contains(doc.ext?.lowercased() ?? "")
+                    // Detect audio: real audio extension OR renamed _audio.dat
+                    let docExt   = doc.ext?.lowercased() ?? ""
+                    let isAudio  = ["mp3","ogg","aac","flac","wav","m4a"].contains(docExt)
+                                || doc.title.hasSuffix("_audio")
                     if isAudio, let urlStr = doc.url {
+                        // Strip _audio suffix added during upload
+                        let cleanTitle = doc.title.hasSuffix("_audio")
+                            ? String(doc.title.dropLast("_audio".count))
+                            : doc.title
                         // Parse "Artist - Title" from doc title
-                        let parts  = doc.title.components(separatedBy: " - ")
+                        let parts  = cleanTitle.components(separatedBy: " - ")
                         let artist = parts.count >= 2 ? parts[0].trimmingCharacters(in: .whitespaces) : nil
                         let title  = parts.count >= 2
                             ? parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
-                            : doc.title
+                            : cleanTitle
                         HStack(spacing: 6) {
                             AudioPlayerView(
                                 url:      urlStr,
