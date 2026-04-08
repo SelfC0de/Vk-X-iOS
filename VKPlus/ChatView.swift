@@ -2141,7 +2141,7 @@ struct ReactionsSheet: View {
     ]
 
     @ViewBuilder private var reactionButtons: some View {
-        WrappingHStack(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+        WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
             ForEach(reactions, id: \.0) { (emoji, id) in
                 Button {
                     Task { await sendReaction(id) }

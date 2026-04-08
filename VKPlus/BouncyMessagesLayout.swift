@@ -209,12 +209,13 @@ struct BouncyNavDialogList: View {
             BouncyDialogList(items: items) { dialog in
                 selected = dialog
             }
-            // Hidden NavigationLink trigger
+        }
+        .background {
             if let sel = selected {
                 NavigationLink(
                     destination: ChatView(peerId: sel.id, peerName: sel.name, peerAvatar: sel.avatar),
                     isActive: Binding(
-                        get: { selected?.id == sel.id },
+                        get: { selected != nil },
                         set: { if !$0 { selected = nil } }
                     )
                 ) { EmptyView() }

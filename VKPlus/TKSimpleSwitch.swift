@@ -96,7 +96,7 @@ open class TKSimpleSwitch: TKBaseSwitch {
         point.x += (radius)
         switchControl.position = point
         switchControl.path = switchControlPath.cgPath
-        switchControl.lineCap = kCALineCapRound
+        switchControl.lineCap = CAShapeLayerLineCap.round
         switchControl.fillColor = nil
         switchControl.strokeColor = circleColor.cgColor
         switchControl.lineWidth = innerLineWidth
@@ -132,7 +132,7 @@ open class TKSimpleSwitch: TKBaseSwitch {
                                           stateToFillColor(value)]
         backgroundFillColorAnim.keyTimes = [0, 0.5, 0.51, 1]
         backgroundFillColorAnim.duration = duration
-        backgroundFillColorAnim.fillMode = kCAFillModeForwards
+        backgroundFillColorAnim.fillMode = CAMediaTimingFillMode.forwards
         backgroundFillColorAnim.isRemovedOnCompletion = false
 
         // 旋转动画
@@ -145,7 +145,7 @@ open class TKSimpleSwitch: TKBaseSwitch {
         // 动画组
         let switchControlChangeStateAnim: CAAnimationGroup = CAAnimationGroup()
         switchControlChangeStateAnim.animations = [switchControlStrokeStartAnim, switchControlStrokeEndAnim]
-        switchControlChangeStateAnim.fillMode = kCAFillModeForwards
+        switchControlChangeStateAnim.fillMode = CAMediaTimingFillMode.forwards
         switchControlChangeStateAnim.isRemovedOnCompletion = false
         switchControlChangeStateAnim.duration = duration
 
@@ -163,7 +163,7 @@ open class TKSimpleSwitch: TKBaseSwitch {
 // MARK: - Deprecated
 extension TKSimpleSwitch {
     @available(*, deprecated, message: "config is deprecated. Use onColor, offColor, lineColor, circleColor, lineSize instead ")
-    open var config: TKSimpleSwitchConfig {
+    public var config: TKSimpleSwitchConfig {
         set {
             if newValue.onColor != onColor {
                 onColor = newValue.onColor

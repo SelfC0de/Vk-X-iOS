@@ -144,7 +144,7 @@ open class BouncyLayout: UICollectionViewFlowLayout {
 }
 
 extension UIDynamicAnimator {
-    open func addBehavior(_ behavior: UIAttachmentBehavior, _ damping: CGFloat, _ frequency: CGFloat) {
+    public func addBehavior(_ behavior: UIAttachmentBehavior, _ damping: CGFloat, _ frequency: CGFloat) {
         behavior.damping = damping
         behavior.frequency = frequency
         addBehavior(behavior)

@@ -64,7 +64,7 @@ open class TKExchangeSwitch: TKBaseSwitch {
         backgroundLayer.fillColor = lineColor.cgColor
         backgroundLayer.strokeColor = lineColor.cgColor
         backgroundLayer.lineWidth = self.bounds.height
-        backgroundLayer.lineCap = kCALineCapRound
+        backgroundLayer.lineCap = CAShapeLayerLineCap.round
         backgroundLayer.path = backLayerPath.cgPath
         layer.addSublayer(backgroundLayer)
 
@@ -99,7 +99,7 @@ open class TKExchangeSwitch: TKBaseSwitch {
 
         let switchControlChangeStateAnim: CAAnimationGroup = CAAnimationGroup()
         switchControlChangeStateAnim.animations = [switchControlStrokeStartAnim, switchControlStrokeEndAnim]
-        switchControlChangeStateAnim.fillMode = kCAFillModeForwards
+        switchControlChangeStateAnim.fillMode = CAMediaTimingFillMode.forwards
         switchControlChangeStateAnim.isRemovedOnCompletion = false
         switchControlChangeStateAnim.duration = duration
 
@@ -166,7 +166,7 @@ private class TKExchangeCircleView: UIView {
 
     func exchangeAnimate(_ value: Bool, duration: Double) {
 
-        let fillMode: String = kCAFillModeForwards
+        let fillMode: CAMediaTimingFillMode = .forwards
 
         let hideValues = [NSValue(caTransform3D: CATransform3DMakeScale(0, 0, 1)),
                           NSValue(caTransform3D: CATransform3DIdentity)]
