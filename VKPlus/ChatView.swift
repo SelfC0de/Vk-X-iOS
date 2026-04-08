@@ -817,7 +817,7 @@ struct ChatView: View {
             pendingAttach = att
             ToastManager.shared.show("\(filename) прикреплён", icon: "paperclip", style: .success)
         } catch {
-            ToastManager.shared.show("Ошибка загрузки", icon: "exclamationmark.triangle.fill", style: .warning)
+            ToastManager.shared.show("Ошибка: \(error.localizedDescription)", icon: "exclamationmark.triangle.fill", style: .warning)
         }
     }
 

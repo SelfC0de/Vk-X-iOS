@@ -421,43 +421,51 @@ final class VKAPIClient {
 
     // MARK: - Upload doc (video/audio/file) to messages
     func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
-        // For audio files use docs.getUploadServer (not getMessagesUploadServer)
-        // VK blocks audio uploads via getMessagesUploadServer with type=doc
-        let isAudio = mimeType.hasPrefix("audio")
         let isVideo = mimeType.hasPrefix("video")
 
         // 1. Get upload URL
-        let urlJson: [String: Any]
-        if isVideo {
-            urlJson = try await rawCall("docs.getMessagesUploadServer",
-                                        params: ["peer_id": "\(peerId)", "type": "video"])
-        } else {
-            // audio and other files — use generic upload server
-            urlJson = try await rawCall("docs.getUploadServer", params: [:])
-        }
-        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String,
-              !uploadUrl.isEmpty else {
-            let msg = (urlJson["error"] as? [String: Any])?["error_msg"] as? String ?? "No upload URL"
-            throw VKError.api(0, msg)
+        // audio files: docs.getMessagesUploadServer with type=doc works when peer_id provided
+        // generic fallback: docs.getUploadServer
+        let uploadServerMethod = "docs.getMessagesUploadServer"
+        let uploadServerParams: [String: String] = isVideo
+            ? ["peer_id": "\(peerId)", "type": "video"]
+            : ["peer_id": "\(peerId)", "type": "doc"]
+
+        let urlJson = try await rawCall(uploadServerMethod, params: uploadServerParams)
+
+        // Check for error in response
+        if let apiErr = urlJson["error"] as? [String: Any],
+           let errMsg = apiErr["error_msg"] as? String {
+            throw VKError.api((apiErr["error_code"] as? Int) ?? 0, errMsg)
         }
 
-        // 2. Upload — bypass PrivacyURLProtocol for direct upload
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String,
+              !uploadUrl.isEmpty else {
+            throw VKError.api(0, "Нет URL загрузки. Ответ: \(urlJson)")
+        }
+
+        // 2. Upload multipart (bypasses PrivacyURLProtocol)
         let fileToken = try await uploadMultipartRaw(
             url: uploadUrl, data: data, name: "file", filename: filename, mimeType: mimeType)
 
-        // 3. Save with title (no extension)
+        // 3. Save
         let titleNoExt = (filename as NSString).deletingPathExtension
         let saveJson   = try await rawCall("docs.save", params: ["file": fileToken, "title": titleNoExt])
 
-        // docs.save response variants
+        if let apiErr = saveJson["error"] as? [String: Any],
+           let errMsg = apiErr["error_msg"] as? String {
+            throw VKError.api((apiErr["error_code"] as? Int) ?? 0, errMsg)
+        }
+
+        // Parse response — can be dict or array
         let responseVal  = saveJson["response"]
         let responseDict: [String: Any]?
         if let dict = responseVal as? [String: Any]       { responseDict = dict }
         else if let arr = responseVal as? [[String: Any]] { responseDict = arr.first }
         else                                               { responseDict = nil }
+
         guard let response = responseDict else {
-            let msg = (saveJson["error"] as? [String: Any])?["error_msg"] as? String ?? "Save failed"
-            throw VKError.api(0, msg)
+            throw VKError.api(0, "Save: пустой ответ \(saveJson)")
         }
         let docType = response["type"] as? String ?? "doc"
         if let obj     = response[docType] as? [String: Any],
@@ -465,7 +473,7 @@ final class VKAPIClient {
            let ownerId = obj["owner_id"] as? Int {
             return "\(docType)\(ownerId)_\(docId)"
         }
-        throw VKError.api(0, "Save parse failed: \(response)")
+        throw VKError.api(0, "Save parse: \(response)")
     }
 
     // MARK: - Multipart uploader — returns "file" token string from VK upload server
