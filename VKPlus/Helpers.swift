@@ -1,3 +1,5 @@
+import SwiftUI
+import UIKit
 import Foundation
 import SwiftSoup
 
@@ -8,6 +10,10 @@ func stripHTML(_ html: String) -> String {
 }
 
 // MARK: - Keyboard dismiss helper
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+
 extension View {
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)

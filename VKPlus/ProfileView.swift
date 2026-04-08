@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @FocusState private var lookupFocused: Bool
     @EnvironmentObject var authVM: AuthViewModel
     @ObservedObject private var settings = SettingsStore.shared
     @State private var user: VKUser?
@@ -419,6 +418,7 @@ VerificationRowFetched(
 
 // ProfileChangerSheet
 struct ProfileChangerSheet: View {
+    @FocusState private var lookupFocused: Bool
     @Binding var mirror: MirrorProfile
     @Environment(\.dismiss) private var dismiss
 
