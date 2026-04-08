@@ -1009,8 +1009,8 @@ struct ChatView: View {
         isUploading = true
         do {
             let data = try Data(contentsOf: url)
-            let att = try await VKAPIClient.shared.uploadDocForMessage(
-                peerId: peerId, data: data, filename: "voice.m4a", mimeType: "audio/m4a")
+            // Must use uploadVoiceMessage (type=audio_message) — NOT uploadDocForMessage
+            let att  = try await VKAPIClient.shared.uploadVoiceMessage(peerId: peerId, data: data)
             pendingAttach = att
             voiceReadyURL = nil
             await send()

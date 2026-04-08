@@ -395,18 +395,26 @@ final class VKAPIClient {
         let urlJson = try await rawCall("docs.getMessagesUploadServer", params: [
             "peer_id": "\(peerId)", "type": "audio_message"
         ])
-        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String else {
-            throw VKError.api(0, "No upload URL for voice")
+        guard let uploadUrl = (urlJson["response"] as? [String: Any])?["upload_url"] as? String,
+              !uploadUrl.isEmpty else {
+            let msg = (urlJson["error"] as? [String: Any])?["error_msg"] as? String ?? "No upload URL for voice"
+            throw VKError.api(0, msg)
         }
-        let uploaded = try await uploadMultipart(url: uploadUrl, data: data, name: "file",
-                                                 filename: "voice.m4a", mimeType: "audio/m4a")
-        guard let file = uploaded["file"] else { throw VKError.api(0, "Voice upload failed") }
+        let file = try await uploadMultipartRaw(url: uploadUrl, data: data, name: "file",
+                                                filename: "voice.m4a", mimeType: "audio/m4a")
         let saveJson = try await rawCall("docs.save", params: ["file": file])
-        guard let response = saveJson["response"] as? [String: Any],
-              let obj = response["audio_message"] as? [String: Any],
-              let docId  = obj["id"] as? Int,
-              let ownerId = obj["owner_id"] as? Int else {
-            throw VKError.api(0, "Voice save failed")
+        // docs.save response for audio_message
+        let responseVal = saveJson["response"]
+        let responseDict: [String: Any]?
+        if let dict = responseVal as? [String: Any]       { responseDict = dict }
+        else if let arr = responseVal as? [[String: Any]] { responseDict = arr.first }
+        else                                               { responseDict = nil }
+        guard let response = responseDict,
+              let obj      = response["audio_message"] as? [String: Any],
+              let docId    = obj["id"]       as? Int,
+              let ownerId  = obj["owner_id"] as? Int else {
+            let msg = (saveJson["error"] as? [String: Any])?["error_msg"] as? String ?? "Voice save failed"
+            throw VKError.api(0, msg)
         }
         return "doc\(ownerId)_\(docId)"
     }
