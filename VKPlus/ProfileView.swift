@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @FocusState private var lookupFocused: Bool
     @EnvironmentObject var authVM: AuthViewModel
     @ObservedObject private var settings = SettingsStore.shared
     @State private var user: VKUser?
@@ -449,6 +450,15 @@ struct ProfileChangerSheet: View {
                             .foregroundStyle(Color.onSurface)
                             .autocorrectionDisabled().textInputAutocapitalization(.never)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.divider, lineWidth: 1))
+                            .focused($lookupFocused)
+                            .onSubmit { lookupFocused = false }
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Готово") { lookupFocused = false }
+                                        .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                                }
+                            }
 
                         if let err = mirror.error {
                             HStack(spacing: 6) {

@@ -667,6 +667,14 @@ struct RepostSheet: View {
                     TextField("Сообщение (необязательно)", text: $message)
                         .font(.system(size: 14))
                         .focused($msgFocused)
+                        .onSubmit { hideKeyboard() }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Готово") { hideKeyboard() }
+                                    .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                            }
+                        }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
                 .background(Color.surfaceVar)
@@ -678,6 +686,14 @@ struct RepostSheet: View {
                     Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut).font(.system(size: 14))
                     TextField("Поиск диалога...", text: $searchQ)
                         .font(.system(size: 14)).autocorrectionDisabled()
+                            .onSubmit { hideKeyboard() }
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Готово") { hideKeyboard() }
+                                        .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                                }
+                            }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color.surfaceVar)
@@ -836,6 +852,14 @@ struct MediaForwardSheet: View {
                     Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut).font(.system(size: 14))
                     TextField("Поиск диалога...", text: $searchQ)
                         .font(.system(size: 14)).autocorrectionDisabled()
+                            .onSubmit { hideKeyboard() }
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Готово") { hideKeyboard() }
+                                        .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                                }
+                            }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color.surfaceVar)

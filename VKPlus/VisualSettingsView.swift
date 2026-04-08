@@ -540,6 +540,7 @@ struct StatusChangerCard: View {
                     .padding(.top, 12)
 
                 HStack(spacing: 8) {
+                    // statusFocused injected
                     TextField("Введите текст статуса...", text: $s.statusChangerText, axis: .vertical)
                         .lineLimit(1...3)
                         .font(.system(size: 14))
@@ -549,6 +550,13 @@ struct StatusChangerCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.divider, lineWidth: 1))
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Готово") { hideKeyboard() }
+                                    .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                            }
+                        }
 
                     if !s.statusChangerText.isEmpty {
                         Button { s.statusChangerText = "" } label: {

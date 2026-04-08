@@ -305,6 +305,13 @@ struct ChatView: View {
                     Image(systemName: "magnifyingglass").foregroundStyle(Color.onSurfaceMut)
                     TextField("Поиск в переписке...", text: $searchQuery)
                         .foregroundStyle(Color.onSurface).font(.system(size: 14))
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Готово") { hideKeyboard() }
+                                        .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                                }
+                            }
                     if !searchQuery.isEmpty {
                         Button { searchQuery = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)
@@ -1990,6 +1997,13 @@ struct ForwardSheet: View {
                         .foregroundStyle(Color.onSurface)
                         .font(.system(size: 15))
                         .focused($searchFocused)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Готово") { hideKeyboard() }
+                                        .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                                }
+                            }
                     if !searchText.isEmpty {
                         Button { searchText = "" } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(Color.onSurfaceMut)

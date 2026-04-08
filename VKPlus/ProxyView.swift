@@ -141,6 +141,7 @@ private func parseProxy(_ raw: String) -> ProxyEntry? {
 
 struct ProxyView: View {
     @StateObject private var store = ProxyStore()
+    @FocusState private var linkFocused: Bool
     @State private var linkInput   = ""
     @State private var parseError  = false
 
@@ -225,6 +226,15 @@ struct ProxyView: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .onChange(of: linkInput) { _, _ in parseError = false }
+                        .focused($linkFocused)
+                        .onSubmit { linkFocused = false }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Готово") { linkFocused = false }
+                                    .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                            }
+                        }
 
                     Button {
                         if let e = parseProxy(linkInput) { store.add(e); linkInput = "" }

@@ -748,6 +748,7 @@ struct PredictPushFilterCard: View {
 // MARK: - Favorites Editor (add/remove VK IDs)
 private struct PredictFavoritesEditor: View {
     @ObservedObject private var s = SettingsStore.shared
+    @FocusState private var inputFocused: Bool
     @State private var inputText = ""
     @State private var isLoading = false
 
@@ -767,6 +768,15 @@ private struct PredictFavoritesEditor: View {
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color(red:0.08,green:0.09,blue:0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .focused($inputFocused)
+                    .onSubmit { inputFocused = false }
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Готово") { inputFocused = false }
+                                .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                        }
+                    }
 
                 Button {
                     Task { await addFavorite() }

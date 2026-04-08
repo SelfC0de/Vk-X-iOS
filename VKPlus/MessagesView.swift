@@ -30,6 +30,14 @@ struct MessagesView: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .focused($searchFocused)
+                        .onSubmit { searchFocused = false }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Готово") { searchFocused = false }
+                                    .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                            }
+                        }
                     if !searchText.isEmpty {
                         Button {
                             searchText = ""

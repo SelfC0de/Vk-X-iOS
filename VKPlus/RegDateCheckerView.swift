@@ -10,6 +10,7 @@ struct RegDateResult {
 }
 
 struct RegDateCheckerView: View {
+    @FocusState private var inputFocused: Bool
     @State private var inputId   = ""
     @State private var isLoading = false
     @State private var result: RegDateResult? = nil
@@ -45,6 +46,15 @@ struct RegDateCheckerView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .onSubmit { Task { await fetch() } }
+                    .focused($inputFocused)
+                    .onSubmit { inputFocused = false }
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Готово") { inputFocused = false }
+                                .foregroundStyle(Color.cyberBlue).fontWeight(.semibold)
+                        }
+                    }
                 if !inputId.isEmpty {
                     Button { inputId = "" } label: {
                         Image(systemName: "xmark.circle.fill")
