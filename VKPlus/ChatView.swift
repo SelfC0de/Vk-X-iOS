@@ -652,8 +652,9 @@ struct ChatView: View {
                         // Peer typing: upd[1] = user_id, upd[2] = flags (1=typing)
                         let userId   = upd.count > 1 ? (upd[1] as? Int ?? 0) : 0
                         let isTyping = upd.count > 2 ? (upd[2] as? Int ?? 0) == 1 : true
-                        // Show indicator only if it's the peer (not me)
-                        if userId != 0 && userId != myId {
+                        // Show indicator only if it's exactly the peer (not me, not others)
+                        let effectivePeerId = peerId > 2000000000 ? userId : peerId
+                        if userId != 0 && userId != myId && userId == effectivePeerId {
                             await MainActor.run {
                                 peerTyping = isTyping
                                 typingTimer?.invalidate()
