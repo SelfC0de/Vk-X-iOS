@@ -563,62 +563,32 @@ struct GravityDropBar: View {
 struct AnimatedMainTabView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var selectedTab = 0
-    @State private var swipeOffset: CGFloat = 0
-    @State private var swipeDir: Int = 0      // -1 left, 1 right, 0 none
-    @State private var isTransitioning = false
-    @State private var nextTab: Int = 0
     @ObservedObject private var store = SettingsStore.shared
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            GeometryReader { geo in
-                ZStack {
-                    // Current tab (base layer)
-                    tabView(for: selectedTab)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(!isTransitioning)
-
-                    // Next tab (revealed through liquid wave)
-                    if isTransitioning {
-                        tabView(for: nextTab)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .allowsHitTesting(false)
-                            .mask {
-                                LiquidWaveMask(
-                                    progress: swipeOffset,
-                                    direction: swipeDir,
-                                    size: geo.size
-                                )
-                            }
-                    }
-                }
+            // Все 6 вкладок живут одновременно — только opacity меняется.
+            // Нет пересоздания, нет моргания.
+            ZStack {
+                tabContent(0)
+                tabContent(1)
+                tabContent(2)
+                tabContent(3)
+                tabContent(4)
+                tabContent(5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.bottom, 92)
             .gesture(
                 DragGesture(minimumDistance: 40, coordinateSpace: .local)
-                    .onChanged { val in
-                        guard !isTransitioning else { return }
-                        guard abs(val.translation.width) > abs(val.translation.height) * 1.2 else { return }
+                    .onEnded { val in
+                        guard abs(val.translation.width) > abs(val.translation.height) * 1.5 else { return }
                         let order = loadTabOrder()
                         let cur   = order.firstIndex(of: selectedTab) ?? 0
                         let dir   = val.translation.width < 0 ? -1 : 1
-                        let candidatePos = dir < 0 ? min(cur+1, 5) : max(cur-1, 0)
-                        guard candidatePos != cur else { return }
-                        let candidate = order[candidatePos]
-                        guard candidate != selectedTab else { return }
-                        isTransitioning = true
-                        swipeDir        = dir
-                        nextTab         = candidate
-                        swipeOffset     = 0
-                        withAnimation(.spring(response: 0.48, dampingFraction: 0.78)) {
-                            swipeOffset = 1
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            selectedTab    = nextTab
-                            swipeOffset    = 0
-                            isTransitioning = false
-                        }
+                        let next  = dir < 0 ? min(cur + 1, 5) : max(cur - 1, 0)
+                        guard next != cur else { return }
+                        selectedTab = order[next]
                     }
             )
             AnimatedTabBar(selected: $selectedTab)
@@ -626,6 +596,13 @@ struct AnimatedMainTabView: View {
         .ignoresSafeArea(edges: .bottom)
         .toastOverlay()
         .onAppear { UnreadCountManager.shared.start() }
+    }
+
+    @ViewBuilder
+    private func tabContent(_ index: Int) -> some View {
+        tabView(for: index)
+            .opacity(selectedTab == index ? 1 : 0)
+            .allowsHitTesting(selectedTab == index)
     }
 
     @ViewBuilder

@@ -5,7 +5,6 @@ struct MessagesView: View {
     @State private var isLoading = false
     @State private var searchText = ""
     @FocusState private var searchFocused: Bool
-    @State private var navTarget: DialogItem? = nil
 
     private var filtered: [DialogItem] {
         guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else { return dialogs }
@@ -70,7 +69,16 @@ struct MessagesView: View {
                         }
                         Spacer()
                     } else {
-                        BouncyNavDialogList(items: filtered)
+                        List(filtered) { dialog in
+                            NavigationLink(destination: ChatView(peerId: dialog.id, peerName: dialog.name, peerAvatar: dialog.avatar)) {
+                                DialogRow(dialog: dialog)
+                            }
+                            .listRowBackground(Color.surface)
+                            .listRowSeparatorTint(Color.divider)
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .scrollDismissesKeyboard(.immediately)
                     }
                 }
             }
