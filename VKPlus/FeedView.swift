@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftSoup
 
 // MARK: - URL helper
 private func resolveURL(_ raw: String) -> URL? {
@@ -546,7 +547,7 @@ struct LinkPreview: View {
                 Image(systemName: "link").font(.system(size: 14)).foregroundStyle(Color.cyberBlue).frame(width: 14)
                 VStack(alignment: .leading, spacing: 2) {
                     if let t = link.title, !t.isEmpty {
-                        Text(t).font(.system(size: 13, weight: .medium)).foregroundStyle(Color.onSurface).lineLimit(1)
+                        Text(stripHTML(t)).font(.system(size: 13, weight: .medium)).foregroundStyle(Color.onSurface).lineLimit(1)
                     }
                     Text(link.url).font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut).lineLimit(1)
                 }

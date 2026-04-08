@@ -1,3 +1,4 @@
+import ExytePopupView
 import LocalAuthentication
 import SwiftUI
 
@@ -853,6 +854,7 @@ struct NotifyStylePicker: View {
         ("default", "Default",       "bell.fill",               "Стандартный тост сверху"),
         ("center",  "Notify Center", "square.filled.on.square", "Карточка в центре экрана"),
         ("slide",   "Slide-Fade",    "arrow.right.to.line",     "Выезжает справа"),
+        ("exyte",   "Pill",           "capsule.fill",            "Пилюля снизу экрана"),
     ]
 
     var body: some View {

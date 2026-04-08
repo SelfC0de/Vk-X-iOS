@@ -1,3 +1,4 @@
+import ExytePopupView
 import SwiftUI
 
 // MARK: - Toast Model
@@ -61,6 +62,18 @@ struct ToastOverlay: ViewModifier {
     func body(content: Content) -> some View {
         let style = settings.notifyStyle
         switch style {
+        case "exyte":
+            content.popup(isPresented: .constant(!manager.toasts.isEmpty),
+                          view: { ExyteToastView(toast: manager.toasts.last ?? Toast(message: "", icon: "info", style: .info)) },
+                          customize: { config in
+                              config
+                                  .type(.floater(verticalPadding: 48, horizontalPadding: 16, useSafeAreaInset: true))
+                                  .position(.bottom)
+                                  .animation(.spring(response: 0.45, dampingFraction: 0.7))
+                                  .autohideIn(manager.toasts.last?.duration ?? 2.8)
+                                  .closeOnTap(true)
+                                  .backgroundColor(.clear)
+                          })
         case "center":
             content.overlay(NotifyCenterOverlay(manager: manager))
         case "slide":
@@ -85,6 +98,22 @@ struct ToastOverlay: ViewModifier {
 
 extension View {
     func toastOverlay() -> some View { modifier(ToastOverlay()) }
+
+    // Convenience: show popup using ExytePopupView directly
+    func exytePopup<PopupContent: View>(
+        isPresented: Binding<Bool>,
+        @ViewBuilder content: @escaping () -> PopupContent
+    ) -> some View {
+        self.popup(isPresented: isPresented, view: content) { config in
+            config
+                .type(.floater(verticalPadding: 16, horizontalPadding: 16, useSafeAreaInset: true))
+                .position(.bottom)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75))
+                .autohideIn(3.0)
+                .closeOnTap(true)
+                .backgroundColor(.clear)
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -330,5 +359,35 @@ private struct SlideFadeToast: View {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.68)) { appear = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { iconScale = true }
         }
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// MARK: - ExytePopupView style toast (bottom floating pill)
+// ─────────────────────────────────────────────────────────────
+struct ExyteToastView: View {
+    let toast: Toast
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: toast.icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(toast.style.color)
+            Text(toast.message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.onSurface)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 18).padding(.vertical, 13)
+        .background(
+            ZStack {
+                Capsule().fill(.ultraThinMaterial)
+                Capsule().fill(toast.style.bgColor.opacity(0.9))
+                Capsule().stroke(toast.style.color.opacity(0.35), lineWidth: 0.8)
+            }
+        )
+        .shadow(color: toast.style.color.opacity(0.25), radius: 16, y: 6)
     }
 }
