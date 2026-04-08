@@ -465,7 +465,13 @@ final class AudioPlayerModel: ObservableObject {
     func moveDrag(to pct: Double)  { dragProgress = max(0, min(1, pct)) }
     func endDrag()                 { seek(to: dragProgress); isDragging = false }
 
-    deinit { stop() }
+    deinit {
+        // deinit is nonisolated — release AVPlayer resources directly
+        if let obs = timeObserver { player?.removeTimeObserver(obs) }
+        if let obs = endObserver  { NotificationCenter.default.removeObserver(obs) }
+        itemObserver?.invalidate()
+        player?.pause()
+    }
 }
 
 // MARK: - Video Player Sheet
