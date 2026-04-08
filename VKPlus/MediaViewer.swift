@@ -136,9 +136,15 @@ struct AudioPlayerView: View {
                               ? Color(red:0.11,green:0.63,blue:0.95)
                               : Color.cyberBlue.opacity(isActive ? 0.3 : 0.15))
                         .frame(width: 40, height: 40)
-                    Image(systemName: isActive && player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(isVoice ? .white : Color.cyberBlue)
+                    if isActive && player.isLoading {
+                        ProgressView()
+                            .tint(isVoice ? .white : Color.cyberBlue)
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: isActive && player.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(isVoice ? .white : Color.cyberBlue)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -310,19 +316,20 @@ final class ID3MetadataReader: ObservableObject {
 
 
 // MARK: - Audio Player Model
-// NOTE: NOT @MainActor — AVPlayer periodic observer fires on main queue directly
+@MainActor
 final class AudioPlayerModel: ObservableObject {
-    @Published var isPlaying:     Bool   = false
-    @Published var progress:      Double = 0
-    @Published var currentUrl:    String = ""
-    @Published var realDuration:  Double = 0
-    @Published var isDragging:    Bool   = false
-    @Published var dragProgress:  Double = 0
+    @Published var isPlaying:    Bool   = false
+    @Published var progress:     Double = 0
+    @Published var currentUrl:   String = ""
+    @Published var realDuration: Double = 0
+    @Published var isDragging:   Bool   = false
+    @Published var dragProgress: Double = 0
+    @Published var isLoading:    Bool   = false
 
-    private var player:          AVPlayer?
-    private var timeObserver:    Any?
-    private var endObserver:     NSObjectProtocol?
-    private var statusObserver:  NSKeyValueObservation?
+    private var player:         AVPlayer?
+    private var timeObserver:   Any?
+    private var endObserver:    NSObjectProtocol?
+    private var itemObserver:   NSKeyValueObservation?
 
     var displayProgress: Double { isDragging ? dragProgress : progress }
 
@@ -337,48 +344,97 @@ final class AudioPlayerModel: ObservableObject {
 
     private func play(url: String) {
         guard let u = URL(string: url) else { return }
+        currentUrl   = url
+        progress     = 0
+        realDuration = 0
+        isLoading    = true
+
+        // Determine if AVPlayer can stream directly or needs local file
+        // Direct streaming works for: .mp3, .ogg, .m4a, .aac (VK CDN sets correct Content-Type)
+        // Needs local copy: .dat and any URL without recognised audio extension
+        let ext = (URL(string: url)?.pathExtension ?? "").lowercased()
+        let streamableExts: Set<String> = ["mp3", "ogg", "m4a", "aac", "flac", "wav"]
+        let needsLocalPlay = !streamableExts.contains(ext)
+
+        if needsLocalPlay {
+            // Check local cache first (avoid re-downloading on replay)
+            let cacheKey = "vkplus_audio_" + abs(url.hashValue).description + ".mp3"
+            let cacheUrl = FileManager.default.temporaryDirectory.appendingPathComponent(cacheKey)
+            if FileManager.default.fileExists(atPath: cacheUrl.path) {
+                isLoading = false
+                startAVPlayer(localUrl: cacheUrl, trackUrl: url)
+            } else {
+                Task {
+                    do {
+                        let localUrl = try await Self.downloadToLocal(remoteUrl: u, cacheUrl: cacheUrl)
+                        await MainActor.run {
+                            self.isLoading = false
+                            self.startAVPlayer(localUrl: localUrl, trackUrl: url)
+                        }
+                    } catch {
+                        await MainActor.run { self.isLoading = false; self.isPlaying = false }
+                    }
+                }
+            }
+        } else {
+            isLoading = false
+            startAVPlayer(localUrl: u, trackUrl: url)
+        }
+    }
+
+    // Download remote file → local .mp3 (with cache support)
+    private static func downloadToLocal(remoteUrl: URL, cacheUrl: URL? = nil) async throws -> URL {
+        let (tmpUrl, _) = try await URLSession.shared.download(from: remoteUrl)
+        let dest = cacheUrl ?? FileManager.default.temporaryDirectory
+            .appendingPathComponent("vkplus_audio_\(Int(Date().timeIntervalSince1970)).mp3")
+        try? FileManager.default.removeItem(at: dest)
+        try FileManager.default.moveItem(at: tmpUrl, to: dest)
+        return dest
+    }
+
+    private func startAVPlayer(localUrl: URL, trackUrl: String) {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {}
 
-        let item   = AVPlayerItem(url: u)
-        let avp    = AVPlayer(playerItem: item)
-        player     = avp
-        currentUrl = url
-        progress   = 0
-        realDuration = 0
+        let item = AVPlayerItem(url: localUrl)
+        let avp  = AVPlayer(playerItem: item)
+        player   = avp
 
-        // Duration via KVO on status
-        statusObserver = item.observe(\.status, options: [.new]) { [weak self] it, _ in
-            guard let self else { return }
-            if it.status == .readyToPlay {
-                let d = it.duration.seconds
-                if d.isFinite && d > 0 {
-                    DispatchQueue.main.async { self.realDuration = d }
-                }
+        // KVO: item status → get duration once ready
+        itemObserver = item.observe(\.status, options: [.new, .initial]) { [weak item] _, _ in
+            guard let item, item.status == .readyToPlay else { return }
+            let d = item.duration.seconds
+            guard d.isFinite, d > 0 else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.realDuration == 0 { self.realDuration = d }
             }
         }
 
-        // End-of-track notification
+        // End-of-track
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: item, queue: .main
         ) { [weak self] _ in
-            self?.stop()
+            Task { @MainActor [weak self] in self?.stop() }
         }
 
-        // Periodic progress — fires on main queue, update directly (no Task)
+        // Periodic timer — MUST capture self strongly enough to survive
+        // Use unowned to avoid retain cycle but still fire updates
         timeObserver = avp.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.1, preferredTimescale: 600),
+            forInterval: CMTime(value: 1, timescale: 10),  // 0.1s
             queue: .main
-        ) { [weak self, weak avp] time in
-            guard let self, !self.isDragging else { return }
-            let dur = avp?.currentItem?.duration.seconds ?? self.realDuration
-            guard dur.isFinite, dur > 0 else { return }
-            let p = min(time.seconds / dur, 1.0)
-            self.progress     = p
-            if self.realDuration == 0 { self.realDuration = dur }
+        ) { [weak self] time in
+            guard let self else { return }
+            Task { @MainActor [weak self] in
+                guard let self, !self.isDragging else { return }
+                let dur = self.player?.currentItem?.duration.seconds ?? self.realDuration
+                guard dur.isFinite, dur > 0 else { return }
+                self.progress = min(time.seconds / dur, 1.0)
+                if self.realDuration == 0 { self.realDuration = dur }
+            }
         }
 
         avp.play()
@@ -391,9 +447,9 @@ final class AudioPlayerModel: ObservableObject {
     func stop() {
         if let obs = timeObserver    { player?.removeTimeObserver(obs); timeObserver  = nil }
         if let obs = endObserver     { NotificationCenter.default.removeObserver(obs); endObserver = nil }
-        statusObserver?.invalidate(); statusObserver = nil
+        itemObserver?.invalidate(); itemObserver = nil
         player?.pause(); player = nil
-        isPlaying = false; progress = 0; realDuration = 0; currentUrl = ""
+        isPlaying = false; progress = 0; realDuration = 0; currentUrl = ""; isLoading = false
     }
 
     func seek(to pct: Double) {
