@@ -1730,13 +1730,15 @@ private struct MessageTextView: View {
     let textColor: Color
     var onVKLink: ((String) -> Void)? = nil
     var onURL: ((URL) -> Void)? = nil
+    @ObservedObject private var store = SettingsStore.shared
 
     var body: some View {
         LinkableText(
             text: text,
             textColor: textColor,
             onVKLink: { name in onVKLink?(name) },
-            onURL: { url in UIApplication.shared.open(url) }
+            onURL: { url in UIApplication.shared.open(url) },
+            bypassCopy: store.bypassCopy
         )
     }
 }
@@ -1747,6 +1749,7 @@ private struct LinkableText: UIViewRepresentable {
     let textColor: Color
     let onVKLink: (String) -> Void
     let onURL: (URL) -> Void
+    var bypassCopy: Bool = SettingsStore.shared.bypassCopy
 
     private static let vkPattern = try? NSRegularExpression(
         pattern: #"https?://(?:www\.)?vk\.(?:com|ru)/([A-Za-z0-9_\.]+)"#,
@@ -1758,6 +1761,7 @@ private struct LinkableText: UIViewRepresentable {
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView()
         tv.isEditable = false
+        tv.isSelectable = bypassCopy   // bypass: всегда разрешаем выделение
         tv.isScrollEnabled = false
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
@@ -1769,6 +1773,7 @@ private struct LinkableText: UIViewRepresentable {
     func updateUIView(_ tv: UITextView, context: Context) {
         context.coordinator.onVKLink = onVKLink
         context.coordinator.onURL = onURL
+        tv.isSelectable = bypassCopy
         tv.attributedText = buildAttributedString()
     }
 
