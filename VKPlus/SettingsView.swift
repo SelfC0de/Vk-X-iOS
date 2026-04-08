@@ -184,7 +184,12 @@ private struct PrivacyTab: View {
                 SettingsToggle("Не отмечать прочитанным",  icon: "envelope.badge.shield.half.filled",  subtitle: "Входящие остаются непрочитанными",        val: $s.ghostMode)
                 SettingsToggle("Anti-Typing (UnType)",     icon: "keyboard.badge.eye",    subtitle: "Собеседник не видит что ты печатаешь",       val: $s.antiTyping)
                         .onChange(of: s.antiTyping) { _, val in
-                            if val { s.typeStatus = TypeStatus.none.rawValue }
+                            if val {
+                                s.typeStatus = TypeStatus.none.rawValue
+                                // Fake Type конфликтует — сброс
+                                SettingsStore.shared.activeTypingPeerId = 0
+                                ToastManager.shared.show("Anti-Typing включён — Fake Type сброшен", icon: "keyboard.badge.eye", style: .info)
+                            }
                         }
                 SettingsToggle("Force Offline",            icon: "wifi.exclamationmark",  subtitle: "Всегда показываться офлайн",        val: $s.forceOffline)
                 SettingsToggle("Ghost Online",             icon: "moon.stars.fill",       subtitle: "Скрыть онлайн-статус",          val: $s.ghostOnline)
@@ -352,6 +357,11 @@ private struct EngineTab: View {
                     Button {
                         withAnimation(.easeInOut(duration: 0.15)) {
                             s.typeStatus = status.rawValue
+                            // Fake Type конфликтует с Anti-Typing — взаимоисключение
+                            if status != .none && s.antiTyping {
+                                s.antiTyping = false
+                                ToastManager.shared.show("Anti-Typing выключен — активирован Fake Type", icon: "keyboard.fill", style: .info)
+                            }
                         }
                     } label: {
                         HStack(spacing: 12) {
@@ -625,7 +635,10 @@ struct SettingsToggle: View {
                     }
                 }
                 Spacer()
-                TKSwitch(isOn: $val, style: .liquid)
+                Toggle("", isOn: $val)
+                    .tint(val ? Color.cyberBlue : Color(white: 0.25))
+                    .labelsHidden()
+                    .scaleEffect(0.9)
             }
             .padding(.horizontal, 14).padding(.vertical, subtitle.isEmpty ? 13 : 10)
             Divider().background(Color.divider).padding(.leading, 48)
@@ -674,14 +687,15 @@ struct PredictPushFilterCard: View {
             if s.predictFilterGroups {
                 Divider().background(Color.divider).padding(.leading, 50)
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack {
+                    HStack(spacing: 10) {
                         Image(systemName: "person.3.fill")
                             .font(.system(size: 13)).foregroundStyle(Color.onSurfaceMut)
                             .frame(width: 22)
-                        Text("Мин. участников в группе: \(s.predictMinGroupSize)+")
+                        Text("Мин. участников: \(s.predictMinGroupSize)+")
                             .font(.system(size: 13)).foregroundStyle(Color.onSurface)
+                        Spacer()
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 14).padding(.top, 8)
                     HStack(spacing: 10) {
                         Text("2").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                         Slider(value: Binding(
@@ -691,7 +705,7 @@ struct PredictPushFilterCard: View {
                         .tint(Color(r:0xFF,g:0x6B,b:0x35))
                         Text("50").font(.system(size: 11)).foregroundStyle(Color.onSurfaceMut)
                     }
-                    .padding(.horizontal, 14).padding(.bottom, 8)
+                    .padding(.horizontal, 14).padding(.bottom, 10)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 .animation(.easeInOut(duration: 0.2), value: s.predictFilterGroups)
@@ -800,27 +814,32 @@ private struct PredictFavoritesEditor: View {
                     .foregroundStyle(Color.onSurfaceMut)
                     .padding(.horizontal, 14).padding(.bottom, 10)
             } else {
-                ForEach(s.predictFavoriteIds, id: \.self) { uid in
-                    HStack(spacing: 10) {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.cyberBlue)
-                            .frame(width: 22)
-                        Text("ID: \(uid)")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.onSurface)
-                        Spacer()
-                        Button {
-                            s.predictFavoriteIds.removeAll { $0 == uid }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(Color.onSurfaceMut)
-                                .font(.system(size: 16))
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(s.predictFavoriteIds, id: \.self) { uid in
+                            HStack(spacing: 10) {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.cyberBlue)
+                                    .frame(width: 22)
+                                Text("ID: \(uid)")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.onSurface)
+                                Spacer()
+                                Button {
+                                    s.predictFavoriteIds.removeAll { $0 == uid }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(Color.onSurfaceMut)
+                                        .font(.system(size: 16))
+                                }
+                            }
+                            .padding(.horizontal, 14).padding(.vertical, 6)
+                            Divider().background(Color.divider).padding(.leading, 50)
                         }
                     }
-                    .padding(.horizontal, 14).padding(.vertical, 6)
-                    Divider().background(Color.divider).padding(.leading, 50)
                 }
+                .frame(maxHeight: 180)
             }
         }
         .padding(.bottom, 8)
