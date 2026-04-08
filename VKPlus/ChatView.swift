@@ -802,18 +802,32 @@ struct ChatView: View {
         isUploading = true
         defer { isUploading = false }
         do {
-            let data = try Data(contentsOf: url)
+            let data     = try Data(contentsOf: url)
             let filename = url.lastPathComponent
-            let ext = url.pathExtension.lowercased()
-            let mime: String
-            switch ext {
-            case "mp3","m4a","aac","ogg","flac": mime = "audio/mpeg"
-            case "mp4","mov","avi":              mime = "video/mp4"
-            case "pdf":                          mime = "application/pdf"
-            default:                             mime = "application/octet-stream"
+            let ext      = url.pathExtension.lowercased()
+            let att: String
+
+            if ["mp3","ogg","aac","flac","m4a"].contains(ext) {
+                // Audio: use audio.getUploadServer pipeline
+                let nameNoExt = (filename as NSString).deletingPathExtension
+                let parts  = nameNoExt.components(separatedBy: " - ")
+                let artist = parts.count >= 2 ? parts[0].trimmingCharacters(in: .whitespaces) : "Unknown"
+                let title  = parts.count >= 2
+                    ? parts[1...].joined(separator: " - ").trimmingCharacters(in: .whitespaces)
+                    : nameNoExt
+                att = try await VKAPIClient.shared.uploadAudioFile(
+                    data: data, filename: filename, artist: artist, title: title)
+            } else {
+                // Video / doc
+                let mime: String
+                switch ext {
+                case "mp4","mov","avi": mime = "video/mp4"
+                case "pdf":            mime = "application/pdf"
+                default:               mime = "application/octet-stream"
+                }
+                att = try await VKAPIClient.shared.uploadDocForMessage(
+                    peerId: peerId, data: data, filename: filename, mimeType: mime)
             }
-            let att = try await VKAPIClient.shared.uploadDocForMessage(
-                peerId: peerId, data: data, filename: filename, mimeType: mime)
             pendingAttach = att
             ToastManager.shared.show("\(filename) прикреплён", icon: "paperclip", style: .success)
         } catch {

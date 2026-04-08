@@ -419,6 +419,54 @@ final class VKAPIClient {
         return "doc\(ownerId)_\(docId)"
     }
 
+
+    // MARK: - Upload audio file (mp3/ogg) via audio.upload + audio.add
+    func uploadAudioFile(data: Data, filename: String, artist: String, title: String) async throws -> String {
+        // 1. Get audio upload server URL
+        let serverJson = try await rawCall("audio.getUploadServer", params: [:])
+        if let apiErr = serverJson["error"] as? [String: Any],
+           let errMsg = apiErr["error_msg"] as? String {
+            throw VKError.api((apiErr["error_code"] as? Int) ?? 0, errMsg)
+        }
+        guard let uploadUrl = (serverJson["response"] as? [String: Any])?["upload_url"] as? String,
+              !uploadUrl.isEmpty else {
+            throw VKError.api(0, "audio.getUploadServer: нет URL")
+        }
+
+        // 2. Upload mp3
+        let fileToken = try await uploadMultipartRaw(
+            url: uploadUrl, data: data, name: "file", filename: filename, mimeType: "audio/mpeg")
+
+        // 3. Save via audio.save
+        // fileToken is JSON string: {"server":...,"audio":...,"hash":...}
+        // Parse it to extract server, audio, hash
+        guard let tokenData = fileToken.data(using: .utf8),
+              let tokenJson = try? JSONSerialization.jsonObject(with: tokenData) as? [String: Any],
+              let server    = tokenJson["server"].map({ "\($0)" }),
+              let audio     = tokenJson["audio"]  as? String,
+              let hash      = tokenJson["hash"]   as? String else {
+            throw VKError.api(0, "Audio token parse failed: \(fileToken)")
+        }
+        let saveParams: [String: String] = [
+            "server": server,
+            "audio":  audio,
+            "hash":   hash,
+            "artist": artist,
+            "title":  title
+        ]
+        let saveJson = try await rawCall("audio.save", params: saveParams)
+        if let apiErr = saveJson["error"] as? [String: Any],
+           let errMsg = apiErr["error_msg"] as? String {
+            throw VKError.api((apiErr["error_code"] as? Int) ?? 0, errMsg)
+        }
+        guard let resp    = saveJson["response"] as? [String: Any],
+              let audioId = resp["id"]       as? Int,
+              let ownerId = resp["owner_id"] as? Int else {
+            throw VKError.api(0, "audio.save parse failed: \(saveJson)")
+        }
+        return "audio\(ownerId)_\(audioId)"
+    }
+
     // MARK: - Upload doc (video/audio/file) to messages
     func uploadDocForMessage(peerId: Int, data: Data, filename: String, mimeType: String) async throws -> String {
         let isVideo = mimeType.hasPrefix("video")
